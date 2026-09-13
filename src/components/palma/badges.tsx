@@ -1,0 +1,77 @@
+import { BadgeCheck, Award, Medal } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import type { HonourEntry, VerificationStatus } from '@/server/data/types';
+
+export function VerificationBadge({
+  status,
+  className,
+  tone = 'light',
+}: {
+  status: VerificationStatus;
+  className?: string;
+  tone?: 'light' | 'dark';
+}) {
+  if (status !== 'verified') return null;
+  return (
+    <Badge
+      variant={tone === 'dark' ? 'outlineIvory' : 'olive'}
+      className={cn('gap-1.5', className)}
+    >
+      <BadgeCheck className="size-3.5" aria-hidden="true" />
+      Verified PALMA creator
+    </Badge>
+  );
+}
+
+const HONOUR_LABEL: Record<HonourEntry['kind'], string> = {
+  winner: 'PALMA Winner',
+  finalist: 'PALMA Finalist',
+  shortlist: 'PALMA Shortlist',
+  special_recognition: 'Special Recognition',
+};
+
+export function AchievementBadge({
+  kind,
+  year,
+  categoryName,
+  revoked = false,
+  className,
+}: {
+  kind: HonourEntry['kind'];
+  year?: number;
+  categoryName?: string;
+  revoked?: boolean;
+  className?: string;
+}) {
+  const Icon = kind === 'winner' ? Award : Medal;
+
+  return (
+    <span className={cn('flex items-start gap-3', className)}>
+      <Icon
+        className={cn('mt-0.5 size-4.5 shrink-0', kind === 'winner' ? 'text-champagne-deep' : 'text-olive')}
+        aria-hidden="true"
+      />
+      <span className="flex flex-col gap-1">
+        <span className="palma-label">{HONOUR_LABEL[kind]}</span>
+        {categoryName ? (
+          <span className={cn('text-[0.9375rem] text-ink', revoked && 'line-through opacity-60')}>
+            {categoryName}
+            {year ? <span className="text-taupe-deep"> — {year}</span> : null}
+          </span>
+        ) : null}
+        {revoked ? <span className="palma-label text-red-800">Revoked</span> : null}
+      </span>
+    </span>
+  );
+}
+
+export function HonourPill({ kind, year }: { kind: HonourEntry['kind']; year: number }) {
+  return (
+    <Badge variant={kind === 'winner' ? 'champagne' : 'default'}>
+      {HONOUR_LABEL[kind]} · {year}
+    </Badge>
+  );
+}
+
+export { HONOUR_LABEL };

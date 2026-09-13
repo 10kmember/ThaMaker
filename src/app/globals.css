@@ -1,0 +1,200 @@
+@import 'tailwindcss';
+
+/* ───────────────────────────────────────────────────────────────────────────
+   PALMA — design tokens
+
+   Ink, Warm Ivory, Stone, Muted Taupe, Deep Olive, Champagne.
+   Champagne is ceremonial: it marks an honour, never a surface.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@theme {
+  --color-ink: #161719;
+  --color-ink-soft: #22242a;
+  --color-ink-muted: #3a3d44;
+  --color-ivory: #f4f0e8;
+  --color-ivory-bright: #fbf9f4;
+  --color-stone: #d8d3c9;
+  --color-stone-deep: #c4bdb0;
+  --color-taupe: #aaa397;
+  --color-taupe-deep: #8c8478;
+  --color-olive: #4a5148;
+  --color-olive-bright: #616b5d;
+  --color-champagne: #c9b58a;
+  --color-champagne-deep: #a8946b;
+
+  --font-display:
+    var(--font-palma-display), 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  --font-sans:
+    var(--font-palma-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial,
+    sans-serif;
+
+  --radius-seal: 999px;
+
+  --tracking-institution: 0.24em;
+  --tracking-label: 0.14em;
+
+  --ease-ceremonial: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --animate-reveal: reveal 0.9s var(--ease-ceremonial) both;
+  --animate-rise: rise 0.7s var(--ease-ceremonial) both;
+  --animate-seal: seal 1.4s var(--ease-ceremonial) both;
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 1.1rem, 0);
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    clip-path: inset(-10% -10% -10% -10%);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.75rem, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes seal {
+  from {
+    opacity: 0;
+    transform: scale(0.94) rotate(-6deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --palma-surface: var(--color-ivory);
+    --palma-ink: var(--color-ink);
+  }
+
+  * {
+    border-color: color-mix(in oklab, var(--color-stone) 70%, transparent);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-ivory);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-feature-settings: 'kern' 1, 'liga' 1, 'cv05' 1;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-champagne) 45%, transparent);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-olive);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  /* Dark institutional surfaces carry their own focus ring. */
+  .on-ink :focus-visible {
+    outline-color: var(--color-champagne);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  hr {
+    border-color: color-mix(in oklab, var(--color-stone) 80%, transparent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* The institutional label: small, spaced, quietly authoritative. */
+  .palma-label {
+    font-size: 0.6875rem;
+    line-height: 1;
+    font-weight: 500;
+    letter-spacing: var(--tracking-label);
+    text-transform: uppercase;
+  }
+
+  .palma-wordmark {
+    font-family: var(--font-display);
+    letter-spacing: var(--tracking-institution);
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+
+  .palma-rule {
+    height: 1px;
+    width: 100%;
+    background: linear-gradient(
+      to right,
+      color-mix(in oklab, currentColor 22%, transparent),
+      transparent
+    );
+  }
+
+  /* Editorial measure for long-form Journal copy. */
+  .palma-prose p {
+    margin-bottom: 1.6em;
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    color: color-mix(in oklab, var(--color-ink) 88%, transparent);
+  }
+
+  .palma-prose p:first-of-type::first-letter {
+    float: left;
+    font-family: var(--font-display);
+    font-size: 3.6em;
+    line-height: 0.82;
+    padding-right: 0.08em;
+    padding-top: 0.06em;
+  }
+}
+
+@utility text-balance-display {
+  text-wrap: balance;
+}

@@ -1,0 +1,28 @@
+import * as React from 'react';
+import { cn } from '@/lib/utils';
+
+export function Table({ className, ...props }: React.ComponentProps<'table'>) {
+  return (
+    <div className="w-full overflow-x-auto">
+      <table className={cn('w-full min-w-150 border-collapse text-left text-sm', className)} {...props} />
+    </div>
+  );
+}
+
+export function THead({ className, ...props }: React.ComponentProps<'thead'>) {
+  return (
+    <thead
+      className={cn('border-b border-stone-deep [&_th]:palma-label [&_th]:py-3 [&_th]:text-taupe-deep', className)}
+      {...props}
+    />
+  );
+}
+
+export function TBody({ className, ...props }: React.ComponentProps<'tbody'>) {
+  return (
+    <tbody
+      className={cn('[&_td]:py-3.5 [&_tr]:border-b [&_tr]:border-stone-deep/50', className)}
+      {...props}
+    />
+  );
+}
