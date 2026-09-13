@@ -43,7 +43,7 @@ export default async function HomePage() {
       <section className="on-ink bg-ink text-ivory relative overflow-hidden">
         <PalmMark
           variant="line"
-          className="text-ivory/[0.05] pointer-events-none absolute -top-20 -right-30 h-160 sm:-right-10"
+          className="text-ivory/[0.035] sm:text-ivory/[0.05] pointer-events-none absolute -top-6 -right-24 h-72 sm:-top-20 sm:-right-16 sm:h-160"
         />
         <Container className="relative flex min-h-[78dvh] flex-col justify-center py-24 sm:py-32">
           <Reveal variant="reveal" className="flex flex-col gap-10">
@@ -192,7 +192,9 @@ export default async function HomePage() {
               </p>
               <div>
                 <Button asChild variant="ivory" size="md">
-                  <Link href="/paroh">Enter the PaROH</Link>
+                  <Link href="/paroh" className="palma-label-brand">
+                    Enter the PaROH
+                  </Link>
                 </Button>
               </div>
             </div>

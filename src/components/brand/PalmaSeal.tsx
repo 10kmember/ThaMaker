@@ -32,7 +32,9 @@ export function PalmaSeal({
     >
       <defs>
         <path id="palma-seal-upper" d="M110 110 m-84 0 a84 84 0 0 1 168 0" fill="none" />
-        <path id="palma-seal-lower" d="M110 110 m84 0 a84 84 0 0 1 -168 0" fill="none" />
+        {/* The lower arc sweeps left to right beneath the centre, so the
+            sublegend reads upright rather than inverted. */}
+        <path id="palma-seal-lower" d="M26 110 A84 84 0 0 0 194 110" fill="none" />
       </defs>
 
       <circle
@@ -74,7 +76,7 @@ export function PalmaSeal({
         </textPath>
       </text>
 
-      <text fill="currentColor" fontSize="8.5" letterSpacing="4.4" opacity="0.8">
+      <text fill="currentColor" fontSize="8.5" letterSpacing="4.4" opacity="0.8" dy="-7">
         <textPath href="#palma-seal-lower" startOffset="50%" textAnchor="middle">
           {sublegend}
         </textPath>
@@ -82,19 +84,20 @@ export function PalmaSeal({
 
       {/* Palm geometry, engraved */}
       <g
-        transform="translate(110 96) scale(0.92)"
+        transform="translate(110 98) scale(1.45)"
         stroke="currentColor"
-        strokeWidth="1.3"
+        strokeWidth="0.9"
         strokeLinecap="round"
         fill="none"
       >
-        <path d="M0 32V-2" />
-        <path d="M0 0c-5.6-1-9.6-4.5-11.6-9.8C-5.8-9.4-1.9-6.3 0-2.1" />
-        <path d="M0 0c5.6-1 9.6-4.5 11.6-9.8C5.8-9.4 1.9-6.3 0-2.1" />
-        <path d="M0 12c-4.7-.9-8.1-3.8-9.8-8.3C-4.9 4.3-1.6 7-0 10.6" />
-        <path d="M0 12c4.7-.9 8.1-3.8 9.8-8.3C4.9 4.3 1.6 7 0 10.6" />
-        <path d="M0-2.1V-12" />
-        <circle cx="0" cy="-14.4" r="1.9" />
+        <path d="M0 20V-16" />
+        <path d="M0-11C-5.6-14.6-11.5-15-17-12.6" />
+        <path d="M0-11c5.6-3.6 11.5-4 17-1.6" />
+        <path d="M0-1.5C-5-5.9-10.6-7.4-16-6" />
+        <path d="M0-1.5c5-4.4 10.6-5.9 16-4.5" />
+        <path d="M0 8.5c-4.4-4.6-9.2-6.6-14-6" />
+        <path d="M0 8.5c4.4-4.6 9.2-6.6 14-6" />
+        <circle cx="0" cy="-19.6" r="2" />
       </g>
 
       {centre ? (

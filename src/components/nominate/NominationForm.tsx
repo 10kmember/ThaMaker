@@ -127,8 +127,10 @@ export function NominationForm({
   return (
     <div className="grid gap-12 lg:grid-cols-12">
       {/* Step rail */}
-      <nav aria-label="Nomination steps" className="lg:col-span-3">
-        <ol className="flex gap-4 overflow-x-auto lg:flex-col lg:gap-0 lg:overflow-visible">
+      {/* min-w-0: a grid item defaults to min-width:auto, which would let the
+          horizontally scrolling step rail widen the page instead of scrolling. */}
+      <nav aria-label="Nomination steps" className="min-w-0 lg:col-span-3">
+        <ol className="flex w-full gap-4 overflow-x-auto lg:flex-col lg:gap-0 lg:overflow-visible">
           {STEPS.map((entry, index) => {
             const state_ = index === step ? 'current' : index < step ? 'complete' : 'upcoming';
             return (

@@ -27,6 +27,26 @@ describe.skipIf(!hasDatabase)('conferring an honour (integration)', () => {
   beforeAll(async () => {
     const db = prisma!;
 
+    // Clear anything an interrupted earlier run left behind, so a failed
+    // cleanup never leaks a fake season into the public record.
+    const stale = await db.awardYear.findMany({
+      where: { title: { startsWith: 'PALMA Integration' } },
+      select: { id: true },
+    });
+    if (stale.length > 0) {
+      const ids = stale.map((entry) => entry.id);
+      await db.nomination.deleteMany({ where: { awardYearId: { in: ids } } });
+      await db.awardYear.deleteMany({ where: { id: { in: ids } } });
+      await db.creator.deleteMany({
+        where: {
+          OR: [
+            { slug: { startsWith: 'verified-it-' } },
+            { slug: { startsWith: 'unverified-it-' } },
+          ],
+        },
+      });
+    }
+
     const season = await db.awardYear.create({
       data: {
         year: 2900 + (Date.now() % 90),

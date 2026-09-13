@@ -60,10 +60,10 @@ export default async function ParohPage({ searchParams }: Props) {
   return (
     <>
       <header className="on-ink border-ink bg-ink text-ivory relative overflow-hidden border-b">
-        <PalmMark className="text-ivory/[0.05] pointer-events-none absolute -top-10 -right-20 h-120" />
+        <PalmMark className="text-ivory/[0.035] sm:text-ivory/[0.05] pointer-events-none absolute -top-4 -right-20 h-64 sm:top-6 sm:-right-16 sm:h-110" />
         <Container className="relative py-20 sm:py-28">
           <div className="flex max-w-200 flex-col gap-8">
-            <span className="palma-label text-champagne">PaROH</span>
+            <span className="palma-label-brand text-champagne">PaROH</span>
             <h1 className="text-5xl leading-[0.95] sm:text-7xl lg:text-8xl">
               PALMA
               <br />

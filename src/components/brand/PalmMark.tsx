@@ -8,9 +8,12 @@ type PalmMarkProps = {
 };
 
 /**
- * The PALMA mark: an abstract palm reduced to an engraved stem and paired
- * fronds. It reads as a branching geometry or a laurel at small sizes, and
- * never as a tropical illustration.
+ * The PALMA mark.
+ *
+ * A palm reduced to an engraved spine and open fronds that sweep upward — the
+ * geometry of victory and honour rather than a picture of a tree. The fronds
+ * are single open strokes, never closed leaf shapes, so the mark reads as a
+ * ceremonial engraving at any size.
  */
 export function PalmMark({ className, variant = 'line', title }: PalmMarkProps) {
   const decorative = !title;
@@ -28,22 +31,25 @@ export function PalmMark({ className, variant = 'line', title }: PalmMarkProps) 
       {title ? <title>{title}</title> : null}
       <g
         stroke="currentColor"
-        strokeWidth={variant === 'solid' ? 2.6 : 1.4}
+        strokeWidth={variant === 'solid' ? 2.4 : 1.3}
         strokeLinecap="round"
-        strokeLinejoin="round"
+        fill="none"
       >
-        {/* Stem */}
-        <path d="M24 54V18" />
-        {/* Paired fronds, tightening towards the crown */}
-        <path d="M24 20c-6.4-1.2-11-5.2-13.2-11.2C17.1 8.4 21.8 12 24 17.6" />
-        <path d="M24 20c6.4-1.2 11-5.2 13.2-11.2C30.9 8.4 26.2 12 24 17.6" />
-        <path d="M24 30c-5.4-1-9.3-4.4-11.2-9.5C18.2 20.9 22.1 24 24 28.2" />
-        <path d="M24 30c5.4-1 9.3-4.4 11.2-9.5C29.8 20.9 25.9 24 24 28.2" />
-        <path d="M24 40c-4.3-.8-7.5-3.5-9-7.6C19.5 33 22.6 35.5 24 38.9" />
-        <path d="M24 40c4.3-.8 7.5-3.5 9-7.6C28.5 33 25.4 35.5 24 38.9" />
+        {/* Spine */}
+        <path d="M24 53V9" />
+
+        {/* Fronds: open sweeps, longest at the crown, tightening downward */}
+        <path d="M24 13C18.2 9.8 12.6 9.4 7.2 11.8" />
+        <path d="M24 13c5.8-3.2 11.4-3.6 16.8-1.2" />
+        <path d="M24 21.5C18.8 17.6 13.5 16.3 8.2 17.6" />
+        <path d="M24 21.5c5.2-3.9 10.5-5.2 15.8-3.9" />
+        <path d="M24 30.5c-4.6-4.2-9.3-6-14-5.4" />
+        <path d="M24 30.5c4.6-4.2 9.3-6 14-5.4" />
+        <path d="M24 39.5c-3.9-4.2-7.9-6.3-11.9-6.2" />
+        <path d="M24 39.5c3.9-4.2 7.9-6.3 11.9-6.2" />
+
         {/* Crown */}
-        <path d="M24 17.6V6" />
-        <circle cx="24" cy="3.4" r="2.2" />
+        <circle cx="24" cy="5.4" r="2.1" />
       </g>
     </svg>
   );

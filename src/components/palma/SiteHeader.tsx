@@ -53,7 +53,8 @@ export function SiteHeader({ accountHref = '/portal' }: { accountHref?: string }
                   href={item.href}
                   aria-current={isActive(item.href) ? 'page' : undefined}
                   className={cn(
-                    'palma-label py-2 transition-colors',
+                    'py-2 transition-colors',
+                    item.preserveCase ? 'palma-label-brand' : 'palma-label',
                     isActive(item.href) ? 'text-ink' : 'text-taupe-deep hover:text-ink',
                   )}
                 >

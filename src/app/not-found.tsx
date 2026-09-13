@@ -21,7 +21,9 @@ export default function NotFound() {
             <Link href="/verify">Verify an honour</Link>
           </Button>
           <Button asChild size="sm" variant="outline">
-            <Link href="/paroh">Enter the PaROH</Link>
+            <Link href="/paroh" className="palma-label-brand">
+              Enter the PaROH
+            </Link>
           </Button>
         </div>
       </Container>

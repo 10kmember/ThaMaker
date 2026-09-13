@@ -88,14 +88,17 @@ export function EditorialImage({
         aria-hidden="true"
         preserveAspectRatio="xMidYMid slice"
       >
-        <g stroke="currentColor" strokeWidth="0.8" fill="none" strokeLinecap="round">
-          <path d="M100 250V96" />
-          <path d="M100 110c-28-5-48-22-58-50 30 2 51 19 58 43" />
-          <path d="M100 110c28-5 48-22 58-50-30 2-51 19-58 43" />
-          <path d="M100 156c-22-4-38-18-46-40 24 2 41 15 46 34" />
-          <path d="M100 156c22-4 38-18 46-40-24 2-41 15-46 34" />
-          <path d="M100 200c-17-3-29-14-35-31 18 2 31 12 35 26" />
-          <path d="M100 200c17-3 29-14 35-31-18 2-31 12-35 26" />
+        <g stroke="currentColor" strokeWidth="0.9" fill="none" strokeLinecap="round">
+          <path d="M100 250V40" />
+          <path d="M100 58C74 44 48 42 24 53" />
+          <path d="M100 58c26-14 52-16 76-5" />
+          <path d="M100 100C77 82 53 76 29 82" />
+          <path d="M100 100c23-18 47-24 71-18" />
+          <path d="M100 142c-21-19-42-28-63-26" />
+          <path d="M100 142c21-19 42-28 63-26" />
+          <path d="M100 184c-18-19-36-29-54-29" />
+          <path d="M100 184c18-19 36-29 54-29" />
+          <circle cx="100" cy="30" r="8" />
         </g>
       </svg>
       <span className="font-display text-ivory/85 relative text-4xl tracking-[0.12em]">

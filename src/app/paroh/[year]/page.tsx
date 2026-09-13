@@ -65,7 +65,9 @@ export default async function ParohYearPage({ params }: Params) {
               description="Honours are entered into the Roll of Honour at the ceremony."
               action={
                 <Button asChild size="sm" variant="outline">
-                  <Link href="/paroh">View the PaROH</Link>
+                  <Link href="/paroh" className="palma-label-brand">
+                    View the PaROH
+                  </Link>
                 </Button>
               }
             />

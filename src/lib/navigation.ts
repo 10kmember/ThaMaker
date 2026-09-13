@@ -1,6 +1,8 @@
 export type NavItem = {
   href: string;
   label: string;
+  /** Labels whose casing is part of the name, such as PaROH. */
+  preserveCase?: boolean;
   /** Shown in the condensed desktop bar; the rest collapse into the menu. */
   primary?: boolean;
 };
@@ -11,7 +13,7 @@ export const PUBLIC_NAV: NavItem[] = [
   { href: '/nominate', label: 'Nominate' },
   { href: '/finalists', label: 'Finalists', primary: true },
   { href: '/winners', label: 'Winners', primary: true },
-  { href: '/paroh', label: 'PaROH', primary: true },
+  { href: '/paroh', label: 'PaROH', primary: true, preserveCase: true },
   { href: '/journal', label: 'Journal', primary: true },
   { href: '/about', label: 'About' },
 ];

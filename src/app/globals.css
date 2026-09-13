@@ -163,6 +163,16 @@
     text-transform: uppercase;
   }
 
+  /* PaROH is a proper noun with deliberate casing. Labels that carry it use
+     this variant so the archive's name is never flattened to "PAROH". */
+  .palma-label-brand {
+    font-size: 0.6875rem;
+    line-height: 1;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: none;
+  }
+
   .palma-wordmark {
     font-family: var(--font-display);
     letter-spacing: var(--tracking-institution);

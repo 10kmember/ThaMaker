@@ -74,7 +74,9 @@ export default async function WinnersPage({ searchParams }: Props) {
               description={`${season.title} winners are announced at the ceremony. The Roll of Honour holds every previous season.`}
               action={
                 <Button asChild size="sm" variant="outline">
-                  <Link href="/paroh">Enter the PaROH</Link>
+                  <Link href="/paroh" className="palma-label-brand">
+                    Enter the PaROH
+                  </Link>
                 </Button>
               }
             />
