@@ -37,13 +37,6 @@ export async function fileReport(_previous: ReportState, formData: FormData): Pr
   if (parsed.data.website) return { status: 'success', message: 'Report received.' };
 
   const db = prisma;
-  if (!db) {
-    return {
-      status: 'error',
-      message:
-        'PALMA is running without a database in this environment. Email honours@palmaawards.com instead.',
-    };
-  }
 
   const session = await getSession();
   const creator = parsed.data.creatorSlug

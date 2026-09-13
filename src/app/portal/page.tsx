@@ -32,9 +32,8 @@ export default async function PortalPage() {
   if (!portal) {
     return (
       <PortalShell title="PALMA Portal" userName={session.user.name}>
-        <Notice tone="warning" title="Archive mode">
-          PALMA is running without a database in this environment, so the portal has nothing to
-          show.
+        <Notice tone="warning" title="Account not found">
+          This account could not be loaded. Sign out and in again, or contact PALMA.
         </Notice>
       </PortalShell>
     );

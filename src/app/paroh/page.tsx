@@ -8,6 +8,7 @@ import { InkFill } from '@/components/motion/illusion';
 import { buildMetadata } from '@/lib/seo';
 import { countryName } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { pigmentStyle } from '@/lib/category-identity';
 import {
   getRollOfHonour,
   listCategoryIndex,
@@ -223,12 +224,21 @@ export default async function ParohPage({ searchParams }: Props) {
 
                   <ul className="mt-2">
                     {group.entries.map((entry) => (
-                      <li key={`${entry.year}-${entry.categorySlug}`}>
+                      <li
+                        key={`${entry.year}-${entry.categorySlug}`}
+                        style={pigmentStyle(entry.categorySlug)}
+                      >
                         <Link
                           href={`/creators/${entry.creator.slug}`}
-                          className="group border-stone-deep hover:bg-stone/25 grid grid-cols-1 items-baseline gap-1 border-b py-6 transition-colors sm:grid-cols-12 sm:gap-6"
+                          className="group/card border-stone-deep hover:bg-stone/25 relative grid grid-cols-1 items-baseline gap-1 border-b py-6 transition-colors sm:grid-cols-12 sm:gap-6"
                         >
-                          <span className="palma-label text-taupe-deep sm:col-span-5">
+                          {/* The category's pigment travels the row on approach:
+                              the archive reads as a record, not a grey list. */}
+                          <span
+                            aria-hidden="true"
+                            className="palma-pigment-rule palma-card-rule absolute bottom-0 left-0 h-0.5 w-full"
+                          />
+                          <span className="palma-label palma-pigment-text sm:col-span-5">
                             {entry.categoryName}
                           </span>
                           <span className="font-display text-2xl leading-tight sm:col-span-5 sm:text-3xl">

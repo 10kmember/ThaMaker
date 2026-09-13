@@ -31,9 +31,9 @@ export default async function AdminPage() {
 
   if (!overview) {
     return (
-      <Notice tone="warning" title="No live season">
-        PALMA is either running without a database or has no season marked current. Seed a season to
-        use the administration portal.
+      <Notice tone="warning" title="No current season">
+        No season is marked current. Create one, or mark an existing season current, before running
+        the administration portal.
       </Notice>
     );
   }

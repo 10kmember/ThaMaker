@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Container, PageHeader, Section } from '@/components/palma/layout';
 import { SeasonRail } from '@/components/palma/SeasonRail';
+import { pigmentStyle } from '@/lib/category-identity';
 import { FinalistCard } from '@/components/palma/FinalistCard';
 import { EmptyState } from '@/components/ui/feedback';
 import { Button } from '@/components/ui/button';
@@ -102,9 +103,13 @@ export default async function FinalistsPage({ searchParams }: Props) {
             tone={index % 2 === 0 ? 'ink' : 'olive'}
             className="py-20 sm:py-24"
           >
-            <Container>
-              <div className="flex flex-col gap-4 border-b border-current/15 pb-10">
-                <span className="palma-label opacity-60">{season.title}</span>
+            <Container style={pigmentStyle(outcome.category.slug)}>
+              <div className="relative flex flex-col gap-4 border-b border-current/15 pb-10">
+                <span
+                  aria-hidden="true"
+                  className="palma-pigment-rule absolute bottom-0 left-0 h-0.5 w-24"
+                />
+                <span className="palma-label palma-pigment-text">{season.title}</span>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                   <h2 className="text-4xl leading-tight sm:text-5xl">{outcome.category.name}</h2>
                   <Link
@@ -118,7 +123,12 @@ export default async function FinalistsPage({ searchParams }: Props) {
 
               <div className="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
                 {outcome.finalists.map((finalist, position) => (
-                  <FinalistCard key={finalist.creator.slug} finalist={finalist} index={position} />
+                  <FinalistCard
+                    key={finalist.creator.slug}
+                    finalist={finalist}
+                    index={position}
+                    categorySlug={outcome.category.slug}
+                  />
                 ))}
               </div>
             </Container>

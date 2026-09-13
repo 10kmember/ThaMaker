@@ -1,36 +1,33 @@
 import { PrismaClient } from '@prisma/client';
-import { env, isLive } from '@/lib/env';
+import { env } from '@/lib/env';
 
 const globalForPrisma = globalThis as unknown as { palmaPrisma?: PrismaClient };
 
+/**
+ * The database.
+ *
+ * PostgreSQL is PALMA's single source of truth. There is no fallback dataset,
+ * no in-memory mode and no bundled fixtures behind this client: if the database
+ * is unavailable the page fails loudly, which is the correct behaviour for an
+ * institution whose whole value is the accuracy of its record.
+ */
 function createClient(): PrismaClient {
   return new PrismaClient({
     log: env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
   });
 }
 
-/**
- * The Prisma client, or `null` when PALMA is running in archive mode
- * (no DATABASE_URL). Callers must handle `null` explicitly — reads fall back to
- * the bundled reference dataset, writes are refused.
- */
-export const prisma: PrismaClient | null = isLive
-  ? (globalForPrisma.palmaPrisma ?? createClient())
-  : null;
+export const prisma: PrismaClient = globalForPrisma.palmaPrisma ?? createClient();
 
-if (env.NODE_ENV !== 'production' && prisma) {
+if (env.NODE_ENV !== 'production') {
   globalForPrisma.palmaPrisma = prisma;
 }
 
-export class DatabaseUnavailableError extends Error {
-  constructor() {
-    super('PALMA is running without a database (archive mode). Set DATABASE_URL to enable writes.');
-    this.name = 'DatabaseUnavailableError';
-  }
-}
-
-/** Use in write paths: throws rather than silently discarding institutional data. */
+/**
+ * Retained for write paths that want to state the requirement explicitly at
+ * the call site. The client is always present; this is documentation with a
+ * return type.
+ */
 export function requireDb(): PrismaClient {
-  if (!prisma) throw new DatabaseUnavailableError();
   return prisma;
 }

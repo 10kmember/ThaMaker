@@ -1,22 +1,13 @@
-import { signingSecret } from '@/lib/env';
-import { deriveCode, signAchievement } from '@/lib/verification';
-import type {
-  AchievementRecord,
-  ArticleDetail,
-  CategoryView,
-  CreatorProfile,
-  HonourEntry,
-  SeasonView,
-  SponsorView,
-} from './types';
-
 /**
- * The PALMA reference dataset.
+ * The PALMA seed dataset.
  *
- * This is the institution's shape expressed as data: three seasons, a full
- * category set, a populated Roll of Honour and the editorial voice of the
- * Journal. It backs archive mode (no DATABASE_URL) and seeds a new database,
- * so the same content is used for design review, tests and first launch.
+ * The institution's shape expressed as data: three seasons, a full category
+ * set, a populated Roll of Honour and the editorial voice of the Journal.
+ *
+ * This file is read by `prisma/seed.ts` and by nothing else. It is not part of
+ * the application: PostgreSQL is the single source of truth, and a name that
+ * appears on the site appears there because it is in the database, never
+ * because it is in a TypeScript file.
  */
 
 type Seed = {
@@ -305,7 +296,16 @@ const CATEGORY_SEEDS: CategorySeed[] = [
 type SeasonSeed = {
   year: number;
   title: string;
-  stage: SeasonView['stage'];
+  stage:
+    | 'announced'
+    | 'nominations_open'
+    | 'nominations_closed'
+    | 'shortlisting'
+    | 'shortlist_announced'
+    | 'judging'
+    | 'finalists_announced'
+    | 'winners_announced'
+    | 'archived';
   tagline: string;
   summary: string;
   isCurrent: boolean;
@@ -395,131 +395,7 @@ const CITATIONS: Record<string, string> = {
   'industry-contribution': 'For service to the industry, given freely and over years.',
 };
 
-// ── Derivation ───────────────────────────────────────────────────────────────
-
-export const seasons: SeasonView[] = SEASON_SEEDS.map((seed) => ({
-  id: `season-${seed.year}`,
-  year: seed.year,
-  title: seed.title,
-  stage: seed.stage,
-  tagline: seed.tagline,
-  summary: seed.summary,
-  nominationsOpenAt: seed.nominationsOpenAt,
-  nominationsCloseAt: seed.nominationsCloseAt,
-  shortlistAt: seed.shortlistAt,
-  finalistsAt: seed.finalistsAt,
-  ceremonyAt: seed.ceremonyAt,
-  isCurrent: seed.isCurrent,
-  categoryCount: CATEGORY_SEEDS.length,
-}));
-
-const PARTNERS: Record<string, { name: string; slug: string }> = {
-  'best-new-creator': { name: 'Holloway & Finch', slug: 'holloway-finch' },
-  'business-of-creating': { name: 'Meridian Union', slug: 'meridian-union' },
-};
-
-export const categories: CategoryView[] = SEASON_SEEDS.flatMap((season) =>
-  CATEGORY_SEEDS.map((category, index) => ({
-    id: `category-${season.year}-${category.slug}`,
-    slug: category.slug,
-    name: category.name,
-    strapline: category.strapline,
-    description: category.description,
-    eligibility: category.eligibility,
-    judgingCriteria: category.judgingCriteria,
-    isOpen: season.stage === 'nominations_open',
-    position: index,
-    year: season.year,
-    stage: season.stage,
-    partner: PARTNERS[category.slug] ?? null,
-  })),
-);
-
-type InternalHonour = HonourEntry & { creatorSlug: string };
-
-const honourRecords: InternalHonour[] = [];
-
-for (const season of SEASON_SEEDS) {
-  for (const [categorySlug, creatorSlugs] of Object.entries(season.results)) {
-    const category = CATEGORY_SEEDS.find((entry) => entry.slug === categorySlug);
-    if (!category) continue;
-
-    creatorSlugs.forEach((creatorSlug, index) => {
-      const kind = index === 0 ? 'winner' : 'finalist';
-      const id = `honour-${season.year}-${categorySlug}-${creatorSlug}-${kind}`;
-      honourRecords.push({
-        id,
-        creatorSlug,
-        kind,
-        state: 'active',
-        year: season.year,
-        categoryName: category.name,
-        categorySlug,
-        citation: kind === 'winner' ? (CITATIONS[categorySlug] ?? null) : null,
-        announcedAt: kind === 'winner' ? (season.ceremonyAt ?? null) : (season.finalistsAt ?? null),
-        code: deriveCode(signingSecret(), season.year, id),
-        position: index === 0 ? 1 : index,
-      });
-    });
-  }
-}
-
-function honoursFor(slug: string): HonourEntry[] {
-  return honourRecords
-    .filter((honour) => honour.creatorSlug === slug)
-    .sort((a, b) =>
-      b.year !== a.year ? b.year - a.year : a.categoryName.localeCompare(b.categoryName),
-    )
-    .map(({ creatorSlug: _creatorSlug, ...entry }) => entry);
-}
-
-export const creators: CreatorProfile[] = CREATOR_SEEDS.map((seed) => {
-  const record = honoursFor(seed.slug);
-  return {
-    id: `creator-${seed.slug}`,
-    slug: seed.slug,
-    displayName: seed.displayName,
-    countryCode: seed.countryCode,
-    city: seed.city,
-    pronouns: seed.pronouns,
-    headline: seed.headline,
-    biography: seed.biography,
-    portraitUrl: null,
-    portraitAlt: null,
-    websiteUrl: seed.websiteUrl,
-    links: seed.websiteUrl ? [{ label: 'Website', url: seed.websiteUrl }] : [],
-    verificationStatus: seed.verified ? 'verified' : 'pending',
-    isClaimed: true,
-    record,
-    honourCount: record.filter((entry) => entry.state === 'active').length,
-    winCount: record.filter((entry) => entry.kind === 'winner' && entry.state === 'active').length,
-  };
-});
-
-export const achievements: AchievementRecord[] = honourRecords.map((honour) => {
-  const creator = creators.find((entry) => entry.slug === honour.creatorSlug)!;
-  const issuedAt = honour.announcedAt ?? `${honour.year}-09-25T18:00:00.000Z`;
-  const payload = {
-    code: honour.code!,
-    creatorSlug: creator.slug,
-    creatorName: creator.displayName,
-    categoryName: honour.categoryName,
-    year: honour.year,
-    kind: honour.kind,
-    issuedAt,
-  };
-  return {
-    ...payload,
-    categorySlug: honour.categorySlug,
-    creatorCountry: creator.countryCode,
-    state: honour.state,
-    citation: honour.citation,
-    revokedAt: null,
-    signature: signAchievement(signingSecret(), payload),
-  };
-});
-
-export const sponsors: SponsorView[] = [
+export const sponsors = [
   {
     slug: 'holloway-finch',
     name: 'Holloway & Finch',
@@ -546,7 +422,7 @@ export const sponsors: SponsorView[] = [
   },
 ];
 
-export const articles: ArticleDetail[] = [
+export const articles = [
   {
     slug: 'what-a-palma-is-for',
     title: 'What a PALMA is for',
@@ -665,7 +541,9 @@ export const articleCategories = [
   { slug: 'announcements', name: 'Announcements' },
 ];
 
-export const honours = honourRecords;
 export const categorySeeds = CATEGORY_SEEDS;
 export const seasonSeeds = SEASON_SEEDS;
 export const creatorSeeds = CREATOR_SEEDS;
+
+/** Winner citations, keyed by category slug. */
+export const citations = CITATIONS;

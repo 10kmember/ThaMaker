@@ -15,9 +15,6 @@ export default async function AdminJudgingPage() {
   await requirePermission('admin:assign_judging', '/admin/judging');
 
   const db = prisma;
-  if (!db) {
-    return <Notice tone="warning">PALMA is running without a database.</Notice>;
-  }
 
   const categories = await db.category.findMany({
     where: { awardYear: { isCurrent: true } },

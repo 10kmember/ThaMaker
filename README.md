@@ -16,16 +16,10 @@ marketplace. It hosts no creator work and brokers nothing.
 
 ```bash
 npm install
-cp .env.example .env.local          # fill in AUTH_SECRET at minimum
+cp .env.example .env.local          # DATABASE_URL and AUTH_SECRET are required
 npx prisma generate
-
-# With PostgreSQL (full application):
 npm run db:push
 npm run db:seed
-npm run dev
-
-# Without PostgreSQL (public site only, from the bundled reference dataset):
-echo 'PALMA_ARCHIVE_MODE="1"' >> .env.local
 npm run dev
 ```
 
@@ -53,19 +47,19 @@ Seeded accounts use the password in `SEED_PASSWORD` (default
 | `npm test`                 | Unit tests (no database required)                      |
 | `npm run test:integration` | Awards-engine tests against PostgreSQL                 |
 | `npm run db:push`          | Apply the Prisma schema                                |
-| `npm run db:seed`          | Load the reference dataset                             |
+| `npm run db:seed`          | Load the seed dataset into PostgreSQL                  |
 
-## Two run modes
+## One source of truth
 
-| Mode        | Trigger                                   | Behaviour                                                               |
-| ----------- | ----------------------------------------- | ----------------------------------------------------------------------- |
-| **Live**    | `DATABASE_URL` set                        | Everything. Reads and writes hit PostgreSQL.                            |
-| **Archive** | No `DATABASE_URL`, `PALMA_ARCHIVE_MODE=1` | Public pages render from the bundled reference dataset; writes refused. |
+**PostgreSQL, and nothing else.** There is no fallback dataset, no fixture file
+and no in-memory mode behind the read layer: a name on this site is there
+because it is in the database. `prisma/seed-data.ts` exists only to populate
+that database and is imported by the seed script alone — never at runtime.
 
-Archive mode exists so the institution's public face can be built, designed and
-reviewed without infrastructure. It is never a substitute for the database in
-production, which is why running it there requires an explicit opt-in rather
-than a missing variable.
+`DATABASE_URL` is therefore required everywhere, **including at build time**,
+where the season, categories, creators and Journal are read to generate static
+pages. If the database is unavailable the page fails loudly, which is the right
+behaviour for an institution whose whole value is the accuracy of its record.
 
 ## Architecture
 
@@ -83,7 +77,7 @@ src/
   lib/            Crypto, env validation, RBAC, verification codes, SEO
   server/
     actions/      Server Actions (the only write path)
-    data/         Read layer — Prisma when live, reference dataset otherwise
+    data/         Read layer — Prisma, and only Prisma
     email/        Resend client and the two messages PALMA sends
     services/     Honours: conferral, verification records, revocation
     audit.ts      Append-only audit service

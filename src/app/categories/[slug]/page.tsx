@@ -9,6 +9,7 @@ import { WinnerReveal } from '@/components/palma/WinnerReveal';
 import { JsonLd, breadcrumbJsonLd, buildMetadata } from '@/lib/seo';
 import { STAGE_LABEL, acceptsNominations, finalistsArePublic } from '@/domain/season';
 import { SCORING_CRITERIA } from '@/domain/judging';
+import { pigmentStyle } from '@/lib/category-identity';
 import {
   getCategoryOutcome,
   getCurrentSeason,
@@ -61,6 +62,10 @@ export default async function CategoryPage({ params, searchParams }: Params) {
 
   return (
     <>
+      <div style={pigmentStyle(category.slug)}>
+        <span aria-hidden="true" className="palma-pigment-crest block h-1.5 w-full" />
+      </div>
+
       <PageHeader
         label={`${season.title} · Category`}
         title={category.name}
@@ -109,9 +114,9 @@ export default async function CategoryPage({ params, searchParams }: Params) {
               </div>
             </div>
 
-            <aside className="lg:col-span-5">
-              <div className="border-stone-deep bg-ivory-bright border p-7">
-                <h2 className="palma-label text-taupe-deep">Scored against</h2>
+            <aside className="lg:col-span-5" style={pigmentStyle(category.slug)}>
+              <div className="border-stone-deep bg-ivory-bright palma-pigment-border border p-7">
+                <h2 className="palma-label palma-pigment-text">Scored against</h2>
                 <ul className="mt-6 flex flex-col gap-5">
                   {SCORING_CRITERIA.map((criterion) => (
                     <li key={criterion.key} className="flex flex-col gap-1.5">
@@ -168,7 +173,12 @@ export default async function CategoryPage({ params, searchParams }: Params) {
               />
               <div className="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
                 {finalists.map((finalist, index) => (
-                  <FinalistCard key={finalist.creator.slug} finalist={finalist} index={index} />
+                  <FinalistCard
+                    key={finalist.creator.slug}
+                    finalist={finalist}
+                    index={index}
+                    categorySlug={category.slug}
+                  />
                 ))}
               </div>
             </>

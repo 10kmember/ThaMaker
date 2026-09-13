@@ -17,7 +17,7 @@ import {
   creatorSeeds,
   seasonSeeds,
   sponsors as sponsorSeeds,
-} from '../src/server/data/reference';
+} from './seed-data';
 
 const prisma = new PrismaClient();
 const scrypt = promisify(scryptCallback) as (

@@ -41,12 +41,6 @@ export async function signIn(_previous: AuthState, formData: FormData): Promise<
   }
 
   const db = prisma;
-  if (!db) {
-    return {
-      status: 'error',
-      message: 'PALMA is running without a database, so accounts are unavailable.',
-    };
-  }
 
   const user = await db.user.findUnique({ where: { email: parsed.data.email } });
 
@@ -92,12 +86,6 @@ export async function register(_previous: AuthState, formData: FormData): Promis
   }
 
   const db = prisma;
-  if (!db) {
-    return {
-      status: 'error',
-      message: 'PALMA is running without a database, so accounts are unavailable.',
-    };
-  }
 
   const existing = await db.user.findUnique({ where: { email: parsed.data.email } });
   if (existing) {

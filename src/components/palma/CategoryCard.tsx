@@ -3,6 +3,7 @@ import { ArrowRight } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ordinal } from '@/lib/utils';
+import { pigmentStyle } from '@/lib/category-identity';
 import { STAGE_LABEL } from '@/domain/season';
 import type { CategoryView } from '@/server/data/types';
 
@@ -18,10 +19,21 @@ export function CategoryCard({
   const target = href ?? `/categories/${category.slug}`;
 
   return (
-    <Card interactive className="group/card h-full">
-      <Link href={target} className="flex h-full flex-col gap-5 p-7 focus:outline-none">
+    <Card
+      interactive
+      className="group/card h-full overflow-hidden"
+      style={pigmentStyle(category.slug)}
+    >
+      {/* The category's signature: a crest rule in its own pigment, which is
+          the first thing a reader learns to recognise it by. */}
+      <span aria-hidden="true" className="palma-pigment-crest block h-1.5 w-full" />
+
+      <Link
+        href={target}
+        className="palma-pigment-field flex h-full flex-col gap-5 p-7 focus:outline-none"
+      >
         <div className="flex items-start justify-between gap-4">
-          <span className="palma-label text-taupe-deep">{ordinal(index)}</span>
+          <span className="palma-label palma-pigment-text">{ordinal(index)}</span>
           <Badge variant={category.isOpen ? 'olive' : 'muted'}>
             {category.isOpen ? 'Open for nominations' : STAGE_LABEL[category.stage]}
           </Badge>
@@ -29,10 +41,11 @@ export function CategoryCard({
 
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-2">
-            <h3 className="group-hover/card:text-olive text-2xl leading-tight transition-colors duration-200">
-              {category.name}
-            </h3>
-            <span aria-hidden="true" className="palma-card-rule bg-ink/30 block h-px w-full" />
+            <h3 className="palma-pigment-title text-2xl leading-tight">{category.name}</h3>
+            <span
+              aria-hidden="true"
+              className="palma-card-rule palma-pigment-rule block h-px w-full"
+            />
           </div>
           {category.strapline ? (
             <p className="font-display text-taupe-deep text-[1.0625rem] leading-snug">

@@ -43,8 +43,6 @@ jobs:
 
       - name: Unit tests
         run: npm test
-        env:
-          DATABASE_URL: ''
 
   integration:
     name: Awards engine against PostgreSQL
@@ -83,6 +81,19 @@ jobs:
   build:
     name: Production build
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: palma
+          POSTGRES_PASSWORD: palma
+          POSTGRES_DB: palma
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
@@ -93,10 +104,11 @@ jobs:
 
       - run: npm ci
 
-      - run: npx prisma generate
+      # The build reads the season, categories, creators and Journal from
+      # PostgreSQL to generate static pages, so the database is not optional
+      # here either.
+      - run: npx prisma db push
+      - run: npm run db:seed
 
-      - name: Build (archive mode — no database required)
+      - name: Production build
         run: npm run build
-        env:
-          DATABASE_URL: ''
-          PALMA_ARCHIVE_MODE: '1'

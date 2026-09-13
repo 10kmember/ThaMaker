@@ -3,7 +3,6 @@ import { cache } from 'react';
 import { prisma } from '@/server/db';
 import type { SeasonStage } from '@/domain/season';
 import { finalistsArePublic, winnersArePublic } from '@/domain/season';
-import * as reference from './reference';
 import type {
   AchievementRecord,
   ArticleDetail,
@@ -23,34 +22,17 @@ import type {
 /**
  * The read surface of PALMA.
  *
- * Every public page reads through this module. When DATABASE_URL is present the
- * queries hit PostgreSQL; otherwise they resolve against the bundled reference
- * dataset so the institution's public face can be built and reviewed without
- * infrastructure. Writes never fall back — see `requireDb()`.
+ * Every public page reads through this module, and every one of these queries
+ * goes to PostgreSQL. There is no second source: a name on this site is there
+ * because it is in the database, and nowhere else. The seed dataset exists
+ * only to populate that database — it is never read at runtime.
  */
 
 const iso = (value: Date | null | undefined) => (value ? value.toISOString() : null);
 
-function summarise(creator: CreatorProfile): CreatorSummary {
-  return {
-    id: creator.id,
-    slug: creator.slug,
-    displayName: creator.displayName,
-    countryCode: creator.countryCode,
-    headline: creator.headline,
-    portraitUrl: creator.portraitUrl,
-    portraitAlt: creator.portraitAlt,
-    verificationStatus: creator.verificationStatus,
-    honourCount: creator.honourCount,
-    winCount: creator.winCount,
-  };
-}
-
 // ── Seasons ──────────────────────────────────────────────────────────────────
 
 export const listSeasons = cache(async (): Promise<SeasonView[]> => {
-  if (!prisma) return [...reference.seasons].sort((a, b) => b.year - a.year);
-
   const rows = await prisma.awardYear.findMany({
     orderBy: { year: 'desc' },
     include: { _count: { select: { categories: true } } },
@@ -86,12 +68,6 @@ export const getCurrentSeason = cache(async (): Promise<SeasonView> => {
 // ── Categories ───────────────────────────────────────────────────────────────
 
 export const listCategories = cache(async (year: number): Promise<CategoryView[]> => {
-  if (!prisma) {
-    return reference.categories
-      .filter((category) => category.year === year)
-      .sort((a, b) => a.position - b.position);
-  }
-
   const rows = await prisma.category.findMany({
     where: { awardYear: { year } },
     orderBy: { position: 'asc' },
@@ -149,33 +125,6 @@ export type CreatorFilter = {
 };
 
 export const listCreators = cache(async (filter: CreatorFilter = {}): Promise<CreatorSummary[]> => {
-  if (!prisma) {
-    let rows = reference.creators;
-    if (filter.query) {
-      const needle = filter.query.toLowerCase();
-      rows = rows.filter(
-        (creator) =>
-          creator.displayName.toLowerCase().includes(needle) ||
-          (creator.headline ?? '').toLowerCase().includes(needle),
-      );
-    }
-    if (filter.country) {
-      rows = rows.filter((creator) => creator.countryCode === filter.country!.toUpperCase());
-    }
-    if (filter.honoursOnly) rows = rows.filter((creator) => creator.honourCount > 0);
-    return rows
-      .slice()
-      .sort((a, b) =>
-        b.winCount !== a.winCount
-          ? b.winCount - a.winCount
-          : b.honourCount !== a.honourCount
-            ? b.honourCount - a.honourCount
-            : a.displayName.localeCompare(b.displayName),
-      )
-      .slice(0, filter.limit ?? 60)
-      .map(summarise);
-  }
-
   const rows = await prisma.creator.findMany({
     where: {
       isPublished: true,
@@ -219,8 +168,6 @@ export const listCreators = cache(async (filter: CreatorFilter = {}): Promise<Cr
 });
 
 export const getCreator = cache(async (slug: string): Promise<CreatorProfile | null> => {
-  if (!prisma) return reference.creators.find((creator) => creator.slug === slug) ?? null;
-
   const row = await prisma.creator.findUnique({
     where: { slug },
     include: {
@@ -295,30 +242,6 @@ type HonourRow = {
 };
 
 async function honourRows(year?: number, kind?: HonourEntry['kind']): Promise<HonourRow[]> {
-  if (!prisma) {
-    const seasonStage = new Map(reference.seasons.map((season) => [season.year, season.stage]));
-    return reference.honours
-      .filter((honour) => honour.state === 'active')
-      .filter((honour) => (year ? honour.year === year : true))
-      .filter((honour) => (kind ? honour.kind === kind : true))
-      .filter((honour) => {
-        const stage = seasonStage.get(honour.year);
-        if (!stage) return false;
-        return honour.kind === 'winner' ? winnersArePublic(stage) : finalistsArePublic(stage);
-      })
-      .map((honour) => ({
-        kind: honour.kind,
-        year: honour.year,
-        categorySlug: honour.categorySlug,
-        categoryName: honour.categoryName,
-        creatorSlug: honour.creatorSlug,
-        citation: honour.citation,
-        code: honour.code,
-        position: honour.position,
-        announcedAt: honour.announcedAt,
-      }));
-  }
-
   const rows = await prisma.honour.findMany({
     where: {
       state: 'active',
@@ -473,10 +396,6 @@ export const listRecentHonours = cache(async (limit = 6) => {
 
 export const getAchievementByCode = cache(
   async (code: string): Promise<AchievementRecord | null> => {
-    if (!prisma) {
-      return reference.achievements.find((entry) => entry.code === code) ?? null;
-    }
-
     const row = await prisma.verificationRecord.findUnique({
       where: { code },
       include: {
@@ -514,14 +433,6 @@ export const getAchievementByCode = cache(
 
 export const listArticles = cache(
   async (options: { category?: string; limit?: number } = {}): Promise<ArticleSummary[]> => {
-    if (!prisma) {
-      return reference.articles
-        .filter((article) => (options.category ? article.categorySlug === options.category : true))
-        .sort((a, b) => (b.publishedAt ?? '').localeCompare(a.publishedAt ?? ''))
-        .slice(0, options.limit ?? 24)
-        .map(({ body: _body, ...summary }) => summary);
-    }
-
     const rows = await prisma.article.findMany({
       where: {
         status: 'published',
@@ -549,8 +460,6 @@ export const listArticles = cache(
 );
 
 export const getArticle = cache(async (slug: string): Promise<ArticleDetail | null> => {
-  if (!prisma) return reference.articles.find((article) => article.slug === slug) ?? null;
-
   const row = await prisma.article.findUnique({ where: { slug }, include: { category: true } });
   if (!row || row.status !== 'published') return null;
 
@@ -570,7 +479,6 @@ export const getArticle = cache(async (slug: string): Promise<ArticleDetail | nu
 });
 
 export const listArticleCategories = cache(async () => {
-  if (!prisma) return reference.articleCategories;
   const rows = await prisma.articleCategory.findMany({ orderBy: { position: 'asc' } });
   return rows.map((row) => ({ slug: row.slug, name: row.name }));
 });
@@ -578,8 +486,6 @@ export const listArticleCategories = cache(async () => {
 // ── Sponsors & operational stats ─────────────────────────────────────────────
 
 export const listSponsors = cache(async (): Promise<SponsorView[]> => {
-  if (!prisma) return reference.sponsors;
-
   const rows = await prisma.sponsorship.findMany({
     include: { sponsor: true, category: true },
     orderBy: { createdAt: 'asc' },
@@ -598,13 +504,6 @@ export const listSponsors = cache(async (): Promise<SponsorView[]> => {
 });
 
 export const getSeasonStats = cache(async (year: number): Promise<SeasonStats> => {
-  if (!prisma) {
-    const outcomes = await listSeasonOutcomes(year);
-    const finalists = outcomes.reduce((sum, outcome) => sum + outcome.finalists.length, 0);
-    const winners = outcomes.filter((outcome) => outcome.winner).length;
-    return { nominations: 0, underReview: 0, eligible: 0, judging: 0, finalists, winners };
-  }
-
   const [nominations, underReview, eligible, judging, finalists, winners] = await Promise.all([
     prisma.nomination.count({ where: { candidacy: { awardYear: { year } }, status: 'counted' } }),
     prisma.candidacy.count({ where: { awardYear: { year }, status: 'under_review' } }),

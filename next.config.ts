@@ -40,7 +40,33 @@ const nextConfig: NextConfig = {
     remotePatterns: [{ protocol: 'https', hostname: '**' }],
   },
   async headers() {
-    return [{ source: '/:path*', headers: SECURITY_HEADERS }];
+    return [
+      { source: '/:path*', headers: SECURITY_HEADERS },
+      {
+        // The well-known documents are small, stable and read by machines.
+        source: '/.well-known/:path*',
+        headers: [
+          { key: 'Content-Type', value: 'text/plain; charset=utf-8' },
+          { key: 'Cache-Control', value: 'public, max-age=86400' },
+        ],
+      },
+      {
+        source: '/humans.txt',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=86400' }],
+      },
+    ];
+  },
+
+  async redirects() {
+    return [
+      {
+        // A well-known path password managers look for when offering to
+        // change a stored credential.
+        source: '/.well-known/change-password',
+        destination: '/portal',
+        permanent: false,
+      },
+    ];
   },
 };
 

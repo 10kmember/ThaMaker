@@ -92,14 +92,6 @@ export async function requestNominationCode(
   }
 
   const db = prisma;
-  if (!db) {
-    return {
-      step: 'details',
-      status: 'error',
-      message:
-        'PALMA is running without a database and cannot accept nominations. This is a configuration problem, not your nomination.',
-    };
-  }
 
   const creator = await db.creator.findUnique({
     where: { slug: input.creatorSlug },
@@ -322,14 +314,6 @@ export async function verifyNominationCode(
   }
 
   const db = prisma;
-  if (!db) {
-    return {
-      ...previous,
-      step: 'verify',
-      status: 'error',
-      message: 'Nominations are unavailable.',
-    };
-  }
 
   const nomination = await db.nomination.findUnique({
     where: { id: parsed.data.nominationId },
@@ -430,9 +414,6 @@ export async function submitNomination(
   }
 
   const db = prisma;
-  if (!db) {
-    return { ...previous, status: 'error', message: 'Nominations are unavailable.' };
-  }
 
   const nomination = await db.nomination.findUnique({
     where: { id: parsed.data.nominationId },

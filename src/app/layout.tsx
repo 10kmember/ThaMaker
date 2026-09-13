@@ -3,6 +3,7 @@ import { Amatic_SC, Fraunces, Inter } from 'next/font/google';
 import { SiteHeader } from '@/components/palma/SiteHeader';
 import { SiteFooter } from '@/components/palma/SiteFooter';
 import { MotionProvider } from '@/components/motion/MotionProvider';
+import { THEME_BOOTSTRAP } from '@/lib/theme';
 import { JsonLd, organisationJsonLd, SITE_DESCRIPTOR, SITE_NAME } from '@/lib/seo';
 import { siteUrl } from '@/lib/env';
 import './globals.css';
@@ -57,13 +58,21 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#161719',
-  colorScheme: 'light',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f4f0e8' },
+    { media: '(prefers-color-scheme: dark)', color: '#14151a' },
+  ],
+  colorScheme: 'light dark',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en-GB" className={`${display.variable} ${sans.variable} ${annotation.variable}`}>
+      <head>
+        {/* Applies the reader's theme before first paint. Without it, every
+            reader who chose Ink gets a white flash on every navigation. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
+      </head>
       <body className="flex min-h-dvh flex-col">
         <a
           href="#main"

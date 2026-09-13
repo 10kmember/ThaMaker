@@ -35,6 +35,8 @@ The seal is the one place the ceremonial register is allowed to be explicit.
 
 ## 2. Colour
 
+### The core six
+
 ```
 Ink          #161719   dark surfaces, typography, navigation
 Warm Ivory   #F4F0E8   primary light background
@@ -44,11 +46,78 @@ Deep Olive   #4A5148   institutional accent
 Champagne    #C9B58A   ceremonial accent
 ```
 
+The names are **roles, not descriptions**: `ivory` is the paper and `ink` is
+what is printed on it. That is what makes the whole interface themeable from
+six variables — under a dark theme the paper is dark and the ink is light, and
+the relationship holds.
+
 Champagne marks an honour: a winner's label, a seal, an active season beat. It
 is never a surface, never a gradient, and never a button fill on its own.
 
-Tokens live in `src/app/globals.css` under `@theme`, so they are available as
-Tailwind utilities (`bg-ink`, `text-champagne-deep`, `border-stone-deep`).
+### Category pigments
+
+Eight heraldic accents, one per PALMA. This is where the life comes from: a
+category stops being a slug and becomes a colour a reader recognises across
+cards, headers, finalists and the Roll of Honour.
+
+| Category                     | Pigment    |
+| ---------------------------- | ---------- |
+| Creator of the Year          | Amber      |
+| Best Independent Creator     | Oxblood    |
+| Best New Creator             | Verdigris  |
+| Creative Direction           | Aubergine  |
+| Community Impact             | Laurel     |
+| Business of Creating         | Slate      |
+| Craft in Video               | Indigo     |
+| Contribution to the Industry | Terracotta |
+
+Chosen as **pigments rather than screen colours** so they sit with ink and ivory
+instead of shouting over them. Rules:
+
+- A pigment is a **mark** — a crest, a rule, a plate, a tint. Never a page
+  background, never a large fill.
+- Two tones per pigment. The plain token carries real chroma for marks; the
+  `-ink` token is darkened (or, on a dark ground, lightened) until it clears
+  **WCAG AA** for type. A colour legible as a 3px rule is not legible as an
+  11px label.
+- Assigned by slug in `src/lib/category-identity.ts`, so reordering categories
+  never shuffles an identity people have started to learn. An unknown category
+  falls back to a deterministic pigment — the same slug always gets the same
+  colour.
+
+Set `pigmentStyle(slug)` on a container and everything beneath paints from it:
+`.palma-pigment-crest`, `-rule`, `-text`, `-title`, `-field`, `-border`.
+
+> **Tailwind v4 note.** These live in a plain `:root` block, not `@theme`.
+> Tailwind tree-shakes theme tokens no utility references, and these are only
+> ever read through `var()` in a style attribute — inside `@theme` they were
+> silently dropped and everything fell back to olive.
+
+### Themes
+
+Three, and a theme is a redefinition of the six core colours and nothing else.
+No component knows which one is running.
+
+| Theme       | For                                              |
+| ----------- | ------------------------------------------------ |
+| **Paper**   | The default. The institution as printed          |
+| **Ink**     | Dark ground, light type. The ceremony after dark |
+| **Archive** | Aged paper, lower contrast. For long reading     |
+
+Every inverted panel on the site already carries `.on-ink`, so each theme also
+redefines the paper/ink relationship _inside those panels_. That single hook is
+why the hero, headers, winner reveal and portals all re-theme correctly without
+one component changing: under Ink they become a deeper panel with light type,
+rather than a light slab in the middle of a dark page.
+
+The reader's choice is stored and applied by a tiny inline script before first
+paint. A reader who has expressed no choice gets what their system asked for.
+
+### Material
+
+A fixed, 3.5%-opacity generated grain sits over the page — multiply on light
+grounds, screen on dark. One composited layer, no requests. It is the
+difference between a colour and a stock.
 
 ## 3. Typography
 

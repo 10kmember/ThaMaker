@@ -47,7 +47,7 @@ export const FOOTER_NAV: { title: string; items: NavItem[] }[] = [
       { href: '/about', label: 'About PALMA' },
       { href: '/about/judging', label: 'How judging works' },
       { href: '/about/policy', label: 'Content policy' },
-      { href: '/journal', label: 'Journal' },
+      { href: '/humans.txt', label: 'humans.txt' },
     ],
   },
   {

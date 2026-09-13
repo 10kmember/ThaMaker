@@ -32,7 +32,11 @@ export type RateLimitResult = {
   retryAfterSeconds: number;
 };
 
-/** In-process fallback so archive mode and tests still enforce limits. */
+/**
+ * In-process counters, used by the unit tests. The live limiter is durable and
+ * lives in PostgreSQL, so limits survive a restart and are shared across
+ * instances — an in-memory limiter behind a load balancer limits nothing.
+ */
 const memory = new Map<string, { count: number; expires: number }>();
 
 export async function requesterIdentity(salt = ''): Promise<string> {
@@ -51,7 +55,7 @@ export async function consumeRateLimit(
   identity: string,
 ): Promise<RateLimitResult> {
   const now = Date.now();
-  const db = prisma;
+  const db = useMemoryLimiter ? null : prisma;
 
   if (!db) {
     const key = `${rule.bucket}:${identity}`;
@@ -105,7 +109,10 @@ export async function enforceRateLimit(rule: RateLimitRule, salt = ''): Promise<
   return consumeRateLimit(rule, identity);
 }
 
-/** Test seam — resets the in-process fallback between cases. */
+/** Test seam: the unit suite exercises the limiter without a database. */
+let useMemoryLimiter = process.env.NODE_ENV === 'test';
+
 export function __resetMemoryLimiter() {
   memory.clear();
+  useMemoryLimiter = true;
 }

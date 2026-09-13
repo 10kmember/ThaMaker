@@ -2,10 +2,8 @@ import { redirect } from 'next/navigation';
 import { Container, Section } from '@/components/palma/layout';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { RegisterForm } from '@/components/account/AuthForms';
-import { Notice } from '@/components/ui/feedback';
 import { buildMetadata } from '@/lib/seo';
 import { getSession } from '@/lib/auth/session';
-import { isLive } from '@/lib/env';
 
 export const metadata = buildMetadata({
   title: 'Create an account',
@@ -30,13 +28,6 @@ export default async function RegisterPage() {
               nomination through the season.
             </p>
           </div>
-
-          {isLive ? null : (
-            <Notice tone="warning" title="Archive mode">
-              PALMA is running from the bundled reference dataset with no database, so accounts are
-              unavailable in this environment.
-            </Notice>
-          )}
 
           <RegisterForm />
         </div>

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { EditorialImage } from './EditorialImage';
 import { countryName } from '@/lib/format';
 import { cn, ordinal } from '@/lib/utils';
+import { pigmentStyle } from '@/lib/category-identity';
 import type { FinalistView } from '@/server/data/types';
 
 /**
@@ -11,18 +12,26 @@ export function FinalistCard({
   finalist,
   index,
   className,
+  categorySlug,
 }: {
   finalist: FinalistView;
   index: number;
   className?: string;
+  /** Carries the category's pigment through to the showcase. */
+  categorySlug?: string;
 }) {
   return (
     <Link
       href={`/creators/${finalist.creator.slug}`}
       className={cn('group/card flex flex-col gap-5 focus:outline-none', className)}
+      style={categorySlug ? pigmentStyle(categorySlug) : undefined}
     >
-      <div className="flex items-baseline gap-4 border-t border-current/20 pt-4">
-        <span className="palma-label opacity-60">{ordinal(index)}</span>
+      <div className="relative flex items-baseline gap-4 border-t border-current/20 pt-4">
+        <span
+          aria-hidden="true"
+          className="palma-pigment-rule palma-card-rule absolute -top-px left-0 h-0.5 w-full"
+        />
+        <span className="palma-label palma-pigment-text opacity-90">{ordinal(index)}</span>
         <span className="palma-label opacity-60">{countryName(finalist.creator.countryCode)}</span>
       </div>
 

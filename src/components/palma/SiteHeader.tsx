@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
 import { Menu, X } from 'lucide-react';
 import { Wordmark } from '@/components/brand/Wordmark';
+import { ThemeSwitch } from './ThemeSwitch';
 import { Button } from '@/components/ui/button';
 import { Container } from './layout';
 import { PUBLIC_NAV } from '@/lib/navigation';
@@ -104,6 +105,7 @@ export function SiteHeader({ accountHref = '/portal' }: { accountHref?: string }
         </nav>
 
         <div className="flex items-center gap-2">
+          <ThemeSwitch className="hidden lg:block" />
           <Button asChild size="sm" className="hidden sm:inline-flex">
             <Link href="/nominate">Nominate</Link>
           </Button>
@@ -184,6 +186,10 @@ export function SiteHeader({ accountHref = '/portal' }: { accountHref?: string }
                 <Button asChild size="md" variant="outline">
                   <Link href={accountHref}>Account</Link>
                 </Button>
+                <div className="border-stone-deep mt-2 flex items-center justify-between border-t pt-4">
+                  <span className="palma-label text-taupe-deep">Theme</span>
+                  <ThemeSwitch />
+                </div>
               </div>
             </Container>
           </motion.div>

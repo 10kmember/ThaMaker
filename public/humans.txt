@@ -1,0 +1,53 @@
+/* PALMA — THE CREATOR HONOURS */
+
+                    PALMA
+              The Creator Honours
+
+   PALMA is the permanent record of achievement in
+   the creator industry. The ceremony is one
+   expression of it. The record is the point.
+
+
+/* TEAM */
+
+   Institution: PALMA (Palma Awards Ltd)
+   Location: United Kingdom
+   Contact: honours [at] palmaawards.com
+
+   The panel is independent and seated per season.
+   Judges are named on the season page once the
+   panel is complete.
+
+
+/* THANKS */
+
+   To every creator who nominated someone other
+   than themselves.
+
+
+/* SITE */
+
+   Standards: HTML5, CSS, WCAG 2.2 AA
+   Components: Next.js, React, TypeScript,
+               Tailwind CSS, PostgreSQL, Prisma,
+               Motion, GSAP, Three.js
+   Typography: Fraunces, Inter, Amatic SC
+   Language: English (en-GB)
+   Doctype: HTML5
+
+
+/* HOW THIS SITE IS BUILT */
+
+   One source of truth: PostgreSQL. Every name on
+   this site is there because it is in the
+   database, and nowhere else.
+
+   Motion is layered — CSS owns hover and press,
+   Motion owns entrances, GSAP owns the scroll
+   choreography of a season, Three.js owns the
+   trophy. None of the heavy layers load under
+   prefers-reduced-motion.
+
+   No tracking. No advertising. No third-party
+   embeds. The content security policy says so
+   and the code keeps to it.
