@@ -153,7 +153,45 @@ PaROH keeps its casing everywhere it appears — `.palma-label-brand` exists for
 exactly that, because the uppercase label style would otherwise flatten it to
 "PAROH".
 
-## 5. Layout
+## 5. The masthead
+
+A page header on PALMA is not a coloured rectangle with a heading in it. It is
+the top of a printed page, and `Masthead` assembles it from the same parts every
+time:
+
+```
+┌─                                                              ─┐   crop marks
+   ● PALMA 2027 · CATEGORIES                  ┌──────────────┐
+                                              │  plate       │   2027 ← figure
+   The                                        │  three or    │
+   categories                                 │  four facts  │
+   ─────────────────                          └──────────────┘
+   Eight honours. Each with published…
+   ──────────────────────────────────────────────────────────
+   8 CONTESTED │ FIVE CRITERIA │ AUDIENCE SIZE IS NOT ONE
+└─                                                              ─┘
+════════════════════════════════════════════════════════════════   pigment edge
+```
+
+| Part         | Job                                                                             |
+| ------------ | ------------------------------------------------------------------------------- |
+| Crop marks   | Print apparatus. The single detail that most stops a header reading as a banner |
+| Eyebrow      | A pigment dot and the section mark                                              |
+| Title        | `MaskedLines` with `trigger="mount"` — see below                                |
+| Folio rule   | Separates title from standfirst, as a printed page does                         |
+| Plate        | The right-hand column: three or four facts, a criteria sheet, a season switcher |
+| Figure       | A very large, very quiet numeral behind the plate — usually the year            |
+| Meta rail    | Divided items; stacks without dividers below 640px                              |
+| Pigment edge | The page's colour: a category pigment, or the ceremonial accent                 |
+
+**The plate is not decoration.** Before it existed, every header had a large
+empty right-hand column, and that emptiness is what made them read as generic.
+
+> **`trigger="mount"`, not `whileInView`.** A masthead title is on screen before
+> any observer can report it. Waiting for an intersection leaves the heading
+> clipped at its own baseline — present in the DOM, invisible on the page.
+
+## 6. Layout
 
 `Container` (`default` / `wide` / `narrow`), `Section` (tones: `ivory`, `stone`,
 `ink`, `olive`), `SectionHeading` and `PageHeader` carry the page rhythm. Use
@@ -163,7 +201,7 @@ what makes a site feel institutional.
 Dark sections take the `on-ink` class, which switches the focus ring to
 champagne so focus stays visible on ink.
 
-## 6. Motion
+## 7. Motion
 
 Ceremonial and editorial, never a tech demo.
 
@@ -180,7 +218,7 @@ never load-bearing.
 No parallax, no scroll hijacking, no particles, no WebGL, no animation on every
 component.
 
-## 7. Imagery
+## 8. Imagery
 
 `EditorialImage` renders an approved portrait, or an engraved institutional
 plate: the creator's initials in the display face over a palm engraving, on a
@@ -189,7 +227,7 @@ photography and never renders explicit imagery.
 
 Every image has an explicit aspect ratio, so nothing shifts as it loads.
 
-## 8. Components
+## 9. Components
 
 Primitives in `components/ui`: `Button`, `Badge`, `Pill`, `Card`, `Field`,
 `Input`, `Select`, `Textarea`, `Checkbox`, `Table`, `Tabs`, `Modal`, `Stat`,
@@ -205,14 +243,39 @@ belongs to PALMA's own process, not to the person nominating.
 
 Build on the design system before duplicating a UI pattern.
 
-## 9. Responsive
+### The hover vocabulary
+
+Behaviours that appear dozens of times are classes, not components — defined
+once so a table row, an archive row and a filter chip are visibly one family,
+and so none of it costs hydration.
+
+| Class                  | Behaviour                                                                 |
+| ---------------------- | ------------------------------------------------------------------------- |
+| `.palma-link`          | Underline travels in from the leading edge, retreats to the trailing edge |
+| `.palma-row` / `-lead` | Pigment rule travels the row; the ground warms; leading type shifts 6px   |
+| `.palma-chip`          | Fill sweeps in from the leading edge — a filter choice _landing_          |
+| `.palma-quiet-link`    | A dash appears and the link indents. Footers and legal                    |
+| `.palma-stat`          | The figure lifts 2px and its rule draws                                   |
+| `.palma-pigment-title` | A title takes its category's colour on approach                           |
+| `.palma-card-*`        | Image pushes in, rule travels, metadata surfaces                          |
+| `.palma-badge-live`    | Tracking opens when the thing it labels is approached                     |
+| `.palma-seal-live`     | A slow three-degree settle                                                |
+| `.palma-field-*`       | The label takes the accent on focus; the control lifts                    |
+
+> **Tailwind v4 trap.** `translate`, `scale` and `rotate` are separate CSS
+> properties, not parts of `transform`. A `transition-[transform,…]` list that
+> omits `translate` leaves the class applying with no transition to ride — the
+> element jumps. Name `translate` explicitly, or use `transition-transform`,
+> which v4 expands to all four.
+
+## 10. Responsive
 
 Mobile-first. Supported: mobile Safari, Android Chrome, tablet, desktop, large
 desktop. No horizontal overflow at any width, no layout shift, explicit image
 dimensions, and navigation that collapses to a full-height panel rather than a
 cramped dropdown.
 
-## 10. Accessibility
+## 11. Accessibility
 
 Target WCAG 2.2 AA.
 

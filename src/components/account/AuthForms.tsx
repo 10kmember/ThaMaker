@@ -42,7 +42,7 @@ export function SignInForm({ next }: { next?: string }) {
 
       <p className="text-taupe-deep text-sm">
         No account?{' '}
-        <Link href="/register" className="hover:text-ink underline underline-offset-4">
+        <Link href="/register" className="palma-link hover:text-ink">
           Create one
         </Link>
         .
@@ -100,7 +100,7 @@ export function RegisterForm() {
 
       <p className="text-taupe-deep text-sm">
         Already have an account?{' '}
-        <Link href="/sign-in" className="hover:text-ink underline underline-offset-4">
+        <Link href="/sign-in" className="palma-link hover:text-ink">
           Sign in
         </Link>
         .

@@ -1,4 +1,5 @@
-import { Container, PageHeader, Section } from '@/components/palma/layout';
+import { Container, Section } from '@/components/palma/layout';
+import { Masthead } from '@/components/palma/Masthead';
 import { ReportForm } from '@/components/account/ReportForm';
 import { Notice } from '@/components/ui/feedback';
 import { buildMetadata } from '@/lib/seo';
@@ -19,10 +20,12 @@ export default async function ReportPage({
 
   return (
     <>
-      <PageHeader
-        label="Integrity"
+      <Masthead
+        eyebrow={'Integrity'}
         title="Report a concern"
         standfirst="PALMA is only worth holding if it is hard to fake. If something here is wrong, tell us."
+        meta={['Reviewed by a moderator', 'Never shown to the creator', 'Audited permanently']}
+        size="compact"
       />
 
       <Section>

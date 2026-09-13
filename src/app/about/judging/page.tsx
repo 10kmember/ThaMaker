@@ -1,4 +1,5 @@
-import { Container, PageHeader, Section } from '@/components/palma/layout';
+import { Container, Section } from '@/components/palma/layout';
+import { Masthead } from '@/components/palma/Masthead';
 import { Notice } from '@/components/ui/feedback';
 import { buildMetadata } from '@/lib/seo';
 import { SCORING_CRITERIA, MAX_TOTAL } from '@/domain/judging';
@@ -15,10 +16,12 @@ export const metadata = buildMetadata({
 export default function JudgingPage() {
   return (
     <>
-      <PageHeader
-        label="The Creator Honours"
+      <Masthead
+        eyebrow={'The Creator Honours'}
         title="How judging works"
         standfirst="Published in full, because a judgement nobody can inspect is not worth holding."
+        meta={['Five criteria', 'Ten points each', 'Three judges minimum']}
+        size="compact"
       />
 
       <Section>

@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Container, PageHeader, Section, SectionHeading } from '@/components/palma/layout';
+import { Container, Section, SectionHeading } from '@/components/palma/layout';
+import { Masthead, MastheadPlate, PlateFact } from '@/components/palma/Masthead';
 import { Button } from '@/components/ui/button';
 import { PalmMark } from '@/components/brand/PalmMark';
 import { Stat } from '@/components/ui/stat';
@@ -26,10 +27,22 @@ export default async function AboutPage() {
 
   return (
     <>
-      <PageHeader
-        label="The Creator Honours"
+      <Masthead
+        eyebrow="The Creator Honours"
         title="PALMA is the record."
+        titleLines={['PALMA is', 'the record.']}
         standfirst="The ceremony is one expression of it. What matters is that an honour conferred today can still be checked, cited and trusted in ten years."
+        meta={['Founded in the United Kingdom', 'Independent panel', 'Permanent public archive']}
+        plate={
+          <MastheadPlate label="The institution, counted">
+            <dl className="grid grid-cols-2 gap-5">
+              <PlateFact term="Seasons">{seasons.length}</PlateFact>
+              <PlateFact term="Categories">{categories.length}</PlateFact>
+              <PlateFact term="Honours held">{honours}</PlateFact>
+              <PlateFact term="Scores published">Never</PlateFact>
+            </dl>
+          </MastheadPlate>
+        }
       />
 
       <Section>

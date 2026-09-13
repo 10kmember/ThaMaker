@@ -84,8 +84,9 @@ export default async function ParohPage({ searchParams }: Props) {
             <span className="palma-label text-taupe-deep mr-2">Year</span>
             <Link
               href={filterHref(filters, { year: undefined })}
+              data-active={!filters.year}
               className={cn(
-                'palma-label rounded-full border px-3.5 py-2 transition-colors',
+                'palma-chip palma-label rounded-full border px-3.5 py-2',
                 !filters.year
                   ? 'border-ink bg-ink text-ivory'
                   : 'border-stone-deep text-taupe-deep hover:border-ink/40 hover:text-ink',
@@ -97,8 +98,9 @@ export default async function ParohPage({ searchParams }: Props) {
               <Link
                 key={season.year}
                 href={filterHref(filters, { year: String(season.year) })}
+                data-active={filters.year === String(season.year)}
                 className={cn(
-                  'palma-label rounded-full border px-3.5 py-2 transition-colors',
+                  'palma-chip palma-label rounded-full border px-3.5 py-2',
                   filters.year === String(season.year)
                     ? 'border-ink bg-ink text-ivory'
                     : 'border-stone-deep text-taupe-deep hover:border-ink/40 hover:text-ink',
@@ -114,8 +116,9 @@ export default async function ParohPage({ searchParams }: Props) {
               <span className="palma-label text-taupe-deep mr-2">Category</span>
               <Link
                 href={filterHref(filters, { category: undefined })}
+                data-active={!filters.category}
                 className={cn(
-                  'palma-label rounded-full border px-3.5 py-2 transition-colors',
+                  'palma-chip palma-label rounded-full border px-3.5 py-2',
                   !filters.category
                     ? 'border-ink bg-ink text-ivory'
                     : 'border-stone-deep text-taupe-deep hover:border-ink/40 hover:text-ink',
@@ -127,8 +130,9 @@ export default async function ParohPage({ searchParams }: Props) {
                 <Link
                   key={category.slug}
                   href={filterHref(filters, { category: category.slug })}
+                  data-active={filters.category === category.slug}
                   className={cn(
-                    'palma-label rounded-full border px-3.5 py-2 transition-colors',
+                    'palma-chip palma-label rounded-full border px-3.5 py-2',
                     filters.category === category.slug
                       ? 'border-ink bg-ink text-ivory'
                       : 'border-stone-deep text-taupe-deep hover:border-ink/40 hover:text-ink',
@@ -166,8 +170,9 @@ export default async function ParohPage({ searchParams }: Props) {
               <span className="palma-label text-taupe-deep mr-2">Country</span>
               <Link
                 href={filterHref(filters, { country: undefined })}
+                data-active={!filters.country}
                 className={cn(
-                  'palma-label rounded-full border px-3.5 py-2 transition-colors',
+                  'palma-chip palma-label rounded-full border px-3.5 py-2',
                   !filters.country
                     ? 'border-ink bg-ink text-ivory'
                     : 'border-stone-deep text-taupe-deep hover:border-ink/40 hover:text-ink',
@@ -179,8 +184,9 @@ export default async function ParohPage({ searchParams }: Props) {
                 <Link
                   key={code}
                   href={filterHref(filters, { country: code })}
+                  data-active={filters.country === code}
                   className={cn(
-                    'palma-label rounded-full border px-3.5 py-2 transition-colors',
+                    'palma-chip palma-label rounded-full border px-3.5 py-2',
                     filters.country === code
                       ? 'border-ink bg-ink text-ivory'
                       : 'border-stone-deep text-taupe-deep hover:border-ink/40 hover:text-ink',
@@ -230,18 +236,12 @@ export default async function ParohPage({ searchParams }: Props) {
                       >
                         <Link
                           href={`/creators/${entry.creator.slug}`}
-                          className="group/card border-stone-deep hover:bg-stone/25 relative grid grid-cols-1 items-baseline gap-1 border-b py-6 transition-colors sm:grid-cols-12 sm:gap-6"
+                          className="palma-row group/card border-stone-deep hover:bg-stone/25 grid grid-cols-1 items-baseline gap-1 border-b py-6 sm:grid-cols-12 sm:gap-6"
                         >
-                          {/* The category's pigment travels the row on approach:
-                              the archive reads as a record, not a grey list. */}
-                          <span
-                            aria-hidden="true"
-                            className="palma-pigment-rule palma-card-rule absolute bottom-0 left-0 h-0.5 w-full"
-                          />
                           <span className="palma-label palma-pigment-text sm:col-span-5">
                             {entry.categoryName}
                           </span>
-                          <span className="font-display text-2xl leading-tight sm:col-span-5 sm:text-3xl">
+                          <span className="palma-row-lead font-display text-2xl leading-tight sm:col-span-5 sm:text-3xl">
                             {entry.creator.displayName}
                           </span>
                           <span className="palma-label text-taupe sm:col-span-2 sm:text-right">
@@ -259,7 +259,7 @@ export default async function ParohPage({ searchParams }: Props) {
           {filtered ? (
             <p className="text-taupe-deep mt-12 text-sm">
               Showing {total} {total === 1 ? 'honour' : 'honours'} ·{' '}
-              <Link href="/paroh" className="hover:text-ink underline underline-offset-4">
+              <Link href="/paroh" className="palma-link hover:text-ink">
                 Clear filters
               </Link>
             </p>

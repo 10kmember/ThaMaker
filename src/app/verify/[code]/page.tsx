@@ -186,7 +186,7 @@ export default async function VerifyPage({ params }: Params) {
           {!verified ? (
             <Notice tone="error" className="mt-10" title="If you were shown this code as proof">
               Treat it as unverified. If you believe someone is presenting a PALMA they do not hold,{' '}
-              <Link href="/report" className="underline underline-offset-4">
+              <Link href="/report" className="palma-link">
                 report it to PALMA
               </Link>
               .

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
-import { Container, PageHeader, Section } from '@/components/palma/layout';
+import { Container, Section } from '@/components/palma/layout';
+import { Masthead } from '@/components/palma/Masthead';
 import { Button } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/form';
 import { Notice } from '@/components/ui/feedback';
@@ -31,10 +32,12 @@ export default async function VerifyIndexPage({ searchParams }: Props) {
 
   return (
     <>
-      <PageHeader
-        label="PALMA verification"
+      <Masthead
+        eyebrow={'PALMA verification'}
         title="Verify an honour"
         standfirst="Every PALMA carries a permanent code, printed on the certificate and engraved on the trophy. Enter it to see the record exactly as it was conferred."
+        meta={['Signed at the moment it was conferred', 'Re-checked on every request']}
+        size="compact"
       />
 
       <Section>

@@ -1,4 +1,5 @@
-import { Container, PageHeader, Section } from '@/components/palma/layout';
+import { Container, Section } from '@/components/palma/layout';
+import { Masthead, MastheadPlate, PlateFact } from '@/components/palma/Masthead';
 import { CategoryCard } from '@/components/palma/CategoryCard';
 import { buildMetadata } from '@/lib/seo';
 import { getCurrentSeason, listCategories } from '@/server/data/queries';
@@ -18,10 +19,29 @@ export default async function CategoriesPage() {
 
   return (
     <>
-      <PageHeader
-        label={season.title}
+      <Masthead
+        eyebrow={`${season.title} · Categories`}
         title="The categories"
+        titleLines={['The', 'categories']}
+        figure={season.year}
         standfirst="Eight honours. Each with published eligibility rules, published judging criteria, and a panel briefed to discount audience size."
+        meta={[
+          `${categories.length} contested`,
+          'Five criteria, ten points each',
+          'Audience size is not one of them',
+        ]}
+        plate={
+          <MastheadPlate label="The rule that governs all eight">
+            <p className="text-ivory/75 text-sm leading-relaxed">
+              A category publishes its eligibility and its judging criteria before nominations open,
+              and neither changes mid-season.
+            </p>
+            <dl className="border-ivory/15 grid grid-cols-2 gap-4 border-t pt-4">
+              <PlateFact term="Judges">3 minimum</PlateFact>
+              <PlateFact term="Finalists">4 each</PlateFact>
+            </dl>
+          </MastheadPlate>
+        }
       />
 
       <Section>

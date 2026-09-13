@@ -1,14 +1,14 @@
 import Link from 'next/link';
-import { Container, PageHeader, Section, SectionHeading } from '@/components/palma/layout';
+import { Container, Section, SectionHeading } from '@/components/palma/layout';
+import { Masthead, MastheadPlate, PlateFact } from '@/components/palma/Masthead';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { SeasonRail } from '@/components/palma/SeasonRail';
 import { CategoryCard } from '@/components/palma/CategoryCard';
 import { Timeline } from '@/components/palma/Timeline';
 import { buildMetadata } from '@/lib/seo';
 import { STAGE_LABEL, acceptsNominations } from '@/domain/season';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatShortDate } from '@/lib/format';
 import { getCurrentSeason, listCategories, listSeasons } from '@/server/data/queries';
 
 export const revalidate = 900;
@@ -28,29 +28,39 @@ export default async function AwardsPage() {
 
   return (
     <>
-      <PageHeader
-        label="The Creator Honours"
+      <Masthead
+        eyebrow="The Creator Honours"
         title={season.title}
+        titleLines={['PALMA', String(season.year)]}
+        figure={season.year}
         standfirst={season.summary ?? undefined}
-        meta={
-          <>
-            <Badge variant={open ? 'champagneDark' : 'outlineIvory'}>
-              {open ? 'Nominations open' : STAGE_LABEL[season.stage]}
-            </Badge>
-            <span className="palma-label text-ivory/50">
-              {categories.length} categories · Ceremony {formatDate(season.ceremonyAt)}
-            </span>
-          </>
-        }
-      >
-        {open ? (
-          <div className="pt-4">
+        meta={[
+          STAGE_LABEL[season.stage],
+          `${categories.length} categories`,
+          `Ceremony ${formatDate(season.ceremonyAt)}`,
+        ]}
+        actions={
+          open ? (
             <Button asChild variant="ivory" size="md">
               <Link href="/nominate">Nominate a creator</Link>
             </Button>
-          </div>
-        ) : null}
-      </PageHeader>
+          ) : undefined
+        }
+        plate={
+          <MastheadPlate label="The season at a glance">
+            <dl className="grid grid-cols-2 gap-5">
+              <PlateFact term="Nominations open">
+                {formatShortDate(season.nominationsOpenAt)}
+              </PlateFact>
+              <PlateFact term="Nominations close">
+                {formatShortDate(season.nominationsCloseAt)}
+              </PlateFact>
+              <PlateFact term="Shortlist">{formatShortDate(season.shortlistAt)}</PlateFact>
+              <PlateFact term="Finalists">{formatShortDate(season.finalistsAt)}</PlateFact>
+            </dl>
+          </MastheadPlate>
+        }
+      />
 
       <Section className="py-16 sm:py-20">
         <Container>

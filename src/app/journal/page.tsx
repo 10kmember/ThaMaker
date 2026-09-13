@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Container, PageHeader, Section } from '@/components/palma/layout';
+import { Container, Section } from '@/components/palma/layout';
+import { Masthead } from '@/components/palma/Masthead';
 import { EmptyState } from '@/components/ui/feedback';
 import { Reveal } from '@/components/palma/Reveal';
 import { buildMetadata } from '@/lib/seo';
@@ -30,18 +31,21 @@ export default async function JournalPage({ searchParams }: Props) {
 
   return (
     <>
-      <PageHeader
-        label="The PALMA Journal"
+      <Masthead
+        eyebrow={'The PALMA Journal'}
         title="Journal"
         standfirst="Writing on the creator industry, the people in it, and the standards PALMA holds them to."
+        meta={['Interviews', 'Essays', 'Category explainers', 'Announcements']}
+        size="compact"
       />
 
       <div className="border-stone-deep bg-ivory border-b">
         <Container className="flex flex-wrap items-center gap-2 py-5">
           <Link
             href="/journal"
+            data-active={!category}
             className={cn(
-              'palma-label rounded-full border px-3.5 py-2 transition-colors',
+              'palma-chip palma-label rounded-full border px-3.5 py-2',
               !category
                 ? 'border-ink bg-ink text-ivory'
                 : 'border-stone-deep text-taupe-deep hover:border-ink/40 hover:text-ink',
@@ -53,8 +57,9 @@ export default async function JournalPage({ searchParams }: Props) {
             <Link
               key={entry.slug}
               href={`/journal?category=${entry.slug}`}
+              data-active={category === entry.slug}
               className={cn(
-                'palma-label rounded-full border px-3.5 py-2 transition-colors',
+                'palma-chip palma-label rounded-full border px-3.5 py-2',
                 category === entry.slug
                   ? 'border-ink bg-ink text-ivory'
                   : 'border-stone-deep text-taupe-deep hover:border-ink/40 hover:text-ink',
@@ -75,15 +80,19 @@ export default async function JournalPage({ searchParams }: Props) {
               {lead ? (
                 <Link
                   href={`/journal/${lead.slug}`}
-                  className="group border-stone-deep flex flex-col gap-6 border-b pb-16"
+                  className="group/card border-stone-deep flex flex-col gap-6 border-b pb-16"
                 >
                   <span className="palma-label text-taupe-deep">
                     {lead.category ?? 'Journal'} · {formatDate(lead.publishedAt)} ·{' '}
                     {lead.readingMinutes} min read
                   </span>
-                  <h2 className="group-hover:text-olive max-w-220 text-4xl leading-[1.03] transition-colors sm:text-6xl">
+                  <h2 className="palma-pigment-title max-w-220 text-4xl leading-[1.03] sm:text-6xl">
                     {lead.title}
                   </h2>
+                  <span
+                    aria-hidden="true"
+                    className="palma-card-rule bg-olive/50 block h-px w-full max-w-md"
+                  />
                   <p className="text-taupe-deep max-w-160 text-lg leading-relaxed">
                     {lead.standfirst}
                   </p>
@@ -96,14 +105,18 @@ export default async function JournalPage({ searchParams }: Props) {
                   <Reveal key={article.slug} delay={index * 60}>
                     <Link
                       href={`/journal/${article.slug}`}
-                      className="group border-stone-deep flex h-full flex-col gap-4 border-t pt-6"
+                      className="group/card border-stone-deep flex h-full flex-col gap-4 border-t pt-6"
                     >
                       <span className="palma-label text-taupe-deep">
                         {article.category ?? 'Journal'}
                       </span>
-                      <h3 className="group-hover:text-olive text-2xl leading-tight transition-colors">
+                      <h3 className="palma-pigment-title text-2xl leading-tight">
                         {article.title}
                       </h3>
+                      <span
+                        aria-hidden="true"
+                        className="palma-card-rule bg-olive/50 block h-px w-full"
+                      />
                       <p className="text-taupe-deep line-clamp-3 text-sm leading-relaxed">
                         {article.standfirst}
                       </p>

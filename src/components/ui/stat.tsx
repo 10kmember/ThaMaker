@@ -15,7 +15,7 @@ export function Stat({
   tone?: 'light' | 'dark';
 }) {
   return (
-    <div className={cn('flex flex-col gap-1.5', className)}>
+    <div className={cn('palma-stat flex flex-col gap-1.5', className)}>
       <span className={cn('palma-label', tone === 'dark' ? 'text-ivory/55' : 'text-taupe-deep')}>
         {label}
       </span>

@@ -99,7 +99,7 @@ export default async function AssignmentPage({ params }: Params) {
                       href={item.url}
                       target="_blank"
                       rel="noopener noreferrer nofollow"
-                      className="text-olive mt-2 inline-flex items-center gap-2 text-sm break-all underline underline-offset-4"
+                      className="text-olive palma-link mt-2 inline-flex items-center gap-2 text-sm break-all"
                     >
                       {item.url}
                       <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />

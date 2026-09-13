@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Container, PageHeader, Section } from '@/components/palma/layout';
+import { Container, Section } from '@/components/palma/layout';
+import { Masthead } from '@/components/palma/Masthead';
 import { Notice } from '@/components/ui/feedback';
 import { Button } from '@/components/ui/button';
 import { buildMetadata } from '@/lib/seo';
@@ -15,10 +16,12 @@ export const metadata = buildMetadata({
 export default function PolicyPage() {
   return (
     <>
-      <PageHeader
-        label="The Creator Honours"
+      <Masthead
+        eyebrow={'The Creator Honours'}
         title="Content policy"
         standfirst="PALMA recognises achievement. It hosts no creator work, and brokers nothing."
+        meta={['SFW at every public surface', 'No hosted media', 'Evidence gathered by PALMA']}
+        size="compact"
       />
 
       <Section>

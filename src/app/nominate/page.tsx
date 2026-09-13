@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Container, PageHeader, Section } from '@/components/palma/layout';
+import { Container, Section } from '@/components/palma/layout';
+import { Masthead, MastheadPlate, PlateFact } from '@/components/palma/Masthead';
 import { NominateForm } from '@/components/nominate/NominateForm';
 import { EmptyState, Notice } from '@/components/ui/feedback';
 import { Button } from '@/components/ui/button';
@@ -24,16 +25,30 @@ export default async function NominatePage() {
 
   return (
     <>
-      <PageHeader
-        label={season.title}
+      <Masthead
+        eyebrow={`${season.title} · Nominations`}
         title="Nominate a creator"
+        titleLines={['Nominate', 'a creator']}
+        figure={season.year}
         standfirst="Name someone, say why in a sentence, confirm your email. That is the whole of it — PALMA does the investigating."
-        meta={
-          season.nominationsCloseAt ? (
-            <span className="palma-label text-ivory/55">
-              Nominations close {formatDate(season.nominationsCloseAt)}
-            </span>
-          ) : undefined
+        meta={[
+          'Under a minute',
+          'No account',
+          'No evidence needed',
+          season.nominationsCloseAt
+            ? `Closes ${formatDate(season.nominationsCloseAt)}`
+            : 'Open now',
+        ]}
+        plate={
+          <MastheadPlate label="Audience nominates. PALMA judges.">
+            <p className="text-ivory/75 text-sm leading-relaxed">
+              A nomination is a signal, not a vote. The creator with the most does not win.
+            </p>
+            <dl className="border-ivory/15 grid grid-cols-2 gap-4 border-t pt-4">
+              <PlateFact term="Cost">Nothing</PlateFact>
+              <PlateFact term="Per person">One each</PlateFact>
+            </dl>
+          </MastheadPlate>
         }
       />
 

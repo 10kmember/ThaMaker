@@ -35,7 +35,7 @@ export default async function AdminAuditPage({
         <Link
           href="/admin/audit"
           className={cn(
-            'palma-label rounded-full border px-3.5 py-2',
+            'palma-chip palma-label rounded-full border px-3.5 py-2',
             !action ? 'border-ink bg-ink text-ivory' : 'border-stone-deep text-taupe-deep',
           )}
         >
@@ -46,7 +46,7 @@ export default async function AdminAuditPage({
             key={entry}
             href={`/admin/audit?action=${entry}`}
             className={cn(
-              'palma-label rounded-full border px-3.5 py-2',
+              'palma-chip palma-label rounded-full border px-3.5 py-2',
               action === entry
                 ? 'border-ink bg-ink text-ivory'
                 : 'border-stone-deep text-taupe-deep',

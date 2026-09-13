@@ -33,7 +33,7 @@ export default async function AdminNominationsPage({
         <Link
           href="/admin/nominations"
           className={cn(
-            'palma-label rounded-full border px-3.5 py-2',
+            'palma-chip palma-label rounded-full border px-3.5 py-2',
             !status ? 'border-ink bg-ink text-ivory' : 'border-stone-deep text-taupe-deep',
           )}
         >
@@ -42,7 +42,7 @@ export default async function AdminNominationsPage({
         <Link
           href="/admin/nominations?flagged=1"
           className={cn(
-            'palma-label rounded-full border px-3.5 py-2',
+            'palma-chip palma-label rounded-full border px-3.5 py-2',
             flagged === '1' ? 'border-ink bg-ink text-ivory' : 'border-stone-deep text-taupe-deep',
           )}
         >
@@ -53,7 +53,7 @@ export default async function AdminNominationsPage({
             key={entry}
             href={`/admin/nominations?status=${entry}`}
             className={cn(
-              'palma-label rounded-full border px-3.5 py-2',
+              'palma-chip palma-label rounded-full border px-3.5 py-2',
               status === entry
                 ? 'border-ink bg-ink text-ivory'
                 : 'border-stone-deep text-taupe-deep',

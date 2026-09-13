@@ -435,6 +435,267 @@
     );
   }
 
+  /* ── Masthead furniture ─────────────────────────────────────────────────
+     Print apparatus, borrowed honestly: crop marks, a folio rule, a divided
+     meta rail. These are the details that make a page header read as a
+     *masthead* rather than a coloured rectangle with a heading in it. */
+
+  .palma-crop {
+    position: absolute;
+    width: 1.25rem;
+    height: 1.25rem;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .palma-crop::before,
+  .palma-crop::after {
+    content: '';
+    position: absolute;
+    background: currentColor;
+  }
+
+  .palma-crop::before {
+    inset-inline-start: 0;
+    top: 0;
+    width: 100%;
+    height: 1px;
+  }
+
+  .palma-crop::after {
+    inset-inline-start: 0;
+    top: 0;
+    width: 1px;
+    height: 100%;
+  }
+
+  .palma-crop[data-corner='tr'] {
+    transform: scaleX(-1);
+  }
+  .palma-crop[data-corner='bl'] {
+    transform: scaleY(-1);
+  }
+  .palma-crop[data-corner='br'] {
+    transform: scale(-1);
+  }
+
+  /* The divided meta rail beneath a masthead. */
+  .palma-rail {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .palma-rail > * + *::before {
+    content: '';
+    display: inline-block;
+    width: 1px;
+    height: 0.85em;
+    margin-inline: 1.15rem;
+    vertical-align: -0.1em;
+    background: currentColor;
+    opacity: 0.28;
+  }
+
+  /* Wrapped rail items would carry their divider onto the start of the next
+     line, which reads as a stray mark. Below the fold-out width the rail
+     simply stacks. */
+  @media (max-width: 640px) {
+    .palma-rail {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.6rem;
+    }
+
+    .palma-rail > * + *::before {
+      content: none;
+    }
+  }
+
+  /* A very large, very quiet numeral behind a masthead plate — the season
+     year, the class, the count. Institutional, not decorative. */
+  .palma-figure {
+    font-family: var(--font-display);
+    line-height: 0.78;
+    letter-spacing: -0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Hover vocabulary ───────────────────────────────────────────────────
+     The behaviours that appear dozens of times each. Defined once so a table
+     row, an archive row and a filter chip are visibly the same family. */
+
+  /* A row in a list or table. The pigment rule travels, the ground warms, the
+     leading type shifts a fraction toward its destination. */
+  .palma-row {
+    position: relative;
+    transition: background-color 260ms var(--ease-ceremonial);
+  }
+
+  .palma-row::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 2px;
+    background: var(--palma-pigment, var(--color-olive));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 520ms var(--ease-ceremonial);
+  }
+
+  .palma-row:hover::after,
+  .palma-row:focus-visible::after,
+  .palma-row:focus-within::after {
+    transform: scaleX(1);
+  }
+
+  .palma-row-lead {
+    display: inline-block;
+    transition:
+      transform 380ms var(--ease-ceremonial),
+      translate 380ms var(--ease-ceremonial);
+  }
+
+  .palma-row:hover .palma-row-lead,
+  .palma-row:focus-visible .palma-row-lead,
+  .palma-row:focus-within .palma-row-lead {
+    transform: translateX(0.4rem);
+  }
+
+  /* A filter chip. The fill sweeps in from the leading edge rather than
+     switching colour, so choosing a filter feels like a decision landing. */
+  .palma-chip {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    transition:
+      color 220ms var(--ease-ceremonial),
+      border-color 220ms var(--ease-ceremonial);
+  }
+
+  .palma-chip::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--color-ink);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 320ms var(--ease-ceremonial);
+  }
+
+  .palma-chip:hover:not([data-active='true'])::before,
+  .palma-chip:focus-visible:not([data-active='true'])::before {
+    transform: scaleX(1);
+  }
+
+  .palma-chip:hover:not([data-active='true']),
+  .palma-chip:focus-visible:not([data-active='true']) {
+    color: var(--color-ivory);
+    border-color: var(--color-ink);
+  }
+
+  /* A quiet link — footers, legal, secondary navigation. The mark appears
+     before the text moves, so the list never reflows. */
+  .palma-quiet-link {
+    position: relative;
+    display: inline-block;
+    padding-inline-start: 0;
+    transition:
+      color 220ms var(--ease-ceremonial),
+      padding-inline-start 320ms var(--ease-ceremonial);
+  }
+
+  .palma-quiet-link::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: 0;
+    top: 50%;
+    width: 0.5rem;
+    height: 1px;
+    background: currentColor;
+    opacity: 0;
+    transform: translateY(-50%) scaleX(0);
+    transform-origin: left;
+    transition:
+      opacity 220ms var(--ease-ceremonial),
+      transform 320ms var(--ease-ceremonial);
+  }
+
+  .palma-quiet-link:hover,
+  .palma-quiet-link:focus-visible {
+    padding-inline-start: 0.85rem;
+  }
+
+  .palma-quiet-link:hover::before,
+  .palma-quiet-link:focus-visible::before {
+    opacity: 0.75;
+    transform: translateY(-50%) scaleX(1);
+  }
+
+  /* A stat that acknowledges the cursor: the figure lifts a hair and its rule
+     draws. Used across portals and the About page. */
+  .palma-stat {
+    position: relative;
+    transition: transform 320ms var(--ease-ceremonial);
+  }
+
+  .palma-stat::after {
+    content: '';
+    position: absolute;
+    inset-inline-start: 0;
+    bottom: -0.6rem;
+    width: 2.5rem;
+    height: 2px;
+    background: var(--palma-pigment, var(--color-champagne-deep));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 420ms var(--ease-ceremonial);
+  }
+
+  .palma-stat:hover {
+    transform: translateY(-2px);
+  }
+
+  .palma-stat:hover::after {
+    transform: scaleX(1);
+  }
+
+  /* A badge that firms up when the thing it labels is approached. */
+  .palma-badge-live {
+    transition:
+      border-color 260ms var(--ease-ceremonial),
+      background-color 260ms var(--ease-ceremonial),
+      letter-spacing 380ms var(--ease-ceremonial);
+  }
+
+  .group\/card:hover .palma-badge-live {
+    letter-spacing: 0.17em;
+    border-color: color-mix(in oklab, currentColor 55%, transparent);
+  }
+
+  /* The seal, when it is interactive: a slow quarter-degree settle. */
+  .palma-seal-live {
+    transition:
+      transform 900ms var(--ease-ceremonial),
+      opacity 420ms var(--ease-ceremonial);
+  }
+
+  .palma-seal-live:hover {
+    transform: rotate(-3deg) scale(1.015);
+  }
+
+  /* Form fields: the label lifts into the institution's accent and a rule
+     draws beneath the control on focus. */
+  .palma-field-shell:focus-within .palma-field-label {
+    color: var(--color-olive);
+  }
+
+  .palma-field-label {
+    transition: color 220ms var(--ease-ceremonial);
+  }
+
   /* The editorial card.
 
      Nothing floats. The image pushes in a fraction, the border firms, the

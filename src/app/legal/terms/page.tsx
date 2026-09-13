@@ -1,4 +1,5 @@
-import { Container, PageHeader, Section } from '@/components/palma/layout';
+import { Container, Section } from '@/components/palma/layout';
+import { Masthead } from '@/components/palma/Masthead';
 import { Notice } from '@/components/ui/feedback';
 import { buildMetadata } from '@/lib/seo';
 
@@ -11,11 +12,13 @@ export const metadata = buildMetadata({
 export default function TermsPage() {
   return (
     <>
-      <PageHeader
-        label="Legal"
+      <Masthead
+        eyebrow={'Legal'}
         title="Terms"
         standfirst="The terms on which PALMA accepts nominations, confers honours, and maintains the record."
-        tone="ivory"
+        meta={['Draft — pending UK counsel']}
+        tone={'ivory'}
+        size="compact"
       />
 
       <Section className="pt-8">

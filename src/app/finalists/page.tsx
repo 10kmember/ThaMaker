@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Container, PageHeader, Section } from '@/components/palma/layout';
+import { Container, Section } from '@/components/palma/layout';
+import { Masthead } from '@/components/palma/Masthead';
 import { SeasonRail } from '@/components/palma/SeasonRail';
 import { pigmentStyle } from '@/lib/category-identity';
 import { FinalistCard } from '@/components/palma/FinalistCard';
@@ -40,30 +41,38 @@ export default async function FinalistsPage({ searchParams }: Props) {
 
   return (
     <>
-      <PageHeader
-        label={
-          <Link href={`/awards/${season.year}`} className="hover:text-ivory transition-colors">
+      <Masthead
+        eyebrow={
+          <Link href={`/awards/${season.year}`} className="palma-link">
             {season.title}
           </Link>
         }
         title="The finalists"
+        titleLines={['The', 'finalists']}
+        figure={season.year}
         standfirst={
           withFinalists.length > 0
             ? 'Four creators contest each PALMA. They were selected by the panel, from evidence.'
             : undefined
         }
-        meta={
+        meta={[
+          `${withFinalists.length} categories`,
+          'Selected by the panel',
+          'Nomination counts play no part',
+        ]}
+        plate={
           seasons.length > 1 ? (
             <nav aria-label="Season" className="flex flex-wrap gap-2">
               {seasons.map((entry) => (
                 <Link
                   key={entry.year}
                   href={`/finalists?year=${entry.year}`}
+                  data-active={entry.year === season.year}
                   aria-current={entry.year === season.year ? 'page' : undefined}
                   className={
                     entry.year === season.year
-                      ? 'palma-label border-ivory bg-ivory text-ink rounded-full border px-3.5 py-2'
-                      : 'palma-label border-ivory/30 text-ivory/70 hover:border-ivory/70 hover:text-ivory rounded-full border px-3.5 py-2 transition-colors'
+                      ? 'palma-label border-ivory bg-ivory text-ink rounded-full border px-4 py-2.5'
+                      : 'palma-chip palma-label border-ivory/30 text-ivory/70 rounded-full border px-4 py-2.5'
                   }
                 >
                   {entry.year}

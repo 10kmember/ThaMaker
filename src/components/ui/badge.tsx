@@ -3,7 +3,7 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const badgeVariants = cva(
-  'palma-label inline-flex items-center gap-1.5 border px-2.5 py-1.5 leading-none',
+  'palma-badge-live palma-label inline-flex items-center gap-1.5 border px-2.5 py-1.5 leading-none',
   {
     variants: {
       variant: {
@@ -36,7 +36,7 @@ export function Pill({
   return (
     <span
       className={cn(
-        'palma-label inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2 transition-colors',
+        'palma-chip palma-label inline-flex items-center gap-1.5 rounded-full border px-3.5 py-2',
         active
           ? 'border-ink bg-ink text-ivory'
           : 'border-stone-deep/70 text-taupe-deep hover:border-ink/40 hover:text-ink',

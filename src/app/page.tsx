@@ -161,7 +161,7 @@ export default async function HomePage() {
                   className="group border-stone-deep hover:bg-ivory/40 grid grid-cols-1 items-baseline gap-2 border-t py-6 transition-colors sm:grid-cols-12 sm:gap-6"
                 >
                   <span className="palma-label text-taupe-deep sm:col-span-2">{honour.year}</span>
-                  <span className="font-display text-2xl leading-none sm:col-span-4">
+                  <span className="palma-row-lead font-display text-2xl leading-none sm:col-span-4">
                     {honour.creator.displayName}
                   </span>
                   <span className="text-taupe-deep text-sm sm:col-span-4">
@@ -209,12 +209,12 @@ export default async function HomePage() {
                 <li key={`${entry.year}-${entry.categorySlug}`}>
                   <Link
                     href={`/creators/${entry.creator.slug}`}
-                    className="group border-ivory/20 flex items-baseline justify-between gap-6 border-t py-5 transition-opacity hover:opacity-70"
+                    className="palma-row group/card border-ivory/20 flex items-baseline justify-between gap-6 border-t py-5"
                   >
                     <span className="flex items-baseline gap-5">
                       <span className="palma-label text-ivory/40">{ordinal(index)}</span>
                       <span className="flex flex-col gap-1">
-                        <span className="font-display text-xl leading-none">
+                        <span className="palma-row-lead font-display text-xl leading-none">
                           {entry.creator.displayName}
                         </span>
                         <span className="palma-label text-ivory/45">{entry.categoryName}</span>

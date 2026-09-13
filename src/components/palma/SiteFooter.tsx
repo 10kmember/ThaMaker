@@ -29,7 +29,7 @@ export function SiteFooter() {
                     <li key={item.href}>
                       <Link
                         href={item.href}
-                        className="text-ivory/65 hover:text-ivory text-sm transition-colors"
+                        className="palma-quiet-link text-ivory/65 hover:text-ivory text-sm"
                       >
                         {item.label}
                       </Link>
@@ -45,17 +45,17 @@ export function SiteFooter() {
           <p>© {year} PALMA. The Creator Honours. Palma Awards Ltd, United Kingdom.</p>
           <ul className="flex flex-wrap gap-6">
             <li>
-              <Link href="/about/policy" className="hover:text-ivory transition-colors">
+              <Link href="/about/policy" className="palma-quiet-link hover:text-ivory">
                 Content policy
               </Link>
             </li>
             <li>
-              <Link href="/legal/privacy" className="hover:text-ivory transition-colors">
+              <Link href="/legal/privacy" className="palma-quiet-link hover:text-ivory">
                 Privacy
               </Link>
             </li>
             <li>
-              <Link href="/legal/terms" className="hover:text-ivory transition-colors">
+              <Link href="/legal/terms" className="palma-quiet-link hover:text-ivory">
                 Terms
               </Link>
             </li>

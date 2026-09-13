@@ -113,6 +113,7 @@ export function MaskedLines({
   stagger = 0.08,
   delay = 0,
   as: Tag = 'span',
+  trigger = 'inView',
 }: {
   lines: string[];
   className?: string;
@@ -120,6 +121,13 @@ export function MaskedLines({
   stagger?: number;
   delay?: number;
   as?: 'span' | 'h1' | 'h2' | 'h3' | 'p';
+  /**
+   * `inView` for type further down a page; `mount` for anything above the
+   * fold. A masthead title is on screen before any observer can report it, so
+   * waiting for an intersection leaves the heading clipped at its own
+   * baseline — invisible, and the page missing its title.
+   */
+  trigger?: 'inView' | 'mount';
 }) {
   const reduced = useReducedMotion();
 
@@ -135,6 +143,11 @@ export function MaskedLines({
     );
   }
 
+  const play =
+    trigger === 'mount'
+      ? ({ animate: 'visible' } as const)
+      : ({ whileInView: 'visible', viewport: VIEWPORT } as const);
+
   return (
     <Tag className={className}>
       {lines.map((line, index) => (
@@ -142,10 +155,9 @@ export function MaskedLines({
           <motion.span
             className={cn('block', lineClassName)}
             initial="hidden"
-            whileInView="visible"
-            viewport={VIEWPORT}
             variants={unmask}
             transition={{ delay: delay + index * stagger }}
+            {...play}
           >
             {line}
           </motion.span>

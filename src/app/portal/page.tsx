@@ -58,7 +58,7 @@ export default async function PortalPage() {
         <Notice className="mt-10" tone="ceremonial" title="No creator profile yet">
           If a PALMA profile already exists for you, claim it — otherwise one is created the first
           time you are nominated.{' '}
-          <Link href="/portal/claim" className="underline underline-offset-4">
+          <Link href="/portal/claim" className="palma-link">
             Claim a profile
           </Link>
           .

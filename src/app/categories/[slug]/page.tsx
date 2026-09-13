@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Container, PageHeader, Section, SectionHeading } from '@/components/palma/layout';
-import { Badge } from '@/components/ui/badge';
+import { Container, Section, SectionHeading } from '@/components/palma/layout';
+import { Masthead, MastheadPlate } from '@/components/palma/Masthead';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/feedback';
 import { FinalistCard } from '@/components/palma/FinalistCard';
@@ -62,35 +62,40 @@ export default async function CategoryPage({ params, searchParams }: Params) {
 
   return (
     <>
-      <div style={pigmentStyle(category.slug)}>
-        <span aria-hidden="true" className="palma-pigment-crest block h-1.5 w-full" />
-      </div>
-
-      <PageHeader
-        label={`${season.title} · Category`}
+      <Masthead
+        categorySlug={category.slug}
+        eyebrow={`${season.title} · Category`}
         title={category.name}
         standfirst={category.strapline ?? undefined}
-        meta={
-          <>
-            <Badge variant={open ? 'champagneDark' : 'outlineIvory'}>
-              {open ? 'Open for nominations' : STAGE_LABEL[category.stage]}
-            </Badge>
-            {category.partner ? (
-              <span className="palma-label text-ivory/50">
-                Category partner · {category.partner.name}
-              </span>
-            ) : null}
-          </>
-        }
-      >
-        {open ? (
-          <div className="pt-4">
+        meta={[
+          open ? 'Open for nominations' : STAGE_LABEL[category.stage],
+          'Five criteria, ten points each',
+          category.partner ? `Partner · ${category.partner.name}` : 'No category partner',
+        ]}
+        figure={season.year}
+        actions={
+          open ? (
             <Button asChild variant="ivory" size="md">
               <Link href={`/nominate?category=${category.slug}`}>Nominate in this category</Link>
             </Button>
-          </div>
-        ) : null}
-      </PageHeader>
+          ) : undefined
+        }
+        plate={
+          <MastheadPlate label="Judged on">
+            <dl className="flex flex-col gap-2.5">
+              {SCORING_CRITERIA.map((criterion) => (
+                <div
+                  key={criterion.key}
+                  className="border-ivory/10 flex items-baseline justify-between gap-4 border-b pb-2.5 last:border-none last:pb-0"
+                >
+                  <dt className="font-display text-[1.0625rem] leading-none">{criterion.label}</dt>
+                  <dd className="palma-label text-ivory/45">/10</dd>
+                </div>
+              ))}
+            </dl>
+          </MastheadPlate>
+        }
+      />
 
       {winner ? <WinnerReveal outcome={outcome} season={season} /> : null}
 

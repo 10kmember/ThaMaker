@@ -23,7 +23,10 @@ import { cn } from '@/lib/utils';
 const buttonVariants = cva(
   [
     'group/button relative inline-flex items-center justify-center gap-2 overflow-hidden whitespace-nowrap font-medium',
-    'transition-[transform,background-color,color,border-color] duration-200 ease-(--ease-ceremonial)',
+    // Tailwind v4 animates `translate` as its own property, not through
+    // `transform`. Leaving it out of this list makes the lift jump instead of
+    // easing — the class applies, it simply has no transition to ride.
+    'transition-[translate,background-color,color,border-color] duration-200 ease-(--ease-ceremonial)',
     'motion-safe:hover:-translate-y-1 motion-safe:focus-visible:-translate-y-1 motion-safe:active:translate-y-px motion-safe:active:duration-100',
     'disabled:pointer-events-none disabled:opacity-45 motion-safe:disabled:translate-y-0',
     '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',

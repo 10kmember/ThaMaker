@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Container, PageHeader, Section, SectionHeading } from '@/components/palma/layout';
-import { Badge } from '@/components/ui/badge';
+import { Container, Section, SectionHeading } from '@/components/palma/layout';
+import { Masthead, MastheadPlate, PlateFact } from '@/components/palma/Masthead';
 import { Button } from '@/components/ui/button';
 import { SeasonChoreography } from '@/components/motion/SeasonChoreography';
 import { CategoryCard } from '@/components/palma/CategoryCard';
@@ -59,19 +59,26 @@ export default async function SeasonPage({ params }: Params) {
 
   return (
     <>
-      <PageHeader
-        label="The Creator Honours"
+      <Masthead
+        eyebrow="The Creator Honours"
         title={season.title}
+        titleLines={['PALMA', String(season.year)]}
+        figure={season.year}
         standfirst={season.summary ?? undefined}
-        meta={
-          <>
-            <Badge variant={open ? 'champagneDark' : 'outlineIvory'}>
-              {STAGE_LABEL[season.stage]}
-            </Badge>
-            <span className="palma-label text-ivory/50">
-              Ceremony {formatDate(season.ceremonyAt)}
-            </span>
-          </>
+        meta={[
+          STAGE_LABEL[season.stage],
+          `${categories.length} categories`,
+          `Ceremony ${formatDate(season.ceremonyAt)}`,
+        ]}
+        plate={
+          <MastheadPlate label="This season">
+            <dl className="grid grid-cols-2 gap-5">
+              <PlateFact term="Stage">{STAGE_LABEL[season.stage]}</PlateFact>
+              <PlateFact term="Categories">{categories.length}</PlateFact>
+              <PlateFact term="Finalists named">{winners.length > 0 ? 'Yes' : 'Not yet'}</PlateFact>
+              <PlateFact term="Winners">{winners.length || '—'}</PlateFact>
+            </dl>
+          </MastheadPlate>
         }
       />
 

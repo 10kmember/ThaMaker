@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Container, PageHeader, Section } from '@/components/palma/layout';
+import { Container, Section } from '@/components/palma/layout';
+import { Masthead } from '@/components/palma/Masthead';
 import { CreatorCard } from '@/components/palma/CreatorCard';
 import { EmptyState } from '@/components/ui/feedback';
 import { Input } from '@/components/ui/form';
@@ -40,10 +41,12 @@ export default async function CreatorsPage({ searchParams }: Props) {
 
   return (
     <>
-      <PageHeader
-        label="The record"
+      <Masthead
+        eyebrow={'The record'}
         title="Creators"
         standfirst="A PALMA profile is an achievement record, not a social profile. No follower counts, no feed, no commentary — only what the panel conferred."
+        meta={['No follower counts', 'No feed', 'No commentary']}
+        size="compact"
       />
 
       <div className="border-stone-deep bg-ivory border-b">
@@ -51,8 +54,9 @@ export default async function CreatorsPage({ searchParams }: Props) {
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href={href({ country: undefined })}
+              data-active={!filters.country}
               className={cn(
-                'palma-label rounded-full border px-3.5 py-2 transition-colors',
+                'palma-chip palma-label rounded-full border px-3.5 py-2',
                 !filters.country
                   ? 'border-ink bg-ink text-ivory'
                   : 'border-stone-deep text-taupe-deep hover:border-ink/40 hover:text-ink',
@@ -64,8 +68,9 @@ export default async function CreatorsPage({ searchParams }: Props) {
               <Link
                 key={code}
                 href={href({ country: code })}
+                data-active={filters.country === code}
                 className={cn(
-                  'palma-label rounded-full border px-3.5 py-2 transition-colors',
+                  'palma-chip palma-label rounded-full border px-3.5 py-2',
                   filters.country === code
                     ? 'border-ink bg-ink text-ivory'
                     : 'border-stone-deep text-taupe-deep hover:border-ink/40 hover:text-ink',
@@ -76,8 +81,9 @@ export default async function CreatorsPage({ searchParams }: Props) {
             ))}
             <Link
               href={href({ honours: honoursOnly ? undefined : '1' })}
+              data-active={honoursOnly}
               className={cn(
-                'palma-label rounded-full border px-3.5 py-2 transition-colors',
+                'palma-chip palma-label rounded-full border px-3.5 py-2',
                 honoursOnly
                   ? 'border-champagne-deep bg-champagne/20 text-ink'
                   : 'border-stone-deep text-taupe-deep hover:border-ink/40 hover:text-ink',

@@ -26,7 +26,11 @@ export function PalmaSeal({
   return (
     <svg
       viewBox="0 0 220 220"
-      className={cn('h-40 w-40', animated && 'motion-safe:animate-(--animate-seal)', className)}
+      className={cn(
+        'palma-seal-live h-40 w-40',
+        animated && 'motion-safe:animate-(--animate-seal)',
+        className,
+      )}
       role="img"
       aria-label={[legend, sublegend, centre].filter(Boolean).join(' — ')}
     >

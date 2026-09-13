@@ -13,8 +13,18 @@ export function Label({ className, ...props }: React.ComponentProps<typeof Label
   );
 }
 
-const fieldBase =
-  'w-full border border-stone-deep bg-ivory-bright px-3.5 py-3 text-[0.9375rem] text-ink transition-colors placeholder:text-taupe focus:border-olive focus:outline-none disabled:opacity-50 aria-[invalid=true]:border-red-800';
+/**
+ * Field behaviour: the border firms on hover, deepens to the institution's
+ * accent on focus, and the whole control lifts a hair — the same tactile
+ * language as a button, at input scale.
+ */
+const fieldBase = [
+  'w-full border border-stone-deep bg-ivory-bright px-3.5 py-3 text-[0.9375rem] text-ink',
+  'transition-[border-color,box-shadow,transform] duration-200 ease-(--ease-ceremonial)',
+  'placeholder:text-taupe hover:border-taupe-deep',
+  'focus:border-olive focus:outline-none focus:shadow-[0_1px_0_0_var(--color-olive)]',
+  'disabled:opacity-50 aria-[invalid=true]:border-red-800',
+].join(' ');
 
 export function Input({ className, ...props }: React.ComponentProps<'input'>) {
   return <input className={cn(fieldBase, 'h-12', className)} {...props} />;
@@ -78,8 +88,8 @@ export function Field({
   const errorId = error ? `${htmlFor}-error` : undefined;
 
   return (
-    <div className={cn('flex flex-col gap-2', className)}>
-      <Label htmlFor={htmlFor}>
+    <div className={cn('palma-field-shell flex flex-col gap-2', className)}>
+      <Label htmlFor={htmlFor} className="palma-field-label">
         {label}
         {required ? <span className="text-champagne-deep ml-1">*</span> : null}
       </Label>

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Container, PageHeader, Section } from '@/components/palma/layout';
+import { Container, Section } from '@/components/palma/layout';
+import { Masthead } from '@/components/palma/Masthead';
 import { EmptyState } from '@/components/ui/feedback';
 import { Button } from '@/components/ui/button';
 import { PalmaSeal } from '@/components/brand/PalmaSeal';
@@ -39,19 +40,22 @@ export default async function ParohYearPage({ params }: Params) {
 
   return (
     <>
-      <PageHeader
-        label="PALMA Roll of Honour"
+      <Masthead
+        eyebrow="PALMA Roll of Honour"
         title={`Class of ${season.year}`}
+        titleLines={['Class of', String(season.year)]}
+        figure={season.year}
         standfirst={
           entries.length > 0
             ? `${entries.length} honours conferred at the ${season.title} ceremony on ${formatDate(season.ceremonyAt)}.`
             : undefined
         }
-        meta={
-          <Link
-            href="/paroh"
-            className="palma-label text-ivory/60 hover:text-ivory transition-colors"
-          >
+        meta={[
+          entries.length > 0 ? `${entries.length} honours` : 'Not yet conferred',
+          'Permanent and publicly verifiable',
+        ]}
+        actions={
+          <Link href="/paroh" className="palma-label-brand palma-link text-ivory/70">
             ← The full PaROH
           </Link>
         }
