@@ -5,6 +5,8 @@ export const signInSchema = z.object({
   email: z.string().trim().toLowerCase().email('Enter a valid email address.'),
   password: z.string().min(1, 'Enter your password.'),
   next: z.string().trim().max(500).optional(),
+  /** Which door this attempt came through. Unknown values fall back to the creator door. */
+  entrance: z.enum(['creator', 'judge', 'staff']).default('creator'),
 });
 
 export const registerSchema = z.object({

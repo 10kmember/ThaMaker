@@ -7,13 +7,13 @@ import { ENTRANCES, entranceForRole } from '@/lib/auth/entrances';
 export const dynamic = 'force-dynamic';
 
 export const metadata = buildMetadata({
-  title: 'Creator sign in',
-  description: 'Sign in to the PALMA creator portal.',
-  path: '/sign-in',
+  title: 'Administration',
+  description: 'The entrance to the PALMA administration surface.',
+  path: '/staff',
   noIndex: true,
 });
 
-export default async function SignInPage({
+export default async function StaffEntrancePage({
   searchParams,
 }: {
   searchParams: Promise<{ next?: string }>;
@@ -23,5 +23,5 @@ export default async function SignInPage({
 
   const { next } = await searchParams;
 
-  return <EntrancePanel entrance={ENTRANCES.creator} next={next} />;
+  return <EntrancePanel entrance={ENTRANCES.staff} next={next} />;
 }

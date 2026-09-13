@@ -2,6 +2,7 @@ import 'server-only';
 import { redirect } from 'next/navigation';
 import { getSession, type ActiveSession } from './session';
 import { can, type Permission, type Role } from './rbac';
+import { admits, entranceForPath, entranceForRole } from './entrances';
 
 export class AuthorisationError extends Error {
   readonly permission: Permission | null;
@@ -13,13 +14,30 @@ export class AuthorisationError extends Error {
   }
 }
 
-/** Server-side gate for pages: sends visitors to sign in, keeps the return path. */
+/**
+ * Server-side gate for pages.
+ *
+ * A visitor is sent to the door that guards *this surface*, not to a shared
+ * sign-in — the judging room sends people to /judge, the admin surface to
+ * /admin/sign-in. The door is resolved from the path, so no role lookup is
+ * needed to decide where an unauthenticated visitor goes.
+ *
+ * A signed-in account on a surface its own door does not lead to is sent to
+ * its own entrance rather than shown the refusal page: it is in the wrong
+ * building, not merely under-permissioned.
+ */
 export async function requireSession(returnTo?: string): Promise<ActiveSession> {
+  const entrance = entranceForPath(returnTo);
   const session = await getSession();
+
   if (!session) {
-    const target = returnTo ? `/sign-in?next=${encodeURIComponent(returnTo)}` : '/sign-in';
-    redirect(target);
+    redirect(returnTo ? `${entrance.path}?next=${encodeURIComponent(returnTo)}` : entrance.path);
   }
+
+  if (!admits(entrance, session.user.role)) {
+    redirect(entranceForRole(session.user.role).home);
+  }
+
   return session;
 }
 

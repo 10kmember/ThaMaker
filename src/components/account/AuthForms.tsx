@@ -9,16 +9,37 @@ import { register, signIn, type AuthState } from '@/server/actions/auth';
 
 const initial: AuthState = { status: 'idle' };
 
-export function SignInForm({ next }: { next?: string }) {
+export function SignInForm({
+  next,
+  entrance = 'creator',
+  submitLabel = 'Sign in',
+  showRegister = true,
+}: {
+  next?: string;
+  /** Which door this form belongs to. The server refuses the wrong role here. */
+  entrance?: 'creator' | 'judge' | 'staff';
+  submitLabel?: string;
+  showRegister?: boolean;
+}) {
   const [state, action, pending] = useActionState(signIn, initial);
 
   return (
     <form action={action} className="flex flex-col gap-6">
+      <input type="hidden" name="entrance" value={entrance} />
       {next ? <input type="hidden" name="next" value={next} /> : null}
 
       {state.status === 'error' && state.message ? (
-        <Notice tone="error" title="Could not sign in">
+        <Notice tone="error" title={state.wrongDoor ? 'Wrong entrance' : 'Could not sign in'}>
           {state.message}
+          {state.wrongDoor ? (
+            <>
+              {' '}
+              <Link href={state.wrongDoor.path} className="palma-link text-ink">
+                Go to {state.wrongDoor.title.toLowerCase()}
+              </Link>
+              .
+            </>
+          ) : null}
         </Notice>
       ) : null}
 
@@ -37,16 +58,18 @@ export function SignInForm({ next }: { next?: string }) {
       </Field>
 
       <Button type="submit" size="md" disabled={pending}>
-        {pending ? 'Signing in…' : 'Sign in'}
+        {pending ? 'Signing in…' : submitLabel}
       </Button>
 
-      <p className="text-taupe-deep text-sm">
-        No account?{' '}
-        <Link href="/register" className="palma-link hover:text-ink">
-          Create one
-        </Link>
-        .
-      </p>
+      {showRegister ? (
+        <p className="text-taupe-deep text-sm">
+          No account?{' '}
+          <Link href="/register" className="palma-link hover:text-ink">
+            Create one
+          </Link>
+          .
+        </p>
+      ) : null}
     </form>
   );
 }

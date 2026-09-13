@@ -20,6 +20,40 @@ the audit log with the actor, the entity and the state before and after.
 Sponsors hold **no role**. Sponsorship is recorded against a season or category
 and grants no access to nominations, judges, scores or outcomes.
 
+## Entrances
+
+PALMA has three doors, and an account may only use its own. Which roles a door
+admits is declared once, in `src/lib/auth/entrances.ts`, and everything else
+reads from there — the sign-in action, the page guards, the redirects.
+
+| Door           | Path       | Admits                                        | Lands at   |
+| -------------- | ---------- | --------------------------------------------- | ---------- |
+| Creator        | `/sign-in` | `creator`                                     | `/portal`  |
+| Judges         | `/judge`   | `judge`                                       | `/judging` |
+| Administration | `/staff`   | `editor`, `moderator`, `admin`, `super_admin` | `/admin`   |
+
+The rules that follow from that:
+
+- A correct password at the wrong door creates **no session**. The form says
+  which door the account belongs at, and the attempt is written to the audit
+  log as `user.wrong_entrance`.
+- An unauthenticated visitor is sent to the door that guards _the surface they
+  asked for_, resolved from the path — so `/judging/*` sends them to `/judge`,
+  never to the creator form. No role lookup is involved, because there is no
+  session to look one up from.
+- A signed-in account on a surface its own door does not lead to is redirected
+  to its own home rather than shown the refusal page: it is in the wrong
+  building, not merely under-permissioned.
+- A `next=` parameter cannot carry an account across buildings. A judge signing
+  in with `next=/portal/claim` lands in the judging room.
+
+The staff door sits at `/staff` rather than `/admin/sign-in` deliberately: the
+`/admin` segment's layout guards every page beneath it, so a door placed inside
+it would redirect to itself.
+
+RBAC is unchanged and still decides what a signed-in account may _do_. The
+entrances decide only where it may come in.
+
 ## The season
 
 Stages advance one step at a time, from `/admin`:

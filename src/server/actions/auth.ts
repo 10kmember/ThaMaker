@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation';
 import { hashPassword, verifyPassword } from '@/lib/crypto';
 import { assertSameOrigin, createSession, destroySession, getSession } from '@/lib/auth/session';
 import { registerSchema, signInSchema } from '@/lib/validation/account';
+import { ENTRANCES, admits, entranceByKey, entranceForRole } from '@/lib/auth/entrances';
+import type { Role } from '@/lib/auth/rbac';
 import { fieldErrors } from '@/lib/validation/nomination';
 import { recordAudit } from '@/server/audit';
 import { prisma } from '@/server/db';
@@ -13,20 +15,27 @@ export type AuthState = {
   status: 'idle' | 'error';
   message?: string;
   errors?: Record<string, string>;
+  /** Set when the credentials were right but the door was wrong. */
+  wrongDoor?: { path: string; title: string };
 };
 
-/** Where a role belongs when it signs in without a destination in mind. */
-function homeFor(role: string): string {
-  if (role === 'judge') return '/judging';
-  if (role === 'admin' || role === 'super_admin' || role === 'editor') return '/admin';
-  return '/portal';
-}
+/**
+ * Only relative, single-slash paths are honoured as post-sign-in targets, and
+ * only ones this door actually leads to. A judge's `next` cannot carry them
+ * into the creator portal, whatever the query string says.
+ */
+function safeNext(value: string | undefined | null, role: Role): string {
+  const entrance = entranceForRole(role);
+  if (!value) return entrance.home;
+  if (!value.startsWith('/') || value.startsWith('//')) return entrance.home;
 
-/** Only relative, single-slash paths are honoured as post-sign-in targets. */
-function safeNext(value: string | undefined | null, role: string): string {
-  const home = homeFor(role);
-  if (!value) return home;
-  if (!value.startsWith('/') || value.startsWith('//')) return home;
+  // The judging room and the admin surface are reachable only from their own
+  // doors; anything else resolves to the home of the role that signed in.
+  const judgeOnly = value === '/judging' || value.startsWith('/judging/');
+  const staffOnly = value === '/admin' || value.startsWith('/admin/');
+  if (judgeOnly && entrance.key !== 'judge') return entrance.home;
+  if (staffOnly && entrance.key !== 'staff') return entrance.home;
+
   return value;
 }
 
@@ -42,6 +51,7 @@ export async function signIn(_previous: AuthState, formData: FormData): Promise<
     email: formData.get('email'),
     password: formData.get('password'),
     next: formData.get('next') ?? undefined,
+    entrance: formData.get('entrance') ?? 'creator',
   });
 
   if (!parsed.success) {
@@ -59,15 +69,38 @@ export async function signIn(_previous: AuthState, formData: FormData): Promise<
     return { status: 'error', message: 'Those details do not match an active PALMA account.' };
   }
 
+  // The door. Each role signs in at its own entrance, and a correct password
+  // at the wrong one creates no session — it only says where to go instead.
+  // The role is read from the row already fetched above, so this costs nothing.
+  const entrance = entranceByKey(parsed.data.entrance) ?? ENTRANCES.creator;
+  const role = user.role as Role;
+
+  if (!admits(entrance, role)) {
+    const theirs = entranceForRole(role);
+    await recordAudit({
+      action: 'user.wrong_entrance',
+      entityType: 'User',
+      entityId: user.id,
+      actor: { id: user.id, role, label: user.email },
+      summary: `Signed in at ${entrance.path}, which does not admit ${role}`,
+    });
+
+    return {
+      status: 'error',
+      message: `This is the ${entrance.title.toLowerCase()} entrance, and it does not admit your account.`,
+      wrongDoor: { path: theirs.path, title: theirs.title },
+    };
+  }
+
   await createSession(user.id);
   await recordAudit({
     action: 'user.signed_in',
     entityType: 'User',
     entityId: user.id,
-    actor: { id: user.id, role: user.role, label: user.email },
+    actor: { id: user.id, role, label: user.email },
   });
 
-  redirect(safeNext(parsed.data.next, user.role));
+  redirect(safeNext(parsed.data.next, role));
 }
 
 export async function register(_previous: AuthState, formData: FormData): Promise<AuthState> {
