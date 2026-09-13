@@ -64,7 +64,7 @@ export function SectionHeading({
         {label ? <span className="palma-label text-taupe-deep">{label}</span> : null}
         <h2 className="text-3xl leading-[1.08] sm:text-4xl lg:text-[2.75rem]">{title}</h2>
         {standfirst ? (
-          <p className="max-w-150 text-[1.0625rem] leading-relaxed text-taupe-deep">{standfirst}</p>
+          <p className="text-taupe-deep max-w-150 text-[1.0625rem] leading-relaxed">{standfirst}</p>
         ) : null}
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}

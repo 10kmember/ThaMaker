@@ -8,16 +8,16 @@ export function SiteFooter() {
   const year = new Date().getUTCFullYear();
 
   return (
-    <footer className="on-ink border-t border-ink bg-ink text-ivory">
+    <footer className="on-ink border-ink bg-ink text-ivory border-t">
       <Container className="py-16 sm:py-20">
         <div className="flex flex-col gap-14 lg:flex-row lg:justify-between">
           <div className="flex max-w-90 flex-col gap-6">
             <Wordmark size="md" descriptor />
-            <p className="text-sm leading-relaxed text-ivory/55">
+            <p className="text-ivory/55 text-sm leading-relaxed">
               PALMA is the permanent record of achievement in the creator industry. The ceremony is
               one expression of it.
             </p>
-            <PalmMark className="h-10 text-ivory/25" />
+            <PalmMark className="text-ivory/25 h-10" />
           </div>
 
           <div className="grid flex-1 gap-10 sm:grid-cols-2 lg:max-w-160 lg:grid-cols-4">
@@ -29,7 +29,7 @@ export function SiteFooter() {
                     <li key={item.href}>
                       <Link
                         href={item.href}
-                        className="text-sm text-ivory/65 transition-colors hover:text-ivory"
+                        className="text-ivory/65 hover:text-ivory text-sm transition-colors"
                       >
                         {item.label}
                       </Link>
@@ -41,21 +41,21 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-16 flex flex-col gap-4 border-t border-ivory/12 pt-8 text-xs text-ivory/45 sm:flex-row sm:items-center sm:justify-between">
+        <div className="border-ivory/12 text-ivory/45 mt-16 flex flex-col gap-4 border-t pt-8 text-xs sm:flex-row sm:items-center sm:justify-between">
           <p>© {year} PALMA. The Creator Honours. Palma Awards Ltd, United Kingdom.</p>
           <ul className="flex flex-wrap gap-6">
             <li>
-              <Link href="/about/policy" className="transition-colors hover:text-ivory">
+              <Link href="/about/policy" className="hover:text-ivory transition-colors">
                 Content policy
               </Link>
             </li>
             <li>
-              <Link href="/legal/privacy" className="transition-colors hover:text-ivory">
+              <Link href="/legal/privacy" className="hover:text-ivory transition-colors">
                 Privacy
               </Link>
             </li>
             <li>
-              <Link href="/legal/terms" className="transition-colors hover:text-ivory">
+              <Link href="/legal/terms" className="hover:text-ivory transition-colors">
                 Terms
               </Link>
             </li>

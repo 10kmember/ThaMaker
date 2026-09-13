@@ -14,7 +14,13 @@ type RevealProps = React.ComponentProps<'div'> & {
  * and nothing happens at all under `prefers-reduced-motion` — the content is
  * simply present.
  */
-export function Reveal({ className, delay = 0, variant = 'rise', children, ...props }: RevealProps) {
+export function Reveal({
+  className,
+  delay = 0,
+  variant = 'rise',
+  children,
+  ...props
+}: RevealProps) {
   const ref = React.useRef<HTMLDivElement>(null);
   const [shown, setShown] = React.useState(false);
 

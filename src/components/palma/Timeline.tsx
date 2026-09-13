@@ -14,13 +14,13 @@ export function Timeline({ items, className }: { items: TimelineItem[]; classNam
       {items.map((item, index) => (
         <li
           key={`${item.label}-${index}`}
-          className="relative flex gap-5 border-l border-stone-deep pb-8 pl-6 last:pb-0"
+          className="border-stone-deep relative flex gap-5 border-l pb-8 pl-6 last:pb-0"
         >
           <span
             className={cn(
               'absolute top-1.5 -left-[4.5px] size-2 rounded-full',
               item.state === 'current'
-                ? 'bg-champagne-deep ring-4 ring-champagne/25'
+                ? 'bg-champagne-deep ring-champagne/25 ring-4'
                 : item.state === 'past'
                   ? 'bg-olive'
                   : 'bg-stone-deep',
@@ -31,7 +31,7 @@ export function Timeline({ items, className }: { items: TimelineItem[]; classNam
             <span className="palma-label text-taupe-deep">{formatDate(item.date)}</span>
             <span className="font-display text-lg leading-snug">{item.label}</span>
             {item.description ? (
-              <span className="text-sm leading-relaxed text-taupe-deep">{item.description}</span>
+              <span className="text-taupe-deep text-sm leading-relaxed">{item.description}</span>
             ) : null}
           </div>
         </li>

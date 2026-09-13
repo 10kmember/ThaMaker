@@ -16,15 +16,15 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        'flex flex-col items-center gap-4 border border-dashed border-stone-deep px-6 py-16 text-center',
+        'border-stone-deep flex flex-col items-center gap-4 border border-dashed px-6 py-16 text-center',
         className,
       )}
     >
-      <PalmMark className="h-8 text-stone-deep" />
+      <PalmMark className="text-stone-deep h-8" />
       <div className="flex flex-col gap-2">
         <h3 className="text-xl">{title}</h3>
         {description ? (
-          <p className="mx-auto max-w-100 text-sm leading-relaxed text-taupe-deep">{description}</p>
+          <p className="text-taupe-deep mx-auto max-w-100 text-sm leading-relaxed">{description}</p>
         ) : null}
       </div>
       {action}
@@ -35,7 +35,7 @@ export function EmptyState({
 export function Skeleton({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
-      className={cn('motion-safe:animate-pulse bg-stone/60', className)}
+      className={cn('bg-stone/60 motion-safe:animate-pulse', className)}
       aria-hidden="true"
       {...props}
     />

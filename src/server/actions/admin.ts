@@ -208,8 +208,7 @@ export async function confirmFinalists(
       creatorId: nomination.creatorId,
       totals: nomination.scores.map((score) => score.total),
       eligible:
-        !nomination.creator.isSuspended &&
-        nomination.creator.verification?.status === 'verified',
+        !nomination.creator.isSuspended && nomination.creator.verification?.status === 'verified',
     })),
     DEFAULT_FINALIST_COUNT,
   );
@@ -245,7 +244,10 @@ export async function confirmFinalists(
 }
 
 /** Confer the PALMA itself. The single most consequential action in the system. */
-export async function confirmWinner(_previous: AdminState, formData: FormData): Promise<AdminState> {
+export async function confirmWinner(
+  _previous: AdminState,
+  formData: FormData,
+): Promise<AdminState> {
   await assertSameOrigin();
 
   let session;
@@ -336,7 +338,10 @@ export async function revokeHonourAction(
   if (!result.ok) return { status: 'error', message: result.reason ?? 'Could not revoke.' };
 
   revalidatePath('/paroh');
-  return { status: 'success', message: 'Honour revoked. The verification record now reads revoked.' };
+  return {
+    status: 'success',
+    message: 'Honour revoked. The verification record now reads revoked.',
+  };
 }
 
 /**
@@ -415,7 +420,10 @@ export async function correctScore(_previous: AdminState, formData: FormData): P
 }
 
 /** Seasons move one stage at a time, and always forwards. */
-export async function advanceSeason(_previous: AdminState, formData: FormData): Promise<AdminState> {
+export async function advanceSeason(
+  _previous: AdminState,
+  formData: FormData,
+): Promise<AdminState> {
   await assertSameOrigin();
 
   let session;
@@ -454,5 +462,8 @@ export async function advanceSeason(_previous: AdminState, formData: FormData): 
 
   revalidatePath('/admin');
   revalidatePath('/awards');
-  return { status: 'success', message: `${season.title} advanced to ${target.replace(/_/g, ' ')}.` };
+  return {
+    status: 'success',
+    message: `${season.title} advanced to ${target.replace(/_/g, ' ')}.`,
+  };
 }

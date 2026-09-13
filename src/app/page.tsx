@@ -40,10 +40,10 @@ export default async function HomePage() {
   return (
     <>
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="on-ink relative overflow-hidden bg-ink text-ivory">
+      <section className="on-ink bg-ink text-ivory relative overflow-hidden">
         <PalmMark
           variant="line"
-          className="pointer-events-none absolute -top-20 -right-30 h-160 text-ivory/[0.05] sm:-right-10"
+          className="text-ivory/[0.05] pointer-events-none absolute -top-20 -right-30 h-160 sm:-right-10"
         />
         <Container className="relative flex min-h-[78dvh] flex-col justify-center py-24 sm:py-32">
           <Reveal variant="reveal" className="flex flex-col gap-10">
@@ -52,12 +52,12 @@ export default async function HomePage() {
               <h1 className="palma-wordmark text-[19vw] leading-[0.82] sm:text-[13rem] lg:text-[17rem]">
                 PALMA
               </h1>
-              <p className="palma-label border-t border-ivory/20 pt-6 text-ivory/70 sm:text-xs">
+              <p className="palma-label border-ivory/20 text-ivory/70 border-t pt-6 sm:text-xs">
                 The Creator Honours
               </p>
             </div>
 
-            <p className="max-w-150 font-display text-2xl leading-[1.25] text-ivory/85 sm:text-4xl">
+            <p className="font-display text-ivory/85 max-w-150 text-2xl leading-[1.25] sm:text-4xl">
               Recognising the people shaping creator culture.
             </p>
 
@@ -74,15 +74,15 @@ export default async function HomePage() {
       </section>
 
       {/* ── Current season ───────────────────────────────────────────────── */}
-      <Section tone="ink" className="border-t border-ivory/12 pt-0! pb-24 sm:pb-28">
+      <Section tone="ink" className="border-ivory/12 border-t pt-0! pb-24 sm:pb-28">
         <Container>
-          <div className="flex flex-col gap-12 border-t border-ivory/12 pt-16">
+          <div className="border-ivory/12 flex flex-col gap-12 border-t pt-16">
             <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
               <div className="flex flex-col gap-4">
                 <span className="palma-label text-ivory/45">Current season</span>
                 <h2 className="text-4xl sm:text-5xl">{season.title}</h2>
                 {season.tagline ? (
-                  <p className="max-w-140 text-ivory/60">{season.tagline}</p>
+                  <p className="text-ivory/60 max-w-140">{season.tagline}</p>
                 ) : null}
               </div>
               <div className="flex flex-col items-start gap-3 sm:items-end">
@@ -107,13 +107,13 @@ export default async function HomePage() {
               ]}
             />
 
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-3 border-t border-ivory/12 pt-8">
+            <div className="border-ivory/12 flex flex-wrap items-center gap-x-8 gap-y-3 border-t pt-8">
               <span className="palma-label text-ivory/45">
                 {categories.length} categories contested
               </span>
               <Link
                 href="/categories"
-                className="palma-label inline-flex items-center gap-2 text-champagne transition-opacity hover:opacity-75"
+                className="palma-label text-champagne inline-flex items-center gap-2 transition-opacity hover:opacity-75"
               >
                 View the categories
                 <ArrowRight className="size-3.5" aria-hidden="true" />
@@ -157,13 +157,13 @@ export default async function HomePage() {
               <li key={`${honour.year}-${honour.categorySlug}-${honour.creator.slug}`}>
                 <Link
                   href={`/creators/${honour.creator.slug}`}
-                  className="group grid grid-cols-1 items-baseline gap-2 border-t border-stone-deep py-6 transition-colors hover:bg-ivory/40 sm:grid-cols-12 sm:gap-6"
+                  className="group border-stone-deep hover:bg-ivory/40 grid grid-cols-1 items-baseline gap-2 border-t py-6 transition-colors sm:grid-cols-12 sm:gap-6"
                 >
                   <span className="palma-label text-taupe-deep sm:col-span-2">{honour.year}</span>
                   <span className="font-display text-2xl leading-none sm:col-span-4">
                     {honour.creator.displayName}
                   </span>
-                  <span className="text-sm text-taupe-deep sm:col-span-4">
+                  <span className="text-taupe-deep text-sm sm:col-span-4">
                     {honour.categoryName}
                   </span>
                   <span className="palma-label text-champagne-deep sm:col-span-2 sm:text-right">
@@ -186,7 +186,7 @@ export default async function HomePage() {
                 <br />
                 Roll of Honour
               </h2>
-              <p className="max-w-100 text-ivory/70">
+              <p className="text-ivory/70 max-w-100">
                 The permanent record of PALMA recipients. Every honour, every season, kept so it can
                 still be cited a decade from now.
               </p>
@@ -202,7 +202,7 @@ export default async function HomePage() {
                 <li key={`${entry.year}-${entry.categorySlug}`}>
                   <Link
                     href={`/creators/${entry.creator.slug}`}
-                    className="group flex items-baseline justify-between gap-6 border-t border-ivory/20 py-5 transition-opacity hover:opacity-70"
+                    className="group border-ivory/20 flex items-baseline justify-between gap-6 border-t py-5 transition-opacity hover:opacity-70"
                   >
                     <span className="flex items-baseline gap-5">
                       <span className="palma-label text-ivory/40">{ordinal(index)}</span>
@@ -213,7 +213,7 @@ export default async function HomePage() {
                         <span className="palma-label text-ivory/45">{entry.categoryName}</span>
                       </span>
                     </span>
-                    <span className="palma-label shrink-0 text-champagne">{entry.year}</span>
+                    <span className="palma-label text-champagne shrink-0">{entry.year}</span>
                   </Link>
                 </li>
               ))}
@@ -242,13 +242,13 @@ export default async function HomePage() {
                   <span className="palma-label text-taupe-deep">
                     {lead.category ?? 'Journal'} · {formatDate(lead.publishedAt)}
                   </span>
-                  <h3 className="text-3xl leading-tight transition-colors group-hover:text-olive sm:text-5xl">
+                  <h3 className="group-hover:text-olive text-3xl leading-tight transition-colors sm:text-5xl">
                     {lead.title}
                   </h3>
-                  <p className="max-w-140 text-[1.0625rem] leading-relaxed text-taupe-deep">
+                  <p className="text-taupe-deep max-w-140 text-[1.0625rem] leading-relaxed">
                     {lead.standfirst}
                   </p>
-                  <span className="palma-label inline-flex items-center gap-2 text-olive">
+                  <span className="palma-label text-olive inline-flex items-center gap-2">
                     Read
                     <ArrowRight
                       className="size-3.5 transition-transform group-hover:translate-x-1"
@@ -263,15 +263,15 @@ export default async function HomePage() {
                   <li key={article.slug}>
                     <Link
                       href={`/journal/${article.slug}`}
-                      className="group flex flex-col gap-2.5 border-t border-stone-deep py-6"
+                      className="group border-stone-deep flex flex-col gap-2.5 border-t py-6"
                     >
                       <span className="palma-label text-taupe-deep">
                         {article.category ?? 'Journal'}
                       </span>
-                      <h3 className="font-display text-xl leading-snug transition-colors group-hover:text-olive">
+                      <h3 className="font-display group-hover:text-olive text-xl leading-snug transition-colors">
                         {article.title}
                       </h3>
-                      <span className="text-sm text-taupe-deep">
+                      <span className="text-taupe-deep text-sm">
                         {article.readingMinutes} min read
                       </span>
                     </Link>
@@ -286,13 +286,13 @@ export default async function HomePage() {
       {/* ── Closing ──────────────────────────────────────────────────────── */}
       <Section tone="ink" className="py-24 sm:py-32">
         <Container className="flex flex-col items-center gap-10 text-center">
-          <PalmMark className="h-14 text-champagne/70" />
+          <PalmMark className="text-champagne/70 h-14" />
           <h2 className="max-w-180 text-4xl leading-[1.05] sm:text-6xl">
             PALMA is not the event.
             <br />
             PALMA is the record.
           </h2>
-          <p className="max-w-120 text-ivory/60">
+          <p className="text-ivory/60 max-w-120">
             Nominations for {season.title} are {open ? 'open' : 'closed'}. A nomination costs
             nothing, and cannot be bought.
           </p>

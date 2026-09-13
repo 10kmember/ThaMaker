@@ -75,7 +75,7 @@ export default async function VerifyIndexPage({ searchParams }: Props) {
             </div>
 
             <div className="flex justify-center sm:col-span-2">
-              <PalmaSeal className="h-44 w-44 text-olive" sublegend="VERIFIED RECORD" />
+              <PalmaSeal className="text-olive h-44 w-44" sublegend="VERIFIED RECORD" />
             </div>
           </div>
         </Container>

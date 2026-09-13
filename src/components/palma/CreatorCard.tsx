@@ -24,7 +24,7 @@ export function CreatorCard({
       href={`/creators/${creator.slug}`}
       className={cn(
         'group flex flex-col gap-4 focus:outline-none',
-        'focus-visible:ring-2 focus-visible:ring-olive focus-visible:ring-offset-4 focus-visible:ring-offset-ivory',
+        'focus-visible:ring-olive focus-visible:ring-offset-ivory focus-visible:ring-2 focus-visible:ring-offset-4',
         className,
       )}
     >
@@ -36,7 +36,7 @@ export function CreatorCard({
           priority={priority}
         />
         {typeof index === 'number' ? (
-          <span className="palma-label absolute top-4 left-4 bg-ivory/90 px-2 py-1.5 text-ink">
+          <span className="palma-label bg-ivory/90 text-ink absolute top-4 left-4 px-2 py-1.5">
             {ordinal(index)}
           </span>
         ) : null}
@@ -44,11 +44,11 @@ export function CreatorCard({
 
       <div className="flex flex-col gap-2">
         <div className="flex items-start justify-between gap-3">
-          <h3 className="text-xl leading-tight transition-colors group-hover:text-olive">
+          <h3 className="group-hover:text-olive text-xl leading-tight transition-colors">
             {creator.displayName}
           </h3>
           <ArrowUpRight
-            className="mt-1 size-4 shrink-0 text-taupe opacity-0 transition-opacity group-hover:opacity-100"
+            className="text-taupe mt-1 size-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
             aria-hidden="true"
           />
         </div>
@@ -56,7 +56,7 @@ export function CreatorCard({
         <p className="palma-label text-taupe-deep">{countryName(creator.countryCode)}</p>
 
         {creator.headline ? (
-          <p className="line-clamp-2 text-sm leading-relaxed text-taupe-deep">{creator.headline}</p>
+          <p className="text-taupe-deep line-clamp-2 text-sm leading-relaxed">{creator.headline}</p>
         ) : null}
 
         {showStatus ? (

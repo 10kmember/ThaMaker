@@ -9,7 +9,7 @@ export const Tabs = TabsPrimitive.Root;
 export function TabsList({ className, ...props }: React.ComponentProps<typeof TabsPrimitive.List>) {
   return (
     <TabsPrimitive.List
-      className={cn('flex gap-6 overflow-x-auto border-b border-stone-deep', className)}
+      className={cn('border-stone-deep flex gap-6 overflow-x-auto border-b', className)}
       {...props}
     />
   );
@@ -22,7 +22,7 @@ export function TabsTrigger({
   return (
     <TabsPrimitive.Trigger
       className={cn(
-        'palma-label -mb-px shrink-0 border-b-2 border-transparent pb-3 text-taupe-deep transition-colors',
+        'palma-label text-taupe-deep -mb-px shrink-0 border-b-2 border-transparent pb-3 transition-colors',
         'data-[state=active]:border-ink data-[state=active]:text-ink hover:text-ink',
         className,
       )}

@@ -3,12 +3,7 @@ import type { SeasonStage } from '@/domain/season';
 export type HonourKind = 'shortlist' | 'finalist' | 'winner' | 'special_recognition';
 export type HonourState = 'active' | 'revoked';
 export type VerificationStatus =
-  | 'unverified'
-  | 'pending'
-  | 'verified'
-  | 'failed'
-  | 'expired'
-  | 'revoked';
+  'unverified' | 'pending' | 'verified' | 'failed' | 'expired' | 'revoked';
 
 export type SeasonView = {
   id: string;

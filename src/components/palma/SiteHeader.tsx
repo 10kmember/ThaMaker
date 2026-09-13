@@ -39,7 +39,7 @@ export function SiteHeader({ accountHref = '/portal' }: { accountHref?: string }
         'sticky top-0 z-40 border-b transition-colors duration-300',
         condensed || open
           ? 'border-stone-deep bg-ivory/92 backdrop-blur-md'
-          : 'border-transparent bg-ivory',
+          : 'bg-ivory border-transparent',
       )}
     >
       <Container className="flex h-18 items-center justify-between gap-8">
@@ -76,7 +76,7 @@ export function SiteHeader({ accountHref = '/portal' }: { accountHref?: string }
             onClick={() => setOpen((value) => !value)}
             aria-expanded={open}
             aria-controls="palma-mobile-nav"
-            className="-mr-2 p-2 text-ink lg:hidden"
+            className="text-ink -mr-2 p-2 lg:hidden"
           >
             <span className="sr-only">{open ? 'Close menu' : 'Open menu'}</span>
             {open ? <X className="size-5" /> : <Menu className="size-5" />}
@@ -87,18 +87,18 @@ export function SiteHeader({ accountHref = '/portal' }: { accountHref?: string }
       <div
         id="palma-mobile-nav"
         hidden={!open}
-        className="border-t border-stone-deep bg-ivory lg:hidden"
+        className="border-stone-deep bg-ivory border-t lg:hidden"
       >
         <Container className="py-8">
           <nav aria-label="Primary, mobile">
             <ul className="flex flex-col">
               {PUBLIC_NAV.map((item) => (
-                <li key={item.href} className="border-b border-stone-deep/60 last:border-none">
+                <li key={item.href} className="border-stone-deep/60 border-b last:border-none">
                   <Link
                     href={item.href}
                     aria-current={isActive(item.href) ? 'page' : undefined}
                     className={cn(
-                      'flex items-center justify-between py-4 font-display text-2xl',
+                      'font-display flex items-center justify-between py-4 text-2xl',
                       isActive(item.href) ? 'text-ink' : 'text-taupe-deep',
                     )}
                   >

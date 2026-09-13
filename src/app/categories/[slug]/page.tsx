@@ -33,7 +33,8 @@ export async function generateMetadata({ params, searchParams }: Params) {
   const [{ slug }, { year }] = await Promise.all([params, searchParams]);
   const season = year ? await getSeasonOrCurrent(Number(year)) : await getCurrentSeason();
   const outcome = await getCategoryOutcome(season.year, slug);
-  if (!outcome) return buildMetadata({ title: 'Category', description: '', path: `/categories/${slug}` });
+  if (!outcome)
+    return buildMetadata({ title: 'Category', description: '', path: `/categories/${slug}` });
 
   return buildMetadata({
     title: outcome.category.name,
@@ -97,19 +98,19 @@ export default async function CategoryPage({ params, searchParams }: Params) {
                 <p className="font-display text-2xl leading-snug">{category.description}</p>
               </div>
 
-              <div className="flex flex-col gap-4 border-t border-stone-deep pt-8">
+              <div className="border-stone-deep flex flex-col gap-4 border-t pt-8">
                 <h2 className="palma-label text-taupe-deep">Eligibility</h2>
-                <p className="leading-relaxed text-ink/85">{category.eligibility}</p>
+                <p className="text-ink/85 leading-relaxed">{category.eligibility}</p>
               </div>
 
-              <div className="flex flex-col gap-4 border-t border-stone-deep pt-8">
+              <div className="border-stone-deep flex flex-col gap-4 border-t pt-8">
                 <h2 className="palma-label text-taupe-deep">Judging criteria</h2>
-                <p className="leading-relaxed text-ink/85">{category.judgingCriteria}</p>
+                <p className="text-ink/85 leading-relaxed">{category.judgingCriteria}</p>
               </div>
             </div>
 
             <aside className="lg:col-span-5">
-              <div className="border border-stone-deep bg-ivory-bright p-7">
+              <div className="border-stone-deep bg-ivory-bright border p-7">
                 <h2 className="palma-label text-taupe-deep">Scored against</h2>
                 <ul className="mt-6 flex flex-col gap-5">
                   {SCORING_CRITERIA.map((criterion) => (
@@ -118,27 +119,27 @@ export default async function CategoryPage({ params, searchParams }: Params) {
                         <span className="font-display text-lg">{criterion.label}</span>
                         <span className="palma-label text-taupe">/10</span>
                       </div>
-                      <p className="text-sm leading-relaxed text-taupe-deep">
+                      <p className="text-taupe-deep text-sm leading-relaxed">
                         {criterion.description}
                       </p>
                     </li>
                   ))}
                 </ul>
-                <p className="mt-7 border-t border-stone-deep pt-5 text-xs leading-relaxed text-taupe-deep">
-                  Scores are submitted independently by each judge and are immutable once
-                  submitted. Audience size is not a criterion.
+                <p className="border-stone-deep text-taupe-deep mt-7 border-t pt-5 text-xs leading-relaxed">
+                  Scores are submitted independently by each judge and are immutable once submitted.
+                  Audience size is not a criterion.
                 </p>
               </div>
 
               {seasons.length > 1 ? (
-                <div className="mt-6 border border-stone-deep p-7">
+                <div className="border-stone-deep mt-6 border p-7">
                   <h2 className="palma-label text-taupe-deep">This category by season</h2>
                   <ul className="mt-5 flex flex-col gap-3">
                     {seasons.map((entry) => (
                       <li key={entry.year}>
                         <Link
                           href={`/categories/${category.slug}?year=${entry.year}`}
-                          className="flex items-baseline justify-between gap-4 text-sm transition-colors hover:text-olive"
+                          className="hover:text-olive flex items-baseline justify-between gap-4 text-sm transition-colors"
                           aria-current={entry.year === season.year ? 'page' : undefined}
                         >
                           <span className="font-display text-lg">{entry.title}</span>

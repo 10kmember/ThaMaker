@@ -4,7 +4,10 @@ import { cn } from '@/lib/utils';
 export function Table({ className, ...props }: React.ComponentProps<'table'>) {
   return (
     <div className="w-full overflow-x-auto">
-      <table className={cn('w-full min-w-150 border-collapse text-left text-sm', className)} {...props} />
+      <table
+        className={cn('w-full min-w-150 border-collapse text-left text-sm', className)}
+        {...props}
+      />
     </div>
   );
 }
@@ -12,7 +15,10 @@ export function Table({ className, ...props }: React.ComponentProps<'table'>) {
 export function THead({ className, ...props }: React.ComponentProps<'thead'>) {
   return (
     <thead
-      className={cn('border-b border-stone-deep [&_th]:palma-label [&_th]:py-3 [&_th]:text-taupe-deep', className)}
+      className={cn(
+        'border-stone-deep [&_th]:palma-label [&_th]:text-taupe-deep border-b [&_th]:py-3',
+        className,
+      )}
       {...props}
     />
   );
@@ -21,7 +27,7 @@ export function THead({ className, ...props }: React.ComponentProps<'thead'>) {
 export function TBody({ className, ...props }: React.ComponentProps<'tbody'>) {
   return (
     <tbody
-      className={cn('[&_td]:py-3.5 [&_tr]:border-b [&_tr]:border-stone-deep/50', className)}
+      className={cn('[&_tr]:border-stone-deep/50 [&_td]:py-3.5 [&_tr]:border-b', className)}
       {...props}
     />
   );

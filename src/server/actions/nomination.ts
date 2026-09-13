@@ -72,7 +72,8 @@ export async function submitNomination(
     // Deliberately unspecific: naming the signal teaches an abuser how to pass.
     return {
       status: 'error',
-      message: 'This nomination could not be accepted. Please contact PALMA if you believe this is an error.',
+      message:
+        'This nomination could not be accepted. Please contact PALMA if you believe this is an error.',
     };
   }
 

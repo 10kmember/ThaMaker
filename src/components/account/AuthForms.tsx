@@ -40,9 +40,9 @@ export function SignInForm({ next }: { next?: string }) {
         {pending ? 'Signing in…' : 'Sign in'}
       </Button>
 
-      <p className="text-sm text-taupe-deep">
+      <p className="text-taupe-deep text-sm">
         No account?{' '}
-        <Link href="/register" className="underline underline-offset-4 hover:text-ink">
+        <Link href="/register" className="hover:text-ink underline underline-offset-4">
           Create one
         </Link>
         .
@@ -98,9 +98,9 @@ export function RegisterForm() {
         {pending ? 'Creating account…' : 'Create account'}
       </Button>
 
-      <p className="text-sm text-taupe-deep">
+      <p className="text-taupe-deep text-sm">
         Already have an account?{' '}
-        <Link href="/sign-in" className="underline underline-offset-4 hover:text-ink">
+        <Link href="/sign-in" className="hover:text-ink underline underline-offset-4">
           Sign in
         </Link>
         .

@@ -23,13 +23,18 @@ export async function requireSession(returnTo?: string): Promise<ActiveSession> 
   return session;
 }
 
+/**
+ * Page-level gate. A signed-in user who lacks the permission is sent to a
+ * plain refusal page rather than an error boundary — being refused is a normal
+ * outcome in an institution with roles, not a fault.
+ */
 export async function requirePermission(
   permission: Permission,
   returnTo?: string,
 ): Promise<ActiveSession> {
   const session = await requireSession(returnTo);
   if (!can(session.user.role, permission)) {
-    throw new AuthorisationError('You do not have permission to do that.', permission);
+    redirect(`/forbidden?permission=${encodeURIComponent(permission)}`);
   }
   return session;
 }

@@ -25,7 +25,7 @@ export default async function RegisterPage() {
           <div className="flex flex-col gap-4">
             <Wordmark size="md" descriptor />
             <h1 className="text-4xl">Create an account</h1>
-            <p className="leading-relaxed text-taupe-deep">
+            <p className="text-taupe-deep leading-relaxed">
               An account lets you claim a creator profile, complete verification and follow a
               nomination through the season.
             </p>

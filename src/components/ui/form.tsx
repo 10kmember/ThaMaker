@@ -4,13 +4,10 @@ import * as React from 'react';
 import * as LabelPrimitive from '@radix-ui/react-label';
 import { cn } from '@/lib/utils';
 
-export function Label({
-  className,
-  ...props
-}: React.ComponentProps<typeof LabelPrimitive.Root>) {
+export function Label({ className, ...props }: React.ComponentProps<typeof LabelPrimitive.Root>) {
   return (
     <LabelPrimitive.Root
-      className={cn('palma-label block text-taupe-deep', className)}
+      className={cn('palma-label text-taupe-deep block', className)}
       {...props}
     />
   );
@@ -24,7 +21,12 @@ export function Input({ className, ...props }: React.ComponentProps<'input'>) {
 }
 
 export function Textarea({ className, ...props }: React.ComponentProps<'textarea'>) {
-  return <textarea className={cn(fieldBase, 'min-h-32 resize-y leading-relaxed', className)} {...props} />;
+  return (
+    <textarea
+      className={cn(fieldBase, 'min-h-32 resize-y leading-relaxed', className)}
+      {...props}
+    />
+  );
 }
 
 export function Select({ className, ...props }: React.ComponentProps<'select'>) {
@@ -32,7 +34,7 @@ export function Select({ className, ...props }: React.ComponentProps<'select'>) 
     <select
       className={cn(
         fieldBase,
-        "h-12 appearance-none bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 12 8%22 fill=%22none%22 stroke=%22%238C8478%22 stroke-width=%221.4%22><path d=%22M1 1.5 6 6.5 11 1.5%22/></svg>')] bg-[length:12px] bg-[right_1rem_center] bg-no-repeat pr-10",
+        "bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 12 8%22 fill=%22none%22 stroke=%22%238C8478%22 stroke-width=%221.4%22><path d=%22M1 1.5 6 6.5 11 1.5%22/></svg>')] h-12 appearance-none bg-[length:12px] bg-[right_1rem_center] bg-no-repeat pr-10",
         className,
       )}
       {...props}
@@ -45,7 +47,7 @@ export function Checkbox({ className, ...props }: React.ComponentProps<'input'>)
     <input
       type="checkbox"
       className={cn(
-        'mt-0.5 size-4.5 shrink-0 appearance-none border border-stone-deep bg-ivory-bright transition-colors',
+        'border-stone-deep bg-ivory-bright mt-0.5 size-4.5 shrink-0 appearance-none border transition-colors',
         'checked:border-olive checked:bg-olive',
         "checked:bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 12 10%22 fill=%22none%22 stroke=%22%23F4F0E8%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22><path d=%22M1 5 4.5 8.5 11 1.5%22/></svg>')] checked:bg-[length:11px] checked:bg-center checked:bg-no-repeat",
         className,
@@ -79,10 +81,10 @@ export function Field({
     <div className={cn('flex flex-col gap-2', className)}>
       <Label htmlFor={htmlFor}>
         {label}
-        {required ? <span className="ml-1 text-champagne-deep">*</span> : null}
+        {required ? <span className="text-champagne-deep ml-1">*</span> : null}
       </Label>
       {hint ? (
-        <p id={hintId} className="text-[0.8125rem] leading-relaxed text-taupe-deep">
+        <p id={hintId} className="text-taupe-deep text-[0.8125rem] leading-relaxed">
           {hint}
         </p>
       ) : null}
@@ -121,10 +123,10 @@ export function CheckboxField({
           aria-invalid={error ? true : undefined}
           aria-describedby={description ? `${id}-description` : undefined}
         />
-        <span className="text-[0.9375rem] leading-relaxed text-ink">
+        <span className="text-ink text-[0.9375rem] leading-relaxed">
           {label}
           {description ? (
-            <span id={`${id}-description`} className="mt-1 block text-[0.8125rem] text-taupe-deep">
+            <span id={`${id}-description`} className="text-taupe-deep mt-1 block text-[0.8125rem]">
               {description}
             </span>
           ) : null}

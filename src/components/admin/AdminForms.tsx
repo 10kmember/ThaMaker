@@ -65,7 +65,7 @@ export function AssignJudgesForm({
   const [state, action, pending] = useActionState(assignJudges, initial);
 
   return (
-    <form action={action} className="flex flex-col gap-3 border border-stone-deep p-6">
+    <form action={action} className="border-stone-deep flex flex-col gap-3 border p-6">
       <input type="hidden" name="categoryId" value={categoryId} />
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
@@ -127,7 +127,9 @@ export function AdvanceSeasonForm({ year, stage }: { year: number; stage: Season
   const next = SEASON_STAGES[index + 1];
 
   if (!next) {
-    return <p className="text-sm text-taupe-deep">This season is archived. There is no next stage.</p>;
+    return (
+      <p className="text-taupe-deep text-sm">This season is archived. There is no next stage.</p>
+    );
   }
 
   return (
@@ -135,7 +137,7 @@ export function AdvanceSeasonForm({ year, stage }: { year: number; stage: Season
       <input type="hidden" name="year" value={year} />
       <input type="hidden" name="stage" value={next} />
       <div className="flex flex-wrap items-center gap-4">
-        <span className="text-sm text-taupe-deep">
+        <span className="text-taupe-deep text-sm">
           Current stage: <strong className="text-ink">{STAGE_LABEL[stage]}</strong>
         </span>
         <Button type="submit" size="sm" variant="outline" disabled={pending}>

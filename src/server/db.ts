@@ -24,9 +24,7 @@ if (env.NODE_ENV !== 'production' && prisma) {
 
 export class DatabaseUnavailableError extends Error {
   constructor() {
-    super(
-      'PALMA is running without a database (archive mode). Set DATABASE_URL to enable writes.',
-    );
+    super('PALMA is running without a database (archive mode). Set DATABASE_URL to enable writes.');
     this.name = 'DatabaseUnavailableError';
   }
 }

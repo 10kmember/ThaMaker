@@ -38,10 +38,12 @@ export function isValidScore(value: number): boolean {
   return Number.isInteger(value) && value >= MIN_SCORE && value <= MAX_SCORE;
 }
 
-export function validateScoreCard(card: Partial<ScoreCard>): { ok: true; card: ScoreCard } | {
-  ok: false;
-  errors: Partial<Record<CriterionKey, string>>;
-} {
+export function validateScoreCard(card: Partial<ScoreCard>):
+  | { ok: true; card: ScoreCard }
+  | {
+      ok: false;
+      errors: Partial<Record<CriterionKey, string>>;
+    } {
   const errors: Partial<Record<CriterionKey, string>> = {};
   const result = {} as ScoreCard;
 

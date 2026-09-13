@@ -22,7 +22,12 @@ export const PROHIBITED_CONTENT = [
 ] as const;
 
 /** Uploads are restricted to profile portraiture and editorial imagery. */
-export const ALLOWED_UPLOAD_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'] as const;
+export const ALLOWED_UPLOAD_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/avif',
+] as const;
 export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 
 export type UploadCheck = { ok: true } | { ok: false; reason: string };
@@ -40,8 +45,7 @@ export function checkUpload(file: { type: string; size: number }): UploadCheck {
 const BLOCKED_URL_SCHEMES = ['javascript:', 'data:', 'vbscript:', 'file:'];
 
 export type EvidenceLinkCheck =
-  | { ok: true; url: string; host: string }
-  | { ok: false; reason: string };
+  { ok: true; url: string; host: string } | { ok: false; reason: string };
 
 /**
  * Evidence links are references for authorised judges. They are normalised,

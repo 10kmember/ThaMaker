@@ -49,13 +49,16 @@ export function AchievementBadge({
   return (
     <span className={cn('flex items-start gap-3', className)}>
       <Icon
-        className={cn('mt-0.5 size-4.5 shrink-0', kind === 'winner' ? 'text-champagne-deep' : 'text-olive')}
+        className={cn(
+          'mt-0.5 size-4.5 shrink-0',
+          kind === 'winner' ? 'text-champagne-deep' : 'text-olive',
+        )}
         aria-hidden="true"
       />
       <span className="flex flex-col gap-1">
         <span className="palma-label">{HONOUR_LABEL[kind]}</span>
         {categoryName ? (
-          <span className={cn('text-[0.9375rem] text-ink', revoked && 'line-through opacity-60')}>
+          <span className={cn('text-ink text-[0.9375rem]', revoked && 'line-through opacity-60')}>
             {categoryName}
             {year ? <span className="text-taupe-deep"> — {year}</span> : null}
           </span>

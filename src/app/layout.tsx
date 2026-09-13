@@ -52,7 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="flex min-h-dvh flex-col">
         <a
           href="#main"
-          className="palma-label sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:bg-ink focus:px-4 focus:py-3 focus:text-ivory"
+          className="palma-label focus:bg-ink focus:text-ivory sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-3"
         >
           Skip to content
         </a>

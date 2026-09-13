@@ -67,7 +67,9 @@ export async function getJudgeDashboard(judgeId: string): Promise<JudgeDashboard
   return {
     judgeName: judge.displayName,
     seasonTitle: current?.title ?? 'PALMA',
-    assigned: judge.assignments.filter((a) => a.status === 'assigned' || a.status === 'in_progress').map(map),
+    assigned: judge.assignments
+      .filter((a) => a.status === 'assigned' || a.status === 'in_progress')
+      .map(map),
     completed: judge.assignments.filter((a) => a.status === 'completed').map(map),
     conflicts: judge.conflicts.map((conflict) => ({
       id: conflict.id,

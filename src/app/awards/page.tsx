@@ -71,7 +71,7 @@ export default async function AwardsPage() {
             </div>
 
             <div className="lg:col-span-5">
-              <h2 className="palma-label mb-8 text-taupe-deep">Key dates</h2>
+              <h2 className="palma-label text-taupe-deep mb-8">Key dates</h2>
               <Timeline
                 items={[
                   {
@@ -130,9 +130,9 @@ export default async function AwardsPage() {
                     <span className="palma-label text-taupe-deep">{STAGE_LABEL[entry.stage]}</span>
                     <h3 className="text-3xl">{entry.title}</h3>
                     {entry.tagline ? (
-                      <p className="text-sm text-taupe-deep">{entry.tagline}</p>
+                      <p className="text-taupe-deep text-sm">{entry.tagline}</p>
                     ) : null}
-                    <span className="palma-label mt-2 text-olive">View the season →</span>
+                    <span className="palma-label text-olive mt-2">View the season →</span>
                   </Link>
                 </Card>
               ))}

@@ -208,7 +208,8 @@ export const listCreators = cache(async (filter: CreatorFilter = {}): Promise<Cr
       headline: row.headline,
       portraitUrl: row.portraitUrl,
       portraitAlt: row.portraitAlt,
-      verificationStatus: (row.verification?.status ?? 'unverified') as CreatorSummary['verificationStatus'],
+      verificationStatus: (row.verification?.status ??
+        'unverified') as CreatorSummary['verificationStatus'],
       honourCount: row.honours.length,
       winCount: row.honours.filter((honour) => honour.kind === 'winner').length,
     }))
@@ -239,7 +240,10 @@ export const getCreator = cache(async (slug: string): Promise<CreatorProfile | n
   if (!row || !row.isPublished) return null;
 
   const record: HonourEntry[] = row.honours
-    .filter((honour) => winnersArePublic(honour.awardYear.stage as SeasonStage) || honour.kind !== 'winner')
+    .filter(
+      (honour) =>
+        winnersArePublic(honour.awardYear.stage as SeasonStage) || honour.kind !== 'winner',
+    )
     .map((honour) => ({
       id: honour.id,
       kind: honour.kind as HonourEntry['kind'],
@@ -267,7 +271,8 @@ export const getCreator = cache(async (slug: string): Promise<CreatorProfile | n
     portraitAlt: row.portraitAlt,
     websiteUrl: row.websiteUrl,
     links: row.links.map((link) => ({ label: link.label, url: link.url })),
-    verificationStatus: (row.verification?.status ?? 'unverified') as CreatorSummary['verificationStatus'],
+    verificationStatus: (row.verification?.status ??
+      'unverified') as CreatorSummary['verificationStatus'],
     isClaimed: row.isClaimed,
     record,
     honourCount: record.filter((entry) => entry.state === 'active').length,
@@ -391,55 +396,57 @@ export const listSeasonOutcomes = cache(async (year: number): Promise<CategoryOu
 
 export type RollFilter = { year?: number; category?: string; country?: string; query?: string };
 
-export const getRollOfHonour = cache(async (filter: RollFilter = {}): Promise<RollOfHonourYear[]> => {
-  const rows = await honourRows(filter.year, 'winner');
-  const index = await creatorIndex();
-  const seasons = await listSeasons();
+export const getRollOfHonour = cache(
+  async (filter: RollFilter = {}): Promise<RollOfHonourYear[]> => {
+    const rows = await honourRows(filter.year, 'winner');
+    const index = await creatorIndex();
+    const seasons = await listSeasons();
 
-  const filtered = rows.filter((row) => {
-    const creator = index.get(row.creatorSlug);
-    if (!creator) return false;
-    if (filter.category && row.categorySlug !== filter.category) return false;
-    if (filter.country && creator.countryCode !== filter.country.toUpperCase()) return false;
-    if (filter.query) {
-      const needle = filter.query.toLowerCase();
-      if (
-        !creator.displayName.toLowerCase().includes(needle) &&
-        !row.categoryName.toLowerCase().includes(needle)
-      ) {
-        return false;
+    const filtered = rows.filter((row) => {
+      const creator = index.get(row.creatorSlug);
+      if (!creator) return false;
+      if (filter.category && row.categorySlug !== filter.category) return false;
+      if (filter.country && creator.countryCode !== filter.country.toUpperCase()) return false;
+      if (filter.query) {
+        const needle = filter.query.toLowerCase();
+        if (
+          !creator.displayName.toLowerCase().includes(needle) &&
+          !row.categoryName.toLowerCase().includes(needle)
+        ) {
+          return false;
+        }
       }
-    }
-    return true;
-  });
-
-  const byYear = new Map<number, RollOfHonourYear>();
-  for (const row of filtered) {
-    const creator = index.get(row.creatorSlug)!;
-    const season = seasons.find((entry) => entry.year === row.year);
-    const bucket = byYear.get(row.year) ?? {
-      year: row.year,
-      title: season?.title ?? `PALMA ${row.year}`,
-      entries: [],
-    };
-    bucket.entries.push({
-      year: row.year,
-      categoryName: row.categoryName,
-      categorySlug: row.categorySlug,
-      creator,
-      code: row.code,
-      citation: row.citation,
+      return true;
     });
-    byYear.set(row.year, bucket);
-  }
 
-  return [...byYear.values()]
-    .map((entry) => ({
-      ...entry,
-      entries: entry.entries.sort((a, b) => a.categoryName.localeCompare(b.categoryName)),
-    }))
-    .sort((a, b) => b.year - a.year);
-});
+    const byYear = new Map<number, RollOfHonourYear>();
+    for (const row of filtered) {
+      const creator = index.get(row.creatorSlug)!;
+      const season = seasons.find((entry) => entry.year === row.year);
+      const bucket = byYear.get(row.year) ?? {
+        year: row.year,
+        title: season?.title ?? `PALMA ${row.year}`,
+        entries: [],
+      };
+      bucket.entries.push({
+        year: row.year,
+        categoryName: row.categoryName,
+        categorySlug: row.categorySlug,
+        creator,
+        code: row.code,
+        citation: row.citation,
+      });
+      byYear.set(row.year, bucket);
+    }
+
+    return [...byYear.values()]
+      .map((entry) => ({
+        ...entry,
+        entries: entry.entries.sort((a, b) => a.categoryName.localeCompare(b.categoryName)),
+      }))
+      .sort((a, b) => b.year - a.year);
+  },
+);
 
 export const listRecentHonours = cache(async (limit = 6) => {
   const rows = await honourRows();

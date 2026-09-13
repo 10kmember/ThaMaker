@@ -27,10 +27,7 @@ export function ScoreForm({
     Object.fromEntries(SCORING_CRITERIA.map((criterion) => [criterion.key, 5])),
   );
 
-  const total = SCORING_CRITERIA.reduce(
-    (sum, criterion) => sum + (scores[criterion.key] ?? 0),
-    0,
-  );
+  const total = SCORING_CRITERIA.reduce((sum, criterion) => sum + (scores[criterion.key] ?? 0), 0);
 
   if (alreadyScored || state.status === 'success') {
     return (
@@ -53,7 +50,7 @@ export function ScoreForm({
         ) : null}
 
         <fieldset className="flex flex-col gap-8">
-          <legend className="palma-label mb-2 text-taupe-deep">Judging criteria</legend>
+          <legend className="palma-label text-taupe-deep mb-2">Judging criteria</legend>
 
           {SCORING_CRITERIA.map((criterion) => (
             <div key={criterion.key} className="flex flex-col gap-3">
@@ -63,10 +60,10 @@ export function ScoreForm({
                 </Label>
                 <span className="font-display text-2xl tabular-nums">
                   {scores[criterion.key]}
-                  <span className="text-base text-taupe-deep">/{MAX_SCORE}</span>
+                  <span className="text-taupe-deep text-base">/{MAX_SCORE}</span>
                 </span>
               </div>
-              <p className="text-sm text-taupe-deep">{criterion.description}</p>
+              <p className="text-taupe-deep text-sm">{criterion.description}</p>
               <input
                 id={criterion.key}
                 name={criterion.key}
@@ -84,7 +81,10 @@ export function ScoreForm({
                 className="w-full accent-[#4A5148]"
                 aria-describedby={`${criterion.key}-scale`}
               />
-              <div id={`${criterion.key}-scale`} className="flex justify-between text-xs text-taupe">
+              <div
+                id={`${criterion.key}-scale`}
+                className="text-taupe flex justify-between text-xs"
+              >
                 <span>0 — not evidenced</span>
                 <span>10 — exceptional</span>
               </div>
@@ -92,18 +92,18 @@ export function ScoreForm({
           ))}
         </fieldset>
 
-        <div className="flex items-baseline justify-between border-t border-stone-deep pt-6">
+        <div className="border-stone-deep flex items-baseline justify-between border-t pt-6">
           <span className="palma-label text-taupe-deep">Total</span>
           <span className={cn('font-display text-4xl tabular-nums')}>
             {total}
-            <span className="text-lg text-taupe-deep">/{MAX_TOTAL}</span>
+            <span className="text-taupe-deep text-lg">/{MAX_TOTAL}</span>
           </span>
         </div>
 
         <div className="flex flex-col gap-3">
           <Label htmlFor="remarks">Remarks for the chair (optional)</Label>
           <Textarea id="remarks" name="remarks" maxLength={1500} />
-          <p className="text-xs text-taupe-deep">
+          <p className="text-taupe-deep text-xs">
             Remarks are seen by the chair and administrators only. They are never shown to the
             creator, the nominator, sponsors or the public.
           </p>
@@ -112,7 +112,7 @@ export function ScoreForm({
         <Button type="submit" size="lg" disabled={pending} className="self-start">
           {pending ? 'Submitting…' : 'Submit score'}
         </Button>
-        <p className="-mt-4 text-xs text-taupe-deep">
+        <p className="text-taupe-deep -mt-4 text-xs">
           Once submitted, a score cannot be changed. Corrections are performed only by an authorised
           administrator and are recorded in the audit log.
         </p>
@@ -135,11 +135,11 @@ function ConflictForm({ nominationId }: { nominationId: string }) {
   }
 
   return (
-    <form action={action} className="flex flex-col gap-4 border border-stone-deep p-6">
+    <form action={action} className="border-stone-deep flex flex-col gap-4 border p-6">
       <input type="hidden" name="nominationId" value={nominationId} />
 
       <h3 className="palma-label text-taupe-deep">Declare a conflict of interest</h3>
-      <p className="text-sm leading-relaxed text-taupe-deep">
+      <p className="text-taupe-deep text-sm leading-relaxed">
         If you have any relationship with this creator, declare it. Declaring removes you from this
         nomination immediately — you do not need to decide whether it matters.
       </p>

@@ -45,7 +45,9 @@ export default async function AdminNominationsPage({
             href={`/admin/nominations?status=${entry}`}
             className={cn(
               'palma-label rounded-full border px-3.5 py-2',
-              status === entry ? 'border-ink bg-ink text-ivory' : 'border-stone-deep text-taupe-deep',
+              status === entry
+                ? 'border-ink bg-ink text-ivory'
+                : 'border-stone-deep text-taupe-deep',
             )}
           >
             {titleCase(entry)}
@@ -54,19 +56,23 @@ export default async function AdminNominationsPage({
       </div>
 
       {nominations.length === 0 ? (
-        <EmptyState className="mt-10" title="Nothing here" description="No nominations match that filter." />
+        <EmptyState
+          className="mt-10"
+          title="Nothing here"
+          description="No nominations match that filter."
+        />
       ) : (
         <ul className="mt-10 flex flex-col gap-5">
           {nominations.map((nomination) => (
-            <li key={nomination.id} className="border border-stone-deep bg-ivory-bright p-6">
+            <li key={nomination.id} className="border-stone-deep bg-ivory-bright border p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="flex flex-col gap-2">
-                  <span className="font-mono text-xs tracking-wider text-taupe-deep">
+                  <span className="text-taupe-deep font-mono text-xs tracking-wider">
                     {nomination.reference}
                   </span>
                   <Link
                     href={`/creators/${nomination.creatorSlug}`}
-                    className="font-display text-2xl hover:text-olive"
+                    className="font-display hover:text-olive text-2xl"
                   >
                     {nomination.creatorName}
                   </Link>
@@ -88,7 +94,7 @@ export default async function AdminNominationsPage({
                 </div>
               </div>
 
-              <dl className="mt-5 flex flex-wrap gap-x-10 gap-y-2 text-sm text-taupe-deep">
+              <dl className="text-taupe-deep mt-5 flex flex-wrap gap-x-10 gap-y-2 text-sm">
                 <div className="flex gap-2">
                   <dt className="palma-label">Source</dt>
                   <dd>{titleCase(nomination.source)}</dd>
@@ -103,7 +109,7 @@ export default async function AdminNominationsPage({
                 </div>
               </dl>
 
-              <div className="mt-6 border-t border-stone-deep pt-5">
+              <div className="border-stone-deep mt-6 border-t pt-5">
                 <ReviewForm nominationId={nomination.id} status={nomination.status} />
               </div>
             </li>

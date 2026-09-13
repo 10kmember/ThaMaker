@@ -38,7 +38,7 @@ export default async function AdminJudgingPage() {
   return (
     <>
       <h2 className="text-3xl">Panel assignment</h2>
-      <p className="mt-3 max-w-160 leading-relaxed text-taupe-deep">
+      <p className="text-taupe-deep mt-3 max-w-160 leading-relaxed">
         Assignment is deterministic and conflict-aware: each eligible nomination is placed with
         three judges, load is spread evenly, and any judge with a declared conflict is excluded
         before placement. Running it twice adds only what is missing.
@@ -62,16 +62,16 @@ export default async function AdminJudgingPage() {
 
       {conflicts.length > 0 ? (
         <section className="mt-14">
-          <h3 className="palma-label mb-5 text-taupe-deep">Conflicts awaiting resolution</h3>
+          <h3 className="palma-label text-taupe-deep mb-5">Conflicts awaiting resolution</h3>
           <ul className="flex flex-col gap-3">
             {conflicts.map((conflict) => (
               <li
                 key={conflict.id}
-                className="flex flex-wrap items-center justify-between gap-4 border border-stone-deep p-5"
+                className="border-stone-deep flex flex-wrap items-center justify-between gap-4 border p-5"
               >
                 <span className="font-display text-lg">{conflict.judge.displayName}</span>
                 <span className="palma-label text-taupe-deep">{conflict.kind}</span>
-                <span className="text-sm text-taupe-deep">
+                <span className="text-taupe-deep text-sm">
                   {conflict.nominationId ?? conflict.creatorId}
                 </span>
               </li>

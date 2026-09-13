@@ -27,7 +27,10 @@ type Props = {
   searchParams: Promise<{ year?: string; category?: string; country?: string; q?: string }>;
 };
 
-function filterHref(base: Record<string, string | undefined>, patch: Record<string, string | undefined>) {
+function filterHref(
+  base: Record<string, string | undefined>,
+  patch: Record<string, string | undefined>,
+) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries({ ...base, ...patch })) {
     if (value) params.set(key, value);
@@ -56,8 +59,8 @@ export default async function ParohPage({ searchParams }: Props) {
 
   return (
     <>
-      <header className="on-ink relative overflow-hidden border-b border-ink bg-ink text-ivory">
-        <PalmMark className="pointer-events-none absolute -top-10 -right-20 h-120 text-ivory/[0.05]" />
+      <header className="on-ink border-ink bg-ink text-ivory relative overflow-hidden border-b">
+        <PalmMark className="text-ivory/[0.05] pointer-events-none absolute -top-10 -right-20 h-120" />
         <Container className="relative py-20 sm:py-28">
           <div className="flex max-w-200 flex-col gap-8">
             <span className="palma-label text-champagne">PaROH</span>
@@ -66,7 +69,7 @@ export default async function ParohPage({ searchParams }: Props) {
               <br />
               Roll of Honour
             </h1>
-            <p className="max-w-130 text-lg leading-relaxed text-ivory/70">
+            <p className="text-ivory/70 max-w-130 text-lg leading-relaxed">
               The permanent record of PALMA recipients. {total} {total === 1 ? 'honour' : 'honours'}{' '}
               held across {seasons.filter((s) => s.stage === 'archived').length || seasons.length}{' '}
               seasons.
@@ -75,10 +78,10 @@ export default async function ParohPage({ searchParams }: Props) {
         </Container>
       </header>
 
-      <div className="sticky top-18 z-30 border-b border-stone-deep bg-ivory/94 backdrop-blur-md">
+      <div className="border-stone-deep bg-ivory/94 sticky top-18 z-30 border-b backdrop-blur-md">
         <Container className="flex flex-col gap-4 py-5">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="palma-label mr-2 text-taupe-deep">Year</span>
+            <span className="palma-label text-taupe-deep mr-2">Year</span>
             <Link
               href={filterHref(filters, { year: undefined })}
               className={cn(
@@ -108,7 +111,7 @@ export default async function ParohPage({ searchParams }: Props) {
 
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="palma-label mr-2 text-taupe-deep">Category</span>
+              <span className="palma-label text-taupe-deep mr-2">Category</span>
               <Link
                 href={filterHref(filters, { category: undefined })}
                 className={cn(
@@ -160,7 +163,7 @@ export default async function ParohPage({ searchParams }: Props) {
 
           {countries.length > 1 ? (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="palma-label mr-2 text-taupe-deep">Country</span>
+              <span className="palma-label text-taupe-deep mr-2">Country</span>
               <Link
                 href={filterHref(filters, { country: undefined })}
                 className={cn(
@@ -207,13 +210,13 @@ export default async function ParohPage({ searchParams }: Props) {
             <div className="flex flex-col gap-20">
               {roll.map((group) => (
                 <section key={group.year} aria-labelledby={`paroh-${group.year}`}>
-                  <div className="flex items-end justify-between gap-6 border-b border-ink/15 pb-5">
+                  <div className="border-ink/15 flex items-end justify-between gap-6 border-b pb-5">
                     <h2 id={`paroh-${group.year}`} className="text-5xl leading-none sm:text-6xl">
                       {group.year}
                     </h2>
                     <Link
                       href={`/paroh/${group.year}`}
-                      className="palma-label text-taupe-deep transition-colors hover:text-ink"
+                      className="palma-label text-taupe-deep hover:text-ink transition-colors"
                     >
                       Class of {group.year} →
                     </Link>
@@ -224,7 +227,7 @@ export default async function ParohPage({ searchParams }: Props) {
                       <li key={`${entry.year}-${entry.categorySlug}`}>
                         <Link
                           href={`/creators/${entry.creator.slug}`}
-                          className="group grid grid-cols-1 items-baseline gap-1 border-b border-stone-deep py-6 transition-colors hover:bg-stone/25 sm:grid-cols-12 sm:gap-6"
+                          className="group border-stone-deep hover:bg-stone/25 grid grid-cols-1 items-baseline gap-1 border-b py-6 transition-colors sm:grid-cols-12 sm:gap-6"
                         >
                           <span className="palma-label text-taupe-deep sm:col-span-5">
                             {entry.categoryName}
@@ -245,9 +248,9 @@ export default async function ParohPage({ searchParams }: Props) {
           )}
 
           {filtered ? (
-            <p className="mt-12 text-sm text-taupe-deep">
+            <p className="text-taupe-deep mt-12 text-sm">
               Showing {total} {total === 1 ? 'honour' : 'honours'} ·{' '}
-              <Link href="/paroh" className="underline underline-offset-4 hover:text-ink">
+              <Link href="/paroh" className="hover:text-ink underline underline-offset-4">
                 Clear filters
               </Link>
             </p>

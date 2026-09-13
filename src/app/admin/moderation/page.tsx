@@ -20,7 +20,7 @@ export default async function AdminModerationPage() {
   return (
     <>
       <h2 className="text-3xl">Moderation</h2>
-      <p className="mt-3 max-w-160 leading-relaxed text-taupe-deep">
+      <p className="text-taupe-deep mt-3 max-w-160 leading-relaxed">
         Reports of impersonation, fabricated achievements, explicit content and nomination
         manipulation. Every action taken here is recorded against the entity it affects.
       </p>
@@ -30,7 +30,7 @@ export default async function AdminModerationPage() {
       ) : (
         <ul className="mt-10 flex flex-col gap-4">
           {reports.map((report) => (
-            <li key={report.id} className="border border-stone-deep p-6">
+            <li key={report.id} className="border-stone-deep border p-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <span className="font-display text-xl">{titleCase(report.reason)}</span>
                 <div className="flex items-center gap-3">
@@ -42,8 +42,8 @@ export default async function AdminModerationPage() {
                   </span>
                 </div>
               </div>
-              <p className="mt-3 palma-label text-taupe-deep">Subject · {report.subject}</p>
-              <p className="mt-4 leading-relaxed text-ink/85">{report.detail}</p>
+              <p className="palma-label text-taupe-deep mt-3">Subject · {report.subject}</p>
+              <p className="text-ink/85 mt-4 leading-relaxed">{report.detail}</p>
             </li>
           ))}
         </ul>

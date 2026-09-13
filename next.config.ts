@@ -22,7 +22,8 @@ const SECURITY_HEADERS = [
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
       // Next.js injects inline bootstrap scripts and style tags.
-      "script-src 'self' 'unsafe-inline'" + (process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''),
+      "script-src 'self' 'unsafe-inline'" +
+        (process.env.NODE_ENV === 'development' ? " 'unsafe-eval'" : ''),
       "style-src 'self' 'unsafe-inline'",
       "connect-src 'self'" + (process.env.NODE_ENV === 'development' ? ' ws: wss:' : ''),
       'upgrade-insecure-requests',

@@ -1,0 +1,142 @@
+# Running a PALMA season
+
+Operational guide for administrators. Every action described here is recorded in
+the audit log with the actor, the entity and the state before and after.
+
+---
+
+## Roles
+
+| Role          | Can                                                                |
+| ------------- | ------------------------------------------------------------------ |
+| `visitor`     | Read the public record. Nominate.                                  |
+| `creator`     | Claim a profile, verify, submit and track nominations.             |
+| `judge`       | See their own assignments, score, declare conflicts.               |
+| `editor`      | Write and publish the Journal.                                     |
+| `moderator`   | See and act on reports.                                            |
+| `admin`       | Run the season: review, assign, select, revoke, correct, moderate. |
+| `super_admin` | Everything, plus users and system settings.                        |
+
+Sponsors hold **no role**. Sponsorship is recorded against a season or category
+and grants no access to nominations, judges, scores or outcomes.
+
+## The season
+
+Stages advance one step at a time, from `/admin`:
+
+```
+announced → nominations_open → nominations_closed → shortlisting
+  → shortlist_announced → judging → finalists_announced
+  → winners_announced → archived
+```
+
+Nominations are accepted in exactly one stage (`nominations_open`). Finalists
+become public at `finalists_announced`; winners at `winners_announced`. Until
+then, the read layer will not return them, whatever a page asks for.
+
+Going backwards is refused by `canAdvance()`. A genuine correction is a
+deliberate database operation, made by a super administrator, and recorded.
+
+## 1. Open nominations
+
+Check before opening:
+
+- The season exists, `isCurrent` is set, and its dates are published.
+- Categories exist with eligibility and judging criteria written in full.
+- The panel is seated (`JudgePanelMembership`) for the season.
+
+Then advance the stage to `nominations_open`.
+
+## 2. Review nominations
+
+`/admin/nominations`, sorted with the highest integrity scores first.
+
+Each nomination shows its source, evidence count, creator verification status
+and integrity score. Decisions: **eligible**, **keep under review**,
+**ineligible**, **duplicate**. Anything other than _eligible_ requires a written
+reason.
+
+Nominations scoring 80+ on integrity were refused at submission. Those between
+30 and 80 reach this queue flagged.
+
+## 3. Assign the panel
+
+`/admin/judging`, per category. Assignment is deterministic and conflict-aware:
+each eligible nomination is placed with three judges, load is spread evenly, and
+any judge with an undismissed conflict is excluded before placement.
+
+Running it again adds only what is missing. Where a nomination could not be
+fully covered without a conflict, the result says so — seat another judge rather
+than lowering the bar.
+
+## 4. Judging
+
+Judges score independently at `/judging`. Scores are immutable once submitted.
+
+A judge who declares a conflict is removed from that nomination immediately;
+they are not asked to decide whether it matters. Only an explicit dismissal
+restores them, and both acts are audited.
+
+**Score corrections.** If a genuine error is found, an administrator with
+`admin:correct_score` may correct it with a written reason of at least 20
+characters. The original values, the corrected values, the person and the reason
+are all preserved in the audit log.
+
+## 5. Finalists
+
+`/admin/selection` shows, per category: judge count, trimmed mean and spread.
+Watch for:
+
+- **Fewer than three judges** — the nomination is under-judged. Assign more.
+- **A spread of 20 or more** — the panel disagrees sharply. Review before
+  confirming.
+- **A tie at the cut line** — flagged for chair adjudication.
+
+Confirming confers finalist honours on the top four eligible nominations and
+mints a verification record for each. Then advance the stage to
+`finalists_announced`.
+
+## 6. Winners
+
+From the same page, once finalists exist. Write the citation — it is published
+on the winner page, the PaROH and the verification record.
+
+Confirming confers the PALMA, mints the verification record, publishes the
+creator's profile and writes to the audit log. Advance to `winners_announced`
+when the ceremony has taken place.
+
+## 7. Revocation
+
+PALMA can revoke an honour obtained through fabricated evidence, impersonation
+or manipulation. A revocation needs a written reason of at least 20 characters.
+
+Nothing is deleted. The honour, its achievement and its verification page remain
+and read _revoked_. Share cards stop being issued for it.
+
+## Verification codes
+
+Format `PM-YYYY-XXXXXX`, Crockford base32 without the characters that read as
+digits, so a code can be read aloud from a trophy or typed from a certificate.
+
+Codes are derived from the signing secret, the season and the honour id — not
+sequential, so they reveal nothing about how many honours exist.
+
+**The signing secret is the institution's integrity.** `AUTH_SECRET` signs every
+verification record. Rotating it invalidates every existing signature; a
+rotation therefore requires re-signing every record in the same operation. Treat
+it as the most sensitive value in the deployment.
+
+## Integrity queue
+
+`/admin/moderation` carries reports of impersonation, fabricated achievements,
+explicit content, ineligible creators and nomination manipulation.
+
+Reports come from anyone, signed in or not — a person being impersonated may
+well not hold a PALMA account.
+
+## Data retention
+
+- Public and permanent: creator profiles and the honours they hold.
+- Never public: scores, panel remarks, nomination evidence, nominator contact
+  details, verification data, reports, the audit log.
+- Never stored: identity documents, raw IP addresses.

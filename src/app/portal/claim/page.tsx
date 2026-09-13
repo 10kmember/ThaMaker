@@ -23,7 +23,7 @@ export default async function ClaimPage({
   return (
     <PortalShell title="PALMA Portal" subtitle="Claim a profile" userName={session.user.email}>
       <div className="max-w-140">
-        <p className="mb-8 leading-relaxed text-taupe-deep">
+        <p className="text-taupe-deep mb-8 leading-relaxed">
           A PALMA profile is created the first time a creator is nominated. Claiming links that
           profile to your account so you can complete verification and manage the details PALMA
           publishes.

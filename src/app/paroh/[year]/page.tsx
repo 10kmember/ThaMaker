@@ -48,7 +48,10 @@ export default async function ParohYearPage({ params }: Params) {
             : undefined
         }
         meta={
-          <Link href="/paroh" className="palma-label text-ivory/60 transition-colors hover:text-ivory">
+          <Link
+            href="/paroh"
+            className="palma-label text-ivory/60 hover:text-ivory transition-colors"
+          >
             ← The full PaROH
           </Link>
         }
@@ -74,7 +77,7 @@ export default async function ParohYearPage({ params }: Params) {
                     <li key={entry.categorySlug}>
                       <Link
                         href={`/creators/${entry.creator.slug}`}
-                        className="group flex flex-col gap-2 border-b border-stone-deep py-7 transition-colors hover:bg-stone/25 sm:flex-row sm:items-baseline sm:justify-between sm:gap-8"
+                        className="group border-stone-deep hover:bg-stone/25 flex flex-col gap-2 border-b py-7 transition-colors sm:flex-row sm:items-baseline sm:justify-between sm:gap-8"
                       >
                         <span className="flex flex-col gap-2">
                           <span className="palma-label text-taupe-deep">{entry.categoryName}</span>
@@ -82,7 +85,7 @@ export default async function ParohYearPage({ params }: Params) {
                             {entry.creator.displayName}
                           </span>
                           {entry.citation ? (
-                            <span className="max-w-120 text-sm leading-relaxed text-taupe-deep">
+                            <span className="text-taupe-deep max-w-120 text-sm leading-relaxed">
                               {entry.citation}
                             </span>
                           ) : null}
@@ -92,7 +95,7 @@ export default async function ParohYearPage({ params }: Params) {
                             {countryName(entry.creator.countryCode)}
                           </span>
                           {entry.code ? (
-                            <span className="font-mono text-xs tracking-wider text-taupe-deep">
+                            <span className="text-taupe-deep font-mono text-xs tracking-wider">
                               {entry.code}
                             </span>
                           ) : null}
@@ -107,9 +110,9 @@ export default async function ParohYearPage({ params }: Params) {
                 <PalmaSeal
                   legend={`PALMA ${season.year}`}
                   sublegend="ROLL OF HONOUR"
-                  className="h-48 w-48 text-olive"
+                  className="text-olive h-48 w-48"
                 />
-                <p className="max-w-72 text-center text-sm leading-relaxed text-taupe-deep">
+                <p className="text-taupe-deep max-w-72 text-center text-sm leading-relaxed">
                   Each honour in this class carries a permanent verification record. A PALMA can be
                   checked by anyone, at any time, from the code printed on the certificate.
                 </p>

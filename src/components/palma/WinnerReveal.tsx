@@ -28,7 +28,7 @@ export function WinnerReveal({
   const verifyUrl = winner.code ? absoluteUrl(`/verify/${winner.code}`) : null;
 
   return (
-    <section className="on-ink relative overflow-hidden bg-ink text-ivory">
+    <section className="on-ink bg-ink text-ivory relative overflow-hidden">
       <Container className="relative py-24 sm:py-32">
         <div className="grid gap-16 lg:grid-cols-12 lg:items-center">
           <div className="flex flex-col gap-8 lg:col-span-7">
@@ -37,7 +37,7 @@ export function WinnerReveal({
               style={{ animationDelay: '120ms' }}
             >
               <span className="palma-label text-champagne">{season.title}</span>
-              <span className="font-display text-2xl leading-tight text-ivory/70 sm:text-3xl">
+              <span className="font-display text-ivory/70 text-2xl leading-tight sm:text-3xl">
                 {outcome.category.name}
               </span>
             </div>
@@ -53,11 +53,11 @@ export function WinnerReveal({
             </div>
 
             <div
-              className="flex flex-col gap-6 border-t border-ivory/15 pt-8 motion-safe:animate-(--animate-rise)"
+              className="border-ivory/15 flex flex-col gap-6 border-t pt-8 motion-safe:animate-(--animate-rise)"
               style={{ animationDelay: '980ms' }}
             >
               {winner.citation ? (
-                <p className="max-w-130 font-display text-xl leading-snug text-ivory/75">
+                <p className="font-display text-ivory/75 max-w-130 text-xl leading-snug">
                   “{winner.citation}”
                 </p>
               ) : null}
@@ -108,7 +108,7 @@ export function WinnerReveal({
               legend={`PALMA ${season.year}`}
               sublegend="THE CREATOR HONOURS"
               centre="Winner"
-              className="h-36 w-36 text-champagne/85"
+              className="text-champagne/85 h-36 w-36"
             />
           </div>
         </div>

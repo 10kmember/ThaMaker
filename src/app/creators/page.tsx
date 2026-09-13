@@ -46,7 +46,7 @@ export default async function CreatorsPage({ searchParams }: Props) {
         standfirst="A PALMA profile is an achievement record, not a social profile. No follower counts, no feed, no commentary — only what the panel conferred."
       />
 
-      <div className="border-b border-stone-deep bg-ivory">
+      <div className="border-stone-deep bg-ivory border-b">
         <Container className="flex flex-col gap-4 py-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-2">
             <Link
@@ -88,7 +88,9 @@ export default async function CreatorsPage({ searchParams }: Props) {
           </div>
 
           <form action="/creators" role="search" className="flex items-center gap-2">
-            {filters.country ? <input type="hidden" name="country" value={filters.country} /> : null}
+            {filters.country ? (
+              <input type="hidden" name="country" value={filters.country} />
+            ) : null}
             {honoursOnly ? <input type="hidden" name="honours" value="1" /> : null}
             <label htmlFor="creator-search" className="sr-only">
               Search creators
@@ -123,11 +125,7 @@ export default async function CreatorsPage({ searchParams }: Props) {
           ) : (
             <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
               {creators.map((creator, index) => (
-                <CreatorCard
-                  key={creator.slug}
-                  creator={creator}
-                  priority={index < 4}
-                />
+                <CreatorCard key={creator.slug} creator={creator} priority={index < 4} />
               ))}
             </div>
           )}

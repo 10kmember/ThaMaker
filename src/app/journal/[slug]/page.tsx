@@ -19,7 +19,12 @@ export async function generateMetadata({ params }: Params) {
   const { slug } = await params;
   const article = await getArticle(slug);
   if (!article) {
-    return buildMetadata({ title: 'Journal', description: '', path: `/journal/${slug}`, noIndex: true });
+    return buildMetadata({
+      title: 'Journal',
+      description: '',
+      path: `/journal/${slug}`,
+      noIndex: true,
+    });
   }
 
   return buildMetadata({
@@ -45,20 +50,22 @@ export default async function ArticlePage({ params }: Params) {
   return (
     <>
       <article>
-        <header className="border-b border-stone-deep bg-ivory">
+        <header className="border-stone-deep bg-ivory border-b">
           <Container size="narrow" className="py-16 sm:py-24">
             <div className="flex flex-col gap-6">
               <Link
-                href={article.categorySlug ? `/journal?category=${article.categorySlug}` : '/journal'}
+                href={
+                  article.categorySlug ? `/journal?category=${article.categorySlug}` : '/journal'
+                }
                 className="palma-label text-olive transition-opacity hover:opacity-70"
               >
                 {article.category ?? 'Journal'}
               </Link>
               <h1 className="text-4xl leading-[1.05] sm:text-6xl">{article.title}</h1>
-              <p className="max-w-140 font-display text-xl leading-snug text-taupe-deep sm:text-2xl">
+              <p className="font-display text-taupe-deep max-w-140 text-xl leading-snug sm:text-2xl">
                 {article.standfirst}
               </p>
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-stone-deep pt-6">
+              <div className="border-stone-deep flex flex-wrap items-center gap-x-6 gap-y-2 border-t pt-6">
                 <span className="palma-label text-ink">{article.authorName}</span>
                 <span className="palma-label text-taupe-deep">
                   {formatDate(article.publishedAt)}
@@ -78,9 +85,9 @@ export default async function ArticlePage({ params }: Params) {
             ))}
           </div>
 
-          <div className="mt-16 flex items-center gap-6 border-t border-stone-deep pt-10">
-            <PalmMark className="h-8 text-stone-deep" />
-            <p className="text-sm leading-relaxed text-taupe-deep">
+          <div className="border-stone-deep mt-16 flex items-center gap-6 border-t pt-10">
+            <PalmMark className="text-stone-deep h-8" />
+            <p className="text-taupe-deep text-sm leading-relaxed">
               The PALMA Journal is published by PALMA — The Creator Honours.
             </p>
           </div>
@@ -90,16 +97,16 @@ export default async function ArticlePage({ params }: Params) {
       {related.length > 0 ? (
         <Section tone="stone" className="py-16 sm:py-20">
           <Container>
-            <h2 className="palma-label mb-10 text-taupe-deep">More from the Journal</h2>
+            <h2 className="palma-label text-taupe-deep mb-10">More from the Journal</h2>
             <div className="grid gap-10 sm:grid-cols-3">
               {related.map((entry) => (
                 <Link
                   key={entry.slug}
                   href={`/journal/${entry.slug}`}
-                  className="group flex flex-col gap-3 border-t border-stone-deep pt-5"
+                  className="group border-stone-deep flex flex-col gap-3 border-t pt-5"
                 >
                   <span className="palma-label text-taupe-deep">{entry.category ?? 'Journal'}</span>
-                  <h3 className="text-xl leading-tight transition-colors group-hover:text-olive">
+                  <h3 className="group-hover:text-olive text-xl leading-tight transition-colors">
                     {entry.title}
                   </h3>
                 </Link>

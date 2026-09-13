@@ -6,7 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Reveal } from '@/components/palma/Reveal';
 import { buildMetadata } from '@/lib/seo';
 import { winnersArePublic } from '@/domain/season';
-import { getCurrentSeason, getSeason, listSeasonOutcomes, listSeasons } from '@/server/data/queries';
+import {
+  getCurrentSeason,
+  getSeason,
+  listSeasonOutcomes,
+  listSeasons,
+} from '@/server/data/queries';
 
 export const revalidate = 900;
 
@@ -49,8 +54,8 @@ export default async function WinnersPage({ searchParams }: Props) {
                   aria-current={entry.year === season.year ? 'page' : undefined}
                   className={
                     entry.year === season.year
-                      ? 'palma-label rounded-full border border-ivory bg-ivory px-3.5 py-2 text-ink'
-                      : 'palma-label rounded-full border border-ivory/30 px-3.5 py-2 text-ivory/70 transition-colors hover:border-ivory/70 hover:text-ivory'
+                      ? 'palma-label border-ivory bg-ivory text-ink rounded-full border px-3.5 py-2'
+                      : 'palma-label border-ivory/30 text-ivory/70 hover:border-ivory/70 hover:text-ivory rounded-full border px-3.5 py-2 transition-colors'
                   }
                 >
                   {entry.year}
@@ -83,7 +88,7 @@ export default async function WinnersPage({ searchParams }: Props) {
                       href={`/categories/${outcome.category.slug}?year=${season.year}`}
                       className="group flex flex-col gap-5"
                     >
-                      <span className="palma-label border-t border-stone-deep pt-4 text-taupe-deep">
+                      <span className="palma-label border-stone-deep text-taupe-deep border-t pt-4">
                         {outcome.category.name}
                       </span>
                       <EditorialImage
@@ -93,14 +98,14 @@ export default async function WinnersPage({ searchParams }: Props) {
                         ratio="square"
                       />
                       <div className="flex flex-col gap-2">
-                        <h2 className="text-2xl leading-tight transition-colors group-hover:text-olive">
+                        <h2 className="group-hover:text-olive text-2xl leading-tight transition-colors">
                           {winner.creator.displayName}
                         </h2>
                         <span className="palma-label text-champagne-deep">
                           PALMA {season.year} Winner
                         </span>
                         {winner.code ? (
-                          <span className="font-mono text-xs tracking-wider text-taupe-deep">
+                          <span className="text-taupe-deep font-mono text-xs tracking-wider">
                             {winner.code}
                           </span>
                         ) : null}

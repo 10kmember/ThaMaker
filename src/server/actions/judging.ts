@@ -81,7 +81,8 @@ export async function submitScore(
     ) as Partial<ScoreCard>,
   );
 
-  if (!card.ok) return { status: 'error', message: Object.values(card.errors)[0] ?? 'Invalid score.' };
+  if (!card.ok)
+    return { status: 'error', message: Object.values(card.errors)[0] ?? 'Invalid score.' };
 
   const total = totalScore(card.card);
 

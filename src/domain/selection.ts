@@ -51,7 +51,10 @@ export function proposeFinalists(
     warnings.push(`Only ${selected.length} eligible nomination(s) available for ${count} places.`);
   }
 
-  const tie = ranked[count - 1] && ranked[count] && ranked[count - 1]!.trimmedMean === ranked[count]!.trimmedMean;
+  const tie =
+    ranked[count - 1] &&
+    ranked[count] &&
+    ranked[count - 1]!.trimmedMean === ranked[count]!.trimmedMean;
   if (tie) {
     warnings.push('A tie exists at the finalist cut line — chair review required.');
   }

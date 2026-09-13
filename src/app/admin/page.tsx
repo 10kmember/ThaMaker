@@ -14,7 +14,11 @@ export const metadata = buildMetadata({
 });
 
 const MODULES = [
-  { href: '/admin/nominations', label: 'Nominations', description: 'Review eligibility and integrity.' },
+  {
+    href: '/admin/nominations',
+    label: 'Nominations',
+    description: 'Review eligibility and integrity.',
+  },
   { href: '/admin/judging', label: 'Judging', description: 'Assign panels and track completion.' },
   { href: '/admin/selection', label: 'Finalists & winners', description: 'Confirm the record.' },
   { href: '/admin/moderation', label: 'Moderation', description: 'Reports and actions taken.' },
@@ -37,11 +41,13 @@ export default async function AdminPage() {
   return (
     <>
       <div className="flex flex-col gap-3">
-        <span className="palma-label text-taupe-deep">{STAGE_LABEL[overview.stage as SeasonStage]}</span>
+        <span className="palma-label text-taupe-deep">
+          {STAGE_LABEL[overview.stage as SeasonStage]}
+        </span>
         <h2 className="text-4xl">{overview.seasonTitle}</h2>
       </div>
 
-      <div className="mt-10 grid gap-8 border-y border-stone-deep py-10 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="border-stone-deep mt-10 grid gap-8 border-y py-10 sm:grid-cols-3 lg:grid-cols-6">
         <Stat label="Nominations" value={overview.counts.nominations} />
         <Stat label="Under review" value={overview.counts.underReview} />
         <Stat label="Eligible" value={overview.counts.eligible} />
@@ -57,22 +63,22 @@ export default async function AdminPage() {
         <Stat label="Open conflicts" value={overview.counts.openConflicts} />
       </div>
 
-      <section className="mt-14 border border-stone-deep p-7">
-        <h3 className="palma-label mb-5 text-taupe-deep">Season stage</h3>
+      <section className="border-stone-deep mt-14 border p-7">
+        <h3 className="palma-label text-taupe-deep mb-5">Season stage</h3>
         <AdvanceSeasonForm year={overview.seasonYear} stage={overview.stage as SeasonStage} />
       </section>
 
       <section className="mt-14">
-        <h3 className="palma-label mb-6 text-taupe-deep">Modules</h3>
+        <h3 className="palma-label text-taupe-deep mb-6">Modules</h3>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {MODULES.map((module) => (
             <Link
               key={module.href}
               href={module.href}
-              className="flex flex-col gap-2 border border-stone-deep p-6 transition-colors hover:border-ink/40"
+              className="border-stone-deep hover:border-ink/40 flex flex-col gap-2 border p-6 transition-colors"
             >
               <span className="font-display text-xl">{module.label}</span>
-              <span className="text-sm text-taupe-deep">{module.description}</span>
+              <span className="text-taupe-deep text-sm">{module.description}</span>
             </Link>
           ))}
         </div>

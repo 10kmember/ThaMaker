@@ -36,7 +36,7 @@ export default async function JournalPage({ searchParams }: Props) {
         standfirst="Writing on the creator industry, the people in it, and the standards PALMA holds them to."
       />
 
-      <div className="border-b border-stone-deep bg-ivory">
+      <div className="border-stone-deep bg-ivory border-b">
         <Container className="flex flex-wrap items-center gap-2 py-5">
           <Link
             href="/journal"
@@ -75,16 +75,16 @@ export default async function JournalPage({ searchParams }: Props) {
               {lead ? (
                 <Link
                   href={`/journal/${lead.slug}`}
-                  className="group flex flex-col gap-6 border-b border-stone-deep pb-16"
+                  className="group border-stone-deep flex flex-col gap-6 border-b pb-16"
                 >
                   <span className="palma-label text-taupe-deep">
                     {lead.category ?? 'Journal'} · {formatDate(lead.publishedAt)} ·{' '}
                     {lead.readingMinutes} min read
                   </span>
-                  <h2 className="max-w-220 text-4xl leading-[1.03] transition-colors group-hover:text-olive sm:text-6xl">
+                  <h2 className="group-hover:text-olive max-w-220 text-4xl leading-[1.03] transition-colors sm:text-6xl">
                     {lead.title}
                   </h2>
-                  <p className="max-w-160 text-lg leading-relaxed text-taupe-deep">
+                  <p className="text-taupe-deep max-w-160 text-lg leading-relaxed">
                     {lead.standfirst}
                   </p>
                   <span className="palma-label text-olive">{lead.authorName}</span>
@@ -96,18 +96,18 @@ export default async function JournalPage({ searchParams }: Props) {
                   <Reveal key={article.slug} delay={index * 60}>
                     <Link
                       href={`/journal/${article.slug}`}
-                      className="group flex h-full flex-col gap-4 border-t border-stone-deep pt-6"
+                      className="group border-stone-deep flex h-full flex-col gap-4 border-t pt-6"
                     >
                       <span className="palma-label text-taupe-deep">
                         {article.category ?? 'Journal'}
                       </span>
-                      <h3 className="text-2xl leading-tight transition-colors group-hover:text-olive">
+                      <h3 className="group-hover:text-olive text-2xl leading-tight transition-colors">
                         {article.title}
                       </h3>
-                      <p className="line-clamp-3 text-sm leading-relaxed text-taupe-deep">
+                      <p className="text-taupe-deep line-clamp-3 text-sm leading-relaxed">
                         {article.standfirst}
                       </p>
-                      <span className="palma-label mt-auto pt-2 text-taupe">
+                      <span className="palma-label text-taupe mt-auto pt-2">
                         {formatDate(article.publishedAt)} · {article.readingMinutes} min
                       </span>
                     </Link>

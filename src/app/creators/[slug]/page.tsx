@@ -27,7 +27,12 @@ export async function generateMetadata({ params }: Params) {
   const { slug } = await params;
   const creator = await getCreator(slug);
   if (!creator) {
-    return buildMetadata({ title: 'Creator', description: '', path: `/creators/${slug}`, noIndex: true });
+    return buildMetadata({
+      title: 'Creator',
+      description: '',
+      path: `/creators/${slug}`,
+      noIndex: true,
+    });
   }
 
   const honours = creator.record.filter((entry) => entry.state === 'active');
@@ -94,13 +99,13 @@ export default async function CreatorPage({ params }: Params) {
               </div>
 
               {creator.headline ? (
-                <p className="max-w-140 font-display text-2xl leading-snug text-ink/85">
+                <p className="font-display text-ink/85 max-w-140 text-2xl leading-snug">
                   {creator.headline}
                 </p>
               ) : null}
 
               {creator.biography ? (
-                <p className="max-w-140 leading-relaxed text-taupe-deep">{creator.biography}</p>
+                <p className="text-taupe-deep max-w-140 leading-relaxed">{creator.biography}</p>
               ) : null}
 
               {creator.links.length > 0 ? (
@@ -111,7 +116,7 @@ export default async function CreatorPage({ params }: Params) {
                         href={link.url}
                         rel="nofollow noopener noreferrer"
                         target="_blank"
-                        className="palma-label inline-flex items-center gap-2 border-b border-stone-deep pb-1 text-taupe-deep transition-colors hover:border-ink hover:text-ink"
+                        className="palma-label border-stone-deep text-taupe-deep hover:border-ink hover:text-ink inline-flex items-center gap-2 border-b pb-1 transition-colors"
                       >
                         {link.label}
                         <ExternalLink className="size-3.5" aria-hidden="true" />
@@ -129,7 +134,7 @@ export default async function CreatorPage({ params }: Params) {
         <Container>
           <div className="grid gap-14 lg:grid-cols-12">
             <div className="lg:col-span-8">
-              <div className="flex items-end justify-between gap-6 border-b border-ink/20 pb-5">
+              <div className="border-ink/20 flex items-end justify-between gap-6 border-b pb-5">
                 <h2 className="text-3xl sm:text-4xl">PALMA record</h2>
                 <span className="palma-label text-taupe-deep">
                   {active.length} {pluralise(active.length, 'honour')}
@@ -152,7 +157,7 @@ export default async function CreatorPage({ params }: Params) {
                   {active.map((entry) => (
                     <li
                       key={entry.id}
-                      className="flex flex-col gap-4 border-b border-stone-deep py-7 sm:flex-row sm:items-center sm:justify-between"
+                      className="border-stone-deep flex flex-col gap-4 border-b py-7 sm:flex-row sm:items-center sm:justify-between"
                     >
                       <AchievementBadge
                         kind={entry.kind}
@@ -163,14 +168,14 @@ export default async function CreatorPage({ params }: Params) {
                       <div className="flex shrink-0 items-center gap-3 pl-7.5 sm:pl-0">
                         <Link
                           href={`/categories/${entry.categorySlug}?year=${entry.year}`}
-                          className="palma-label text-taupe-deep transition-colors hover:text-ink"
+                          className="palma-label text-taupe-deep hover:text-ink transition-colors"
                         >
                           Category
                         </Link>
                         {entry.code ? (
                           <Link
                             href={`/verify/${entry.code}`}
-                            className="palma-label text-olive transition-colors hover:text-ink"
+                            className="palma-label text-olive hover:text-ink transition-colors"
                           >
                             Verify
                           </Link>
@@ -181,33 +186,33 @@ export default async function CreatorPage({ params }: Params) {
                 </ul>
               )}
 
-              <p className="mt-8 text-sm leading-relaxed text-taupe-deep">
-                Every honour above is backed by a permanent verification record issued at the time it
-                was conferred. PALMA does not publish judging scores, and never will.
+              <p className="text-taupe-deep mt-8 text-sm leading-relaxed">
+                Every honour above is backed by a permanent verification record issued at the time
+                it was conferred. PALMA does not publish judging scores, and never will.
               </p>
             </div>
 
             <aside className="flex flex-col gap-8 lg:col-span-4">
               {wins.length > 0 ? (
-                <div className="flex flex-col items-center gap-6 border border-stone-deep bg-ivory-bright p-8 text-center">
+                <div className="border-stone-deep bg-ivory-bright flex flex-col items-center gap-6 border p-8 text-center">
                   <PalmaSeal
                     legend={`PALMA ${wins[0]!.year}`}
                     sublegend="THE CREATOR HONOURS"
                     centre="Winner"
-                    className="h-40 w-40 text-olive"
+                    className="text-olive h-40 w-40"
                   />
                   <p className="font-display text-xl leading-snug">
                     {wins.length} PALMA {pluralise(wins.length, 'honour')}
                   </p>
-                  <p className="text-sm leading-relaxed text-taupe-deep">
+                  <p className="text-taupe-deep text-sm leading-relaxed">
                     {wins.map((entry) => `${entry.categoryName} — ${entry.year}`).join(' · ')}
                   </p>
                 </div>
               ) : null}
 
-              <div className="flex flex-col gap-4 border border-stone-deep p-7">
+              <div className="border-stone-deep flex flex-col gap-4 border p-7">
                 <h2 className="palma-label text-taupe-deep">Share this record</h2>
-                <p className="text-sm leading-relaxed text-taupe-deep">
+                <p className="text-taupe-deep text-sm leading-relaxed">
                   The PALMA record is public and permanent. Copy the link to cite it in a press kit,
                   a profile or a pitch.
                 </p>
@@ -222,9 +227,9 @@ export default async function CreatorPage({ params }: Params) {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-3 border border-stone-deep p-7">
+              <div className="border-stone-deep flex flex-col gap-3 border p-7">
                 <h2 className="palma-label text-taupe-deep">Is this you?</h2>
-                <p className="text-sm leading-relaxed text-taupe-deep">
+                <p className="text-taupe-deep text-sm leading-relaxed">
                   Claim this profile to complete verification, manage permitted details and download
                   your PALMA assets.
                 </p>

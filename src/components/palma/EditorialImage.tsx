@@ -58,7 +58,7 @@ export function EditorialImage({
 
   if (src) {
     return (
-      <div className={cn('relative overflow-hidden bg-stone', ratios[ratio], className)}>
+      <div className={cn('bg-stone relative overflow-hidden', ratios[ratio], className)}>
         <Image
           src={src}
           alt={alt ?? `${name} — PALMA creator portrait`}
@@ -84,7 +84,7 @@ export function EditorialImage({
     >
       <svg
         viewBox="0 0 200 260"
-        className="absolute inset-0 h-full w-full text-ivory/18"
+        className="text-ivory/18 absolute inset-0 h-full w-full"
         aria-hidden="true"
         preserveAspectRatio="xMidYMid slice"
       >
@@ -98,7 +98,7 @@ export function EditorialImage({
           <path d="M100 200c17-3 29-14 35-31-18 2-31 12-35 26" />
         </g>
       </svg>
-      <span className="relative font-display text-4xl tracking-[0.12em] text-ivory/85">
+      <span className="font-display text-ivory/85 relative text-4xl tracking-[0.12em]">
         {initials(name)}
       </span>
     </div>

@@ -16,12 +16,7 @@ export function Stat({
 }) {
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
-      <span
-        className={cn(
-          'palma-label',
-          tone === 'dark' ? 'text-ivory/55' : 'text-taupe-deep',
-        )}
-      >
+      <span className={cn('palma-label', tone === 'dark' ? 'text-ivory/55' : 'text-taupe-deep')}>
         {label}
       </span>
       <span className="font-display text-3xl leading-none tabular-nums sm:text-4xl">

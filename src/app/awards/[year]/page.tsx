@@ -9,12 +9,7 @@ import { EditorialImage } from '@/components/palma/EditorialImage';
 import { JsonLd, breadcrumbJsonLd, buildMetadata } from '@/lib/seo';
 import { STAGE_LABEL, acceptsNominations, winnersArePublic } from '@/domain/season';
 import { formatDate } from '@/lib/format';
-import {
-  getSeason,
-  listCategories,
-  listSeasonOutcomes,
-  listSeasons,
-} from '@/server/data/queries';
+import { getSeason, listCategories, listSeasonOutcomes, listSeasons } from '@/server/data/queries';
 
 export const revalidate = 900;
 

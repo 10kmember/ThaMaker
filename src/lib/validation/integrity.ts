@@ -19,7 +19,12 @@ export const reportSchema = z.object({
     .max(2000),
   creatorSlug: z.string().trim().max(120).optional().or(z.literal('')),
   nominationReference: z.string().trim().max(40).optional().or(z.literal('')),
-  contactEmail: z.string().trim().email('Enter a valid email address.').optional().or(z.literal('')),
+  contactEmail: z
+    .string()
+    .trim()
+    .email('Enter a valid email address.')
+    .optional()
+    .or(z.literal('')),
   website: z.string().max(0).optional(),
 });
 

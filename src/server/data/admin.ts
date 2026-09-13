@@ -43,7 +43,10 @@ export async function getAdminOverview(): Promise<AdminOverview | null> {
     db.nomination.count({ where: { awardYearId: season.id, status: 'under_review' } }),
     db.nomination.count({ where: { awardYearId: season.id, status: 'eligible' } }),
     db.judgingAssignment.count({
-      where: { nomination: { awardYearId: season.id }, status: { in: ['assigned', 'in_progress'] } },
+      where: {
+        nomination: { awardYearId: season.id },
+        status: { in: ['assigned', 'in_progress'] },
+      },
     }),
     db.honour.count({ where: { awardYearId: season.id, kind: 'finalist', state: 'active' } }),
     db.honour.count({ where: { awardYearId: season.id, kind: 'winner', state: 'active' } }),
@@ -206,9 +209,9 @@ export type AuditEntry = {
   createdAt: string;
 };
 
-export async function listAuditLog(options: { action?: string; limit?: number } = {}): Promise<
-  AuditEntry[]
-> {
+export async function listAuditLog(
+  options: { action?: string; limit?: number } = {},
+): Promise<AuditEntry[]> {
   const db = prisma;
   if (!db) return [];
 

@@ -81,7 +81,7 @@ export default async function VerifyPage({ params }: Params) {
             <>
               <h1 className="text-5xl leading-[0.95] sm:text-7xl">{record.creatorName}</h1>
               <div className="flex flex-col items-center gap-3">
-                <span className="font-display text-2xl text-ivory/80 sm:text-3xl">
+                <span className="font-display text-ivory/80 text-2xl sm:text-3xl">
                   {HONOUR_LABEL[record.kind]}
                 </span>
                 <span className="palma-label text-ivory/55">
@@ -93,21 +93,21 @@ export default async function VerifyPage({ params }: Params) {
                 legend={`PALMA ${record.year}`}
                 sublegend="THE CREATOR HONOURS"
                 centre={record.kind === 'winner' ? 'Winner' : 'Finalist'}
-                className="h-44 w-44 text-champagne/90"
+                className="text-champagne/90 h-44 w-44"
               />
 
-              <p className="palma-label inline-flex items-center gap-2 text-champagne">
+              <p className="palma-label text-champagne inline-flex items-center gap-2">
                 <BadgeCheck className="size-4" aria-hidden="true" />
                 Verified by PALMA
               </p>
             </>
           ) : (
             <>
-              <ShieldAlert className="size-12 text-ivory/60" aria-hidden="true" />
+              <ShieldAlert className="text-ivory/60 size-12" aria-hidden="true" />
               <h1 className="max-w-160 text-4xl leading-tight sm:text-5xl">
                 {revoked ? 'This honour has been revoked' : 'This record could not be verified'}
               </h1>
-              <p className="max-w-120 text-ivory/65">
+              <p className="text-ivory/65 max-w-120">
                 {revoked
                   ? 'The honour recorded against this code was revoked by PALMA. It must not be presented as a current PALMA.'
                   : 'The signature on this record does not match its contents. PALMA cannot present it as a verified honour.'}
@@ -120,7 +120,7 @@ export default async function VerifyPage({ params }: Params) {
       <Section className="py-16 sm:py-20">
         <Container size="narrow">
           <dl className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
-            <div className="flex flex-col gap-2 border-t border-stone-deep pt-5">
+            <div className="border-stone-deep flex flex-col gap-2 border-t pt-5">
               <dt className="palma-label text-taupe-deep">Recipient</dt>
               <dd className="font-display text-xl">
                 {verified ? (
@@ -132,15 +132,15 @@ export default async function VerifyPage({ params }: Params) {
                 )}
               </dd>
             </div>
-            <div className="flex flex-col gap-2 border-t border-stone-deep pt-5">
+            <div className="border-stone-deep flex flex-col gap-2 border-t pt-5">
               <dt className="palma-label text-taupe-deep">Country</dt>
               <dd className="font-display text-xl">{countryName(record.creatorCountry)}</dd>
             </div>
-            <div className="flex flex-col gap-2 border-t border-stone-deep pt-5">
+            <div className="border-stone-deep flex flex-col gap-2 border-t pt-5">
               <dt className="palma-label text-taupe-deep">Honour</dt>
               <dd className="font-display text-xl">{HONOUR_LABEL[record.kind]}</dd>
             </div>
-            <div className="flex flex-col gap-2 border-t border-stone-deep pt-5">
+            <div className="border-stone-deep flex flex-col gap-2 border-t pt-5">
               <dt className="palma-label text-taupe-deep">Category</dt>
               <dd className="font-display text-xl">
                 <Link
@@ -151,22 +151,22 @@ export default async function VerifyPage({ params }: Params) {
                 </Link>
               </dd>
             </div>
-            <div className="flex flex-col gap-2 border-t border-stone-deep pt-5">
+            <div className="border-stone-deep flex flex-col gap-2 border-t pt-5">
               <dt className="palma-label text-taupe-deep">Season</dt>
               <dd className="font-display text-xl">PALMA {record.year}</dd>
             </div>
-            <div className="flex flex-col gap-2 border-t border-stone-deep pt-5">
+            <div className="border-stone-deep flex flex-col gap-2 border-t pt-5">
               <dt className="palma-label text-taupe-deep">Issued</dt>
               <dd className="font-display text-xl">{formatDate(record.issuedAt)}</dd>
             </div>
-            <div className="flex flex-col gap-2 border-t border-stone-deep pt-5 sm:col-span-2">
+            <div className="border-stone-deep flex flex-col gap-2 border-t pt-5 sm:col-span-2">
               <dt className="palma-label text-taupe-deep">Verification code</dt>
               <dd className="font-mono text-lg tracking-[0.16em]">{record.code}</dd>
             </div>
           </dl>
 
           {record.citation && verified ? (
-            <blockquote className="mt-12 border-l-2 border-champagne-deep pl-6 font-display text-2xl leading-snug">
+            <blockquote className="border-champagne-deep font-display mt-12 border-l-2 pl-6 text-2xl leading-snug">
               “{record.citation}”
             </blockquote>
           ) : null}

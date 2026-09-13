@@ -42,7 +42,7 @@ export default async function JudgingPage() {
       subtitle={dashboard.seasonTitle}
       userName={dashboard.judgeName}
     >
-      <div className="grid gap-10 border-b border-stone-deep pb-10 sm:grid-cols-4">
+      <div className="border-stone-deep grid gap-10 border-b pb-10 sm:grid-cols-4">
         <Stat label="Assigned" value={dashboard.assigned.length + dashboard.completed.length} />
         <Stat label="Pending" value={pending} />
         <Stat label="Completed" value={dashboard.completed.length} />
@@ -50,9 +50,12 @@ export default async function JudgingPage() {
       </div>
 
       <section className="mt-12">
-        <h2 className="palma-label mb-6 text-taupe-deep">Awaiting your score</h2>
+        <h2 className="palma-label text-taupe-deep mb-6">Awaiting your score</h2>
         {pending === 0 ? (
-          <EmptyState title="Nothing awaiting you" description="Every assigned nomination has been scored." />
+          <EmptyState
+            title="Nothing awaiting you"
+            description="Every assigned nomination has been scored."
+          />
         ) : (
           <Table>
             <THead>
@@ -90,7 +93,7 @@ export default async function JudgingPage() {
 
       {dashboard.completed.length > 0 ? (
         <section className="mt-16">
-          <h2 className="palma-label mb-6 text-taupe-deep">Completed</h2>
+          <h2 className="palma-label text-taupe-deep mb-6">Completed</h2>
           <Table>
             <THead>
               <tr>
@@ -116,12 +119,12 @@ export default async function JudgingPage() {
 
       {dashboard.conflicts.length > 0 ? (
         <section className="mt-16">
-          <h2 className="palma-label mb-6 text-taupe-deep">Declared conflicts</h2>
+          <h2 className="palma-label text-taupe-deep mb-6">Declared conflicts</h2>
           <ul className="flex flex-col gap-3">
             {dashboard.conflicts.map((conflict) => (
               <li
                 key={conflict.id}
-                className="flex flex-wrap items-center justify-between gap-4 border border-stone-deep p-5"
+                className="border-stone-deep flex flex-wrap items-center justify-between gap-4 border p-5"
               >
                 <span className="font-display text-lg">{titleCase(conflict.kind)}</span>
                 <Badge variant={conflict.status === 'dismissed' ? 'muted' : 'olive'}>

@@ -40,7 +40,7 @@ export default async function AdminSelectionPage() {
             const hasWinner = standing.candidates.some((c) => c.honour === 'winner');
 
             return (
-              <section key={standing.categoryId} className="border border-stone-deep p-7">
+              <section key={standing.categoryId} className="border-stone-deep border p-7">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <h3 className="font-display text-2xl">{standing.categoryName}</h3>
                   <div className="flex flex-wrap items-center gap-3">
@@ -55,7 +55,7 @@ export default async function AdminSelectionPage() {
                 </div>
 
                 {standing.candidates.length === 0 ? (
-                  <p className="mt-6 text-sm text-taupe-deep">No scored nominations yet.</p>
+                  <p className="text-taupe-deep mt-6 text-sm">No scored nominations yet.</p>
                 ) : (
                   <div className="mt-6">
                     <Table>
@@ -82,12 +82,18 @@ export default async function AdminSelectionPage() {
                               {candidate.judgeCount}
                             </td>
                             <td className="tabular-nums">{candidate.trimmedMean.toFixed(2)}</td>
-                            <td className={candidate.spread >= 20 ? 'text-red-800' : 'text-taupe-deep'}>
+                            <td
+                              className={
+                                candidate.spread >= 20 ? 'text-red-800' : 'text-taupe-deep'
+                              }
+                            >
                               {candidate.spread}
                             </td>
                             <td>
                               {candidate.honour ? (
-                                <Badge variant={candidate.honour === 'winner' ? 'champagne' : 'olive'}>
+                                <Badge
+                                  variant={candidate.honour === 'winner' ? 'champagne' : 'olive'}
+                                >
                                   {titleCase(candidate.honour)}
                                 </Badge>
                               ) : candidate.eligible ? (

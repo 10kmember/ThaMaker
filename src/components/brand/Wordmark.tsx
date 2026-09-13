@@ -35,7 +35,7 @@ export function Wordmark({
       <span className="inline-flex flex-col">
         <span className={cn('palma-wordmark leading-none', SIZES[size])}>PALMA</span>
         {descriptor ? (
-          <span className="palma-label mt-1.5 text-taupe-deep">The Creator Honours</span>
+          <span className="palma-label text-taupe-deep mt-1.5">The Creator Honours</span>
         ) : null}
       </span>
     </span>

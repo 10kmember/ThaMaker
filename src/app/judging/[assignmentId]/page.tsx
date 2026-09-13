@@ -42,19 +42,19 @@ export default async function AssignmentPage({ params }: Params) {
       <div className="mt-10 grid gap-14 lg:grid-cols-12">
         <div className="flex flex-col gap-10 lg:col-span-7">
           <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
-            <div className="flex flex-col gap-1.5 border-t border-stone-deep pt-4">
+            <div className="border-stone-deep flex flex-col gap-1.5 border-t pt-4">
               <dt className="palma-label text-taupe-deep">Reference</dt>
               <dd className="font-mono text-sm tracking-wider">{assignment.reference}</dd>
             </div>
-            <div className="flex flex-col gap-1.5 border-t border-stone-deep pt-4">
+            <div className="border-stone-deep flex flex-col gap-1.5 border-t pt-4">
               <dt className="palma-label text-taupe-deep">Category</dt>
               <dd className="font-display text-lg">{assignment.categoryName}</dd>
             </div>
-            <div className="flex flex-col gap-1.5 border-t border-stone-deep pt-4">
+            <div className="border-stone-deep flex flex-col gap-1.5 border-t pt-4">
               <dt className="palma-label text-taupe-deep">Creator</dt>
               <dd className="font-display text-lg">{assignment.creatorName}</dd>
             </div>
-            <div className="flex flex-col gap-1.5 border-t border-stone-deep pt-4">
+            <div className="border-stone-deep flex flex-col gap-1.5 border-t pt-4">
               <dt className="palma-label text-taupe-deep">Country</dt>
               <dd className="font-display text-lg">{countryName(assignment.creatorCountry)}</dd>
             </div>
@@ -62,7 +62,9 @@ export default async function AssignmentPage({ params }: Params) {
 
           <section className="flex flex-col gap-3">
             <h2 className="palma-label text-taupe-deep">Supporting statement</h2>
-            <p className="leading-relaxed whitespace-pre-wrap text-ink/85">{assignment.statement}</p>
+            <p className="text-ink/85 leading-relaxed whitespace-pre-wrap">
+              {assignment.statement}
+            </p>
           </section>
 
           <section className="flex flex-col gap-4">
@@ -73,7 +75,7 @@ export default async function AssignmentPage({ params }: Params) {
             </Notice>
             <ul className="flex flex-col gap-3">
               {assignment.evidence.map((item) => (
-                <li key={item.id} className="border border-stone-deep p-5">
+                <li key={item.id} className="border-stone-deep border p-5">
                   <div className="flex flex-wrap items-baseline justify-between gap-3">
                     <span className="font-display text-lg">{item.label}</span>
                     <span className="palma-label text-taupe">{titleCase(item.kind)}</span>
@@ -83,25 +85,25 @@ export default async function AssignmentPage({ params }: Params) {
                       href={item.url}
                       target="_blank"
                       rel="noopener noreferrer nofollow"
-                      className="mt-2 inline-flex items-center gap-2 text-sm break-all text-olive underline underline-offset-4"
+                      className="text-olive mt-2 inline-flex items-center gap-2 text-sm break-all underline underline-offset-4"
                     >
                       {item.url}
                       <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
                     </a>
                   ) : null}
-                  {item.note ? (
-                    <p className="mt-2 text-sm text-taupe-deep">{item.note}</p>
-                  ) : null}
+                  {item.note ? <p className="text-taupe-deep mt-2 text-sm">{item.note}</p> : null}
                 </li>
               ))}
             </ul>
           </section>
 
-          <section className="flex flex-col gap-3 border-t border-stone-deep pt-8">
+          <section className="border-stone-deep flex flex-col gap-3 border-t pt-8">
             <h2 className="palma-label text-taupe-deep">Category eligibility</h2>
-            <p className="text-sm leading-relaxed text-taupe-deep">{assignment.categoryEligibility}</p>
-            <h2 className="palma-label mt-4 text-taupe-deep">Judging guidance</h2>
-            <p className="text-sm leading-relaxed text-taupe-deep">{assignment.categoryCriteria}</p>
+            <p className="text-taupe-deep text-sm leading-relaxed">
+              {assignment.categoryEligibility}
+            </p>
+            <h2 className="palma-label text-taupe-deep mt-4">Judging guidance</h2>
+            <p className="text-taupe-deep text-sm leading-relaxed">{assignment.categoryCriteria}</p>
           </section>
         </div>
 

@@ -17,9 +17,7 @@ const initial: CreatorState = { status: 'idle' };
 
 function Feedback({ state }: { state: CreatorState }) {
   if (state.status === 'idle' || !state.message) return null;
-  return (
-    <Notice tone={state.status === 'error' ? 'error' : 'ceremonial'}>{state.message}</Notice>
-  );
+  return <Notice tone={state.status === 'error' ? 'error' : 'ceremonial'}>{state.message}</Notice>;
 }
 
 export function ProfileForm({
@@ -73,7 +71,12 @@ export function ProfileForm({
       </Field>
 
       <Field htmlFor="biography" label="Biography" hint="Up to 2000 characters.">
-        <Textarea id="biography" name="biography" defaultValue={defaults.biography} maxLength={2000} />
+        <Textarea
+          id="biography"
+          name="biography"
+          defaultValue={defaults.biography}
+          maxLength={2000}
+        />
       </Field>
 
       <Field htmlFor="websiteUrl" label="Website">
@@ -93,7 +96,7 @@ export function VerificationForm({ status }: { status: string }) {
   return (
     <form action={action} className="flex flex-col gap-4">
       <Feedback state={state} />
-      <p className="text-sm leading-relaxed text-taupe-deep">
+      <p className="text-taupe-deep text-sm leading-relaxed">
         PALMA creators must be 18 or over. Age and identity assurance is carried out by a specialist
         third-party provider. PALMA never receives or stores your identity documents — only that the
         check succeeded, when, and the provider’s reference.
@@ -185,7 +188,7 @@ export function ClaimForm({ creatorSlug }: { creatorSlug?: string }) {
         {pending ? 'Claiming…' : 'Claim profile'}
       </Button>
 
-      <p className="text-xs leading-relaxed text-taupe-deep">
+      <p className="text-taupe-deep text-xs leading-relaxed">
         A claim is reviewed by PALMA before the profile is treated as yours. Claiming a profile you
         do not hold is impersonation and ends eligibility.
       </p>

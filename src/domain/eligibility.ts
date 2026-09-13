@@ -6,12 +6,7 @@ export type EligibilityInput = {
   categoryIsOpen: boolean;
   creatorIsSuspended: boolean;
   creatorVerificationStatus:
-    | 'unverified'
-    | 'pending'
-    | 'verified'
-    | 'failed'
-    | 'expired'
-    | 'revoked';
+    'unverified' | 'pending' | 'verified' | 'failed' | 'expired' | 'revoked';
   ageConfirmed: boolean;
   eligibilityConfirmed: boolean;
   contentPolicyConfirmed: boolean;

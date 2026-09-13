@@ -456,8 +456,7 @@ for (const season of SEASON_SEEDS) {
         categoryName: category.name,
         categorySlug,
         citation: kind === 'winner' ? (CITATIONS[categorySlug] ?? null) : null,
-        announcedAt:
-          kind === 'winner' ? (season.ceremonyAt ?? null) : (season.finalistsAt ?? null),
+        announcedAt: kind === 'winner' ? (season.ceremonyAt ?? null) : (season.finalistsAt ?? null),
         code: deriveCode(signingSecret(), season.year, id),
         position: index === 0 ? 1 : index,
       });
@@ -468,7 +467,9 @@ for (const season of SEASON_SEEDS) {
 function honoursFor(slug: string): HonourEntry[] {
   return honourRecords
     .filter((honour) => honour.creatorSlug === slug)
-    .sort((a, b) => (b.year !== a.year ? b.year - a.year : a.categoryName.localeCompare(b.categoryName)))
+    .sort((a, b) =>
+      b.year !== a.year ? b.year - a.year : a.categoryName.localeCompare(b.categoryName),
+    )
     .map(({ creatorSlug: _creatorSlug, ...entry }) => entry);
 }
 
@@ -560,7 +561,7 @@ export const articles: ArticleDetail[] = [
     heroImageAlt: null,
     body: [
       'An award is a claim about the past made durable enough to be useful in the future. That is the whole of it. Everything else — the ceremony, the seal, the photograph at the end of the night — is presentation. The substance is the record, and whether anyone can check it.',
-      'PALMA was built backwards from that sentence. Before the first category was written, we built the Roll of Honour and the verification page, because those are the parts that have to survive the institution\'s own enthusiasm. A winner should be able to put a PALMA on a profile in ten years and have it still resolve to a page that says who judged it, in what category, and in which season.',
+      "PALMA was built backwards from that sentence. Before the first category was written, we built the Roll of Honour and the verification page, because those are the parts that have to survive the institution's own enthusiasm. A winner should be able to put a PALMA on a profile in ten years and have it still resolve to a page that says who judged it, in what category, and in which season.",
       'That is also why judging is separated from everything commercial by more than a policy. Sponsors are recorded against a season and a category. They do not see nominations, they do not meet judges through us, and they cannot change an outcome. The permission model in the software enforces this, not the goodwill of whoever is running the season.',
       'The industry PALMA recognises has been poorly served by recognition. Its awards have tended to measure audience, which is a measure of distribution, not of work. We are not interested in who was seen most. We are interested in who did the work, and whether the record of it can be trusted a decade from now.',
     ].join('\n\n'),
@@ -597,7 +598,7 @@ export const articles: ArticleDetail[] = [
     heroImageAlt: null,
     body: [
       'Most awards are an evening. The institution behind them exists to produce that evening, and the record of who won is a by-product, kept about as carefully as a guest list.',
-      'We inverted it. The PALMA Roll of Honour is the product. A season is one year\'s worth of additions to it. The ceremony is the moment those additions are read aloud.',
+      "We inverted it. The PALMA Roll of Honour is the product. A season is one year's worth of additions to it. The ceremony is the moment those additions are read aloud.",
       'This has a practical consequence: the archive has to be good on the day it is empty. Its filters, its permanence, its citation format and its verification had to be designed as though they already held twenty years of honours, because the only way to eventually hold twenty years is to behave that way from the first.',
     ].join('\n\n'),
   },
@@ -650,7 +651,7 @@ export const articles: ArticleDetail[] = [
     heroImageUrl: null,
     heroImageAlt: null,
     body: [
-      'PALMA does not host a creator\'s work. A nomination carries references — links, credits, published outcomes — which authorised judges review on the platform where the work already lives.',
+      "PALMA does not host a creator's work. A nomination carries references — links, credits, published outcomes — which authorised judges review on the platform where the work already lives.",
       'This is partly a legal position and mostly an editorial one. An institution that recognises work does not need to republish it, and the moment it starts to, it takes on the obligations of a platform and loses the detachment that makes its judgement worth anything.',
       'For nominators, the practical rule is short: point, do not publish. The strongest nominations we see are three or four precise references and a statement that explains why those particular pieces matter.',
     ].join('\n\n'),

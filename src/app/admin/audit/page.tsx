@@ -26,7 +26,7 @@ export default async function AdminAuditPage({
   return (
     <>
       <h2 className="text-3xl">Audit log</h2>
-      <p className="mt-3 max-w-160 leading-relaxed text-taupe-deep">
+      <p className="text-taupe-deep mt-3 max-w-160 leading-relaxed">
         Append-only. Every action that changes the institutional record is written here with the
         actor, the entity, and the state before and after. Nothing in PALMA can be changed quietly.
       </p>
@@ -47,7 +47,9 @@ export default async function AdminAuditPage({
             href={`/admin/audit?action=${entry}`}
             className={cn(
               'palma-label rounded-full border px-3.5 py-2',
-              action === entry ? 'border-ink bg-ink text-ivory' : 'border-stone-deep text-taupe-deep',
+              action === entry
+                ? 'border-ink bg-ink text-ivory'
+                : 'border-stone-deep text-taupe-deep',
             )}
           >
             {entry}
@@ -56,7 +58,11 @@ export default async function AdminAuditPage({
       </div>
 
       {entries.length === 0 ? (
-        <EmptyState className="mt-10" title="No entries" description="Nothing has been recorded yet." />
+        <EmptyState
+          className="mt-10"
+          title="No entries"
+          description="Nothing has been recorded yet."
+        />
       ) : (
         <div className="mt-10">
           <Table>
@@ -72,18 +78,18 @@ export default async function AdminAuditPage({
             <TBody>
               {entries.map((entry) => (
                 <tr key={entry.id}>
-                  <td className="whitespace-nowrap text-taupe-deep">
+                  <td className="text-taupe-deep whitespace-nowrap">
                     {new Date(entry.createdAt).toISOString().replace('T', ' ').slice(0, 19)}
                   </td>
                   <td className="font-mono text-xs">{entry.action}</td>
                   <td className="text-taupe-deep">
                     {entry.entityType}
-                    <span className="block font-mono text-xs text-taupe">{entry.entityId}</span>
+                    <span className="text-taupe block font-mono text-xs">{entry.entityId}</span>
                   </td>
                   <td className="text-taupe-deep">
                     {entry.actorLabel ?? 'System'}
                     {entry.actorRole ? (
-                      <span className="block text-xs text-taupe">{titleCase(entry.actorRole)}</span>
+                      <span className="text-taupe block text-xs">{titleCase(entry.actorRole)}</span>
                     ) : null}
                   </td>
                   <td>{entry.summary ?? '—'}</td>

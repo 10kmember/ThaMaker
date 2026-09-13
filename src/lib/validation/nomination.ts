@@ -90,7 +90,8 @@ export function parseNominationFormData(formData: FormData) {
     evidence,
     ageConfirmed: formData.get('ageConfirmed') === 'on' || formData.get('ageConfirmed') === 'true',
     eligibilityConfirmed:
-      formData.get('eligibilityConfirmed') === 'on' || formData.get('eligibilityConfirmed') === 'true',
+      formData.get('eligibilityConfirmed') === 'on' ||
+      formData.get('eligibilityConfirmed') === 'true',
     contentPolicyConfirmed:
       formData.get('contentPolicyConfirmed') === 'on' ||
       formData.get('contentPolicyConfirmed') === 'true',

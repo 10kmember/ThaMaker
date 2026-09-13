@@ -6,7 +6,12 @@ import { Button } from '@/components/ui/button';
 import { buildMetadata } from '@/lib/seo';
 import { finalistsArePublic } from '@/domain/season';
 import { formatDate } from '@/lib/format';
-import { getSeason, getCurrentSeason, listSeasonOutcomes, listSeasons } from '@/server/data/queries';
+import {
+  getSeason,
+  getCurrentSeason,
+  listSeasonOutcomes,
+  listSeasons,
+} from '@/server/data/queries';
 
 export const revalidate = 900;
 
@@ -51,8 +56,8 @@ export default async function FinalistsPage({ searchParams }: Props) {
                   aria-current={entry.year === season.year ? 'page' : undefined}
                   className={
                     entry.year === season.year
-                      ? 'palma-label rounded-full border border-ivory bg-ivory px-3.5 py-2 text-ink'
-                      : 'palma-label rounded-full border border-ivory/30 px-3.5 py-2 text-ivory/70 transition-colors hover:border-ivory/70 hover:text-ivory'
+                      ? 'palma-label border-ivory bg-ivory text-ink rounded-full border px-3.5 py-2'
+                      : 'palma-label border-ivory/30 text-ivory/70 hover:border-ivory/70 hover:text-ivory rounded-full border px-3.5 py-2 transition-colors'
                   }
                 >
                   {entry.year}
@@ -100,11 +105,7 @@ export default async function FinalistsPage({ searchParams }: Props) {
 
               <div className="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
                 {outcome.finalists.map((finalist, position) => (
-                  <FinalistCard
-                    key={finalist.creator.slug}
-                    finalist={finalist}
-                    index={position}
-                  />
+                  <FinalistCard key={finalist.creator.slug} finalist={finalist} index={position} />
                 ))}
               </div>
             </Container>

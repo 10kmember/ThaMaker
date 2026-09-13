@@ -9,9 +9,9 @@ export function Card({
   return (
     <div
       className={cn(
-        'relative border border-stone-deep/60 bg-ivory-bright',
+        'border-stone-deep/60 bg-ivory-bright relative border',
         interactive &&
-          'transition-[transform,border-color,box-shadow] duration-300 ease-(--ease-ceremonial) hover:-translate-y-0.5 hover:border-ink/30 hover:shadow-[0_18px_40px_-32px_rgba(22,23,25,0.55)]',
+          'hover:border-ink/30 transition-[transform,border-color,box-shadow] duration-300 ease-(--ease-ceremonial) hover:-translate-y-0.5 hover:shadow-[0_18px_40px_-32px_rgba(22,23,25,0.55)]',
         className,
       )}
       {...props}
@@ -34,7 +34,10 @@ export function CardBody({ className, ...props }: React.ComponentProps<'div'>) {
 export function CardFooter({ className, ...props }: React.ComponentProps<'div'>) {
   return (
     <div
-      className={cn('flex items-center justify-between gap-3 border-t border-stone-deep/50 p-6', className)}
+      className={cn(
+        'border-stone-deep/50 flex items-center justify-between gap-3 border-t p-6',
+        className,
+      )}
       {...props}
     />
   );

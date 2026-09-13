@@ -101,11 +101,11 @@ export function NominationForm({
 
   if (state.status === 'success') {
     return (
-      <div className="flex flex-col items-center gap-8 border border-stone-deep bg-ivory-bright px-6 py-20 text-center">
-        <PalmaSeal className="h-40 w-40 text-olive" sublegend="NOMINATION RECEIVED" />
+      <div className="border-stone-deep bg-ivory-bright flex flex-col items-center gap-8 border px-6 py-20 text-center">
+        <PalmaSeal className="text-olive h-40 w-40" sublegend="NOMINATION RECEIVED" />
         <div className="flex max-w-140 flex-col gap-4">
           <h2 className="text-4xl">Nomination received</h2>
-          <p className="leading-relaxed text-taupe-deep">
+          <p className="text-taupe-deep leading-relaxed">
             Your nomination has been entered into the PALMA {year} season and will be reviewed by a
             person before it reaches the panel. Keep the reference below — it is how PALMA can find
             this nomination.
@@ -132,14 +132,14 @@ export function NominationForm({
           {STEPS.map((entry, index) => {
             const state_ = index === step ? 'current' : index < step ? 'complete' : 'upcoming';
             return (
-              <li key={entry.key} className="shrink-0 lg:border-l lg:border-stone-deep">
+              <li key={entry.key} className="lg:border-stone-deep shrink-0 lg:border-l">
                 <button
                   type="button"
                   onClick={() => index < step && setStep(index)}
                   disabled={index > step}
                   aria-current={state_ === 'current' ? 'step' : undefined}
                   className={cn(
-                    'flex items-center gap-3 py-3 text-left lg:w-full lg:-ml-px lg:border-l-2 lg:pl-5',
+                    'flex items-center gap-3 py-3 text-left lg:-ml-px lg:w-full lg:border-l-2 lg:pl-5',
                     state_ === 'current'
                       ? 'lg:border-ink'
                       : state_ === 'complete'
@@ -169,7 +169,7 @@ export function NominationForm({
                     {entry.label}
                   </span>
                   {state_ === 'complete' ? (
-                    <Check className="size-3.5 text-olive" aria-hidden="true" />
+                    <Check className="text-olive size-3.5" aria-hidden="true" />
                   ) : null}
                 </button>
               </li>
@@ -227,7 +227,12 @@ export function NominationForm({
               description="PALMA recognises people. Give us the name the creator publishes under."
             />
 
-            <Field htmlFor="creatorName" label="Creator name" required error={serverErrors.creatorName}>
+            <Field
+              htmlFor="creatorName"
+              label="Creator name"
+              required
+              error={serverErrors.creatorName}
+            >
               <Input
                 id="creatorName"
                 value={creatorName}
@@ -271,7 +276,7 @@ export function NominationForm({
               />
             </Field>
 
-            <div className="flex flex-col gap-4 border-t border-stone-deep pt-8">
+            <div className="border-stone-deep flex flex-col gap-4 border-t pt-8">
               <Field htmlFor="source" label="You are nominating as" required>
                 <Select
                   id="source"
@@ -361,7 +366,7 @@ export function NominationForm({
                   <span className="flex flex-col gap-1">
                     <span className="font-display text-xl leading-tight">{category.name}</span>
                     {category.strapline ? (
-                      <span className="text-sm text-taupe-deep">{category.strapline}</span>
+                      <span className="text-taupe-deep text-sm">{category.strapline}</span>
                     ) : null}
                   </span>
                 </label>
@@ -401,7 +406,7 @@ export function NominationForm({
                 required
               />
             </Field>
-            <p className="-mt-6 text-xs text-taupe-deep" aria-live="polite">
+            <p className="text-taupe-deep -mt-6 text-xs" aria-live="polite">
               {statement.trim().length} / {MAX_STATEMENT_LENGTH} characters
             </p>
 
@@ -424,17 +429,15 @@ export function NominationForm({
               {evidence.map((row, index) => (
                 <div
                   key={index}
-                  className="flex flex-col gap-4 border border-stone-deep bg-ivory-bright p-5"
+                  className="border-stone-deep bg-ivory-bright flex flex-col gap-4 border p-5"
                 >
                   <div className="flex items-center justify-between gap-4">
                     <span className="palma-label text-taupe-deep">{ordinal(index)}</span>
                     {evidence.length > 1 ? (
                       <button
                         type="button"
-                        onClick={() =>
-                          setEvidence((rows) => rows.filter((_, i) => i !== index))
-                        }
-                        className="p-1 text-taupe-deep transition-colors hover:text-red-800"
+                        onClick={() => setEvidence((rows) => rows.filter((_, i) => i !== index))}
+                        className="text-taupe-deep p-1 transition-colors hover:text-red-800"
                       >
                         <span className="sr-only">Remove evidence {index + 1}</span>
                         <Trash2 className="size-4" aria-hidden="true" />
@@ -449,7 +452,9 @@ export function NominationForm({
                         value={row.kind}
                         onChange={(event) =>
                           setEvidence((rows) =>
-                            rows.map((r, i) => (i === index ? { ...r, kind: event.target.value } : r)),
+                            rows.map((r, i) =>
+                              i === index ? { ...r, kind: event.target.value } : r,
+                            ),
                           )
                         }
                       >
@@ -467,7 +472,9 @@ export function NominationForm({
                         value={row.label}
                         onChange={(event) =>
                           setEvidence((rows) =>
-                            rows.map((r, i) => (i === index ? { ...r, label: event.target.value } : r)),
+                            rows.map((r, i) =>
+                              i === index ? { ...r, label: event.target.value } : r,
+                            ),
                           )
                         }
                         placeholder="Series finale, June 2026"
@@ -501,7 +508,9 @@ export function NominationForm({
                       value={row.note}
                       onChange={(event) =>
                         setEvidence((rows) =>
-                          rows.map((r, i) => (i === index ? { ...r, note: event.target.value } : r)),
+                          rows.map((r, i) =>
+                            i === index ? { ...r, note: event.target.value } : r,
+                          ),
                         )
                       }
                     />
@@ -522,7 +531,7 @@ export function NominationForm({
               description="These are the conditions on which PALMA accepts a nomination. All three are required."
             />
 
-            <div className="flex flex-col gap-6 border border-stone-deep bg-ivory-bright p-6">
+            <div className="border-stone-deep bg-ivory-bright flex flex-col gap-6 border p-6">
               <CheckboxField
                 id="ageConfirmed"
                 name="ageConfirmed"
@@ -550,10 +559,10 @@ export function NominationForm({
               />
             </div>
 
-            <p className="text-sm leading-relaxed text-taupe-deep">
+            <p className="text-taupe-deep text-sm leading-relaxed">
               Nominations are reviewed by a person before they reach the panel. Fabricated evidence
               or impersonation ends a nomination and may end a creator’s eligibility.{' '}
-              <Link href="/about/policy" className="underline underline-offset-4 hover:text-ink">
+              <Link href="/about/policy" className="hover:text-ink underline underline-offset-4">
                 Read the content policy
               </Link>
               .
@@ -582,21 +591,23 @@ export function NominationForm({
               <Summary label="Contact" value={nominatorEmail} />
             </dl>
 
-            <div className="flex flex-col gap-3 border-t border-stone-deep pt-6">
+            <div className="border-stone-deep flex flex-col gap-3 border-t pt-6">
               <span className="palma-label text-taupe-deep">Supporting statement</span>
-              <p className="leading-relaxed whitespace-pre-wrap text-ink/85">{statement}</p>
+              <p className="text-ink/85 leading-relaxed whitespace-pre-wrap">{statement}</p>
             </div>
 
-            <div className="flex flex-col gap-3 border-t border-stone-deep pt-6">
+            <div className="border-stone-deep flex flex-col gap-3 border-t pt-6">
               <span className="palma-label text-taupe-deep">Evidence</span>
               <ul className="flex flex-col gap-3">
                 {evidence
                   .filter((row) => row.url.trim())
                   .map((row, index) => (
                     <li key={index} className="flex flex-col gap-1">
-                      <span className="font-display text-lg">{row.label || 'Untitled evidence'}</span>
-                      <span className="text-sm break-all text-taupe-deep">{row.url}</span>
-                      {row.note ? <span className="text-sm text-taupe">{row.note}</span> : null}
+                      <span className="font-display text-lg">
+                        {row.label || 'Untitled evidence'}
+                      </span>
+                      <span className="text-taupe-deep text-sm break-all">{row.url}</span>
+                      {row.note ? <span className="text-taupe text-sm">{row.note}</span> : null}
                     </li>
                   ))}
               </ul>
@@ -613,7 +624,7 @@ export function NominationForm({
               description="Once submitted, a nomination enters the PALMA record and cannot be edited. PALMA will contact you if anything needs clarifying."
             />
 
-            <div className="flex flex-col gap-4 border border-stone-deep bg-ivory-bright p-6 text-sm leading-relaxed text-taupe-deep">
+            <div className="border-stone-deep bg-ivory-bright text-taupe-deep flex flex-col gap-4 border p-6 text-sm leading-relaxed">
               <p>
                 Nominating is free. Volume of nominations does not advance a creator — the shortlist
                 is produced by judges, from evidence.
@@ -627,14 +638,15 @@ export function NominationForm({
             <div className="flex items-start gap-3">
               <Checkbox id="finalConfirm" required />
               <label htmlFor="finalConfirm" className="text-[0.9375rem] leading-relaxed">
-                I confirm the information in this nomination is accurate to the best of my knowledge.
+                I confirm the information in this nomination is accurate to the best of my
+                knowledge.
               </label>
             </div>
           </div>
         ) : null}
 
         {/* Controls */}
-        <div className="flex items-center justify-between gap-4 border-t border-stone-deep pt-8">
+        <div className="border-stone-deep flex items-center justify-between gap-4 border-t pt-8">
           <Button type="button" variant="ghost" size="sm" onClick={back} disabled={step === 0}>
             Back
           </Button>
@@ -667,14 +679,14 @@ function StepHeading({
     <div className="flex flex-col gap-3">
       <span className="palma-label text-taupe-deep">{ordinal(index)}</span>
       <h2 className="text-3xl leading-tight sm:text-4xl">{title}</h2>
-      <p className="max-w-140 leading-relaxed text-taupe-deep">{description}</p>
+      <p className="text-taupe-deep max-w-140 leading-relaxed">{description}</p>
     </div>
   );
 }
 
 function Summary({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-col gap-1.5 border-t border-stone-deep pt-4">
+    <div className="border-stone-deep flex flex-col gap-1.5 border-t pt-4">
       <dt className="palma-label text-taupe-deep">{label}</dt>
       <dd className="font-display text-lg break-words">{value || '—'}</dd>
     </div>

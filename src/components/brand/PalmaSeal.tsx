@@ -35,9 +35,33 @@ export function PalmaSeal({
         <path id="palma-seal-lower" d="M110 110 m84 0 a84 84 0 0 1 -168 0" fill="none" />
       </defs>
 
-      <circle cx="110" cy="110" r="105" fill="none" stroke="currentColor" strokeWidth="1" opacity="0.55" />
-      <circle cx="110" cy="110" r="97" fill="none" stroke="currentColor" strokeWidth="0.6" opacity="0.35" />
-      <circle cx="110" cy="110" r="70" fill="none" stroke="currentColor" strokeWidth="0.6" opacity="0.25" />
+      <circle
+        cx="110"
+        cy="110"
+        r="105"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1"
+        opacity="0.55"
+      />
+      <circle
+        cx="110"
+        cy="110"
+        r="97"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="0.6"
+        opacity="0.35"
+      />
+      <circle
+        cx="110"
+        cy="110"
+        r="70"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="0.6"
+        opacity="0.25"
+      />
 
       <text
         fill="currentColor"

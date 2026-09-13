@@ -16,8 +16,7 @@ export type ConferInput = {
 };
 
 export type ConferResult =
-  | { ok: true; honourId: string; code: string | null }
-  | { ok: false; reason: string };
+  { ok: true; honourId: string; code: string | null } | { ok: false; reason: string };
 
 /**
  * Confer an honour.

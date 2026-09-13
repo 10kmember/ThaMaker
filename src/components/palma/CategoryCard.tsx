@@ -28,17 +28,17 @@ export function CategoryCard({
         </div>
 
         <div className="flex flex-col gap-3">
-          <h3 className="text-2xl leading-tight transition-colors group-hover:text-olive">
+          <h3 className="group-hover:text-olive text-2xl leading-tight transition-colors">
             {category.name}
           </h3>
           {category.strapline ? (
-            <p className="font-display text-[1.0625rem] leading-snug text-taupe-deep">
+            <p className="font-display text-taupe-deep text-[1.0625rem] leading-snug">
               {category.strapline}
             </p>
           ) : null}
         </div>
 
-        <p className="line-clamp-3 text-sm leading-relaxed text-taupe-deep">
+        <p className="text-taupe-deep line-clamp-3 text-sm leading-relaxed">
           {category.description}
         </p>
 
@@ -49,7 +49,7 @@ export function CategoryCard({
             <span />
           )}
           <ArrowRight
-            className="size-4 text-taupe transition-transform duration-300 ease-(--ease-ceremonial) group-hover:translate-x-1"
+            className="text-taupe size-4 transition-transform duration-300 ease-(--ease-ceremonial) group-hover:translate-x-1"
             aria-hidden="true"
           />
         </div>

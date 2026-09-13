@@ -79,9 +79,7 @@ export function shortlistIsPublic(stage: SeasonStage): boolean {
 }
 
 export function finalistsArePublic(stage: SeasonStage): boolean {
-  return (
-    stage === 'finalists_announced' || stage === 'winners_announced' || stage === 'archived'
-  );
+  return stage === 'finalists_announced' || stage === 'winners_announced' || stage === 'archived';
 }
 
 export function winnersArePublic(stage: SeasonStage): boolean {
