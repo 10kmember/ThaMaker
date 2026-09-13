@@ -11,7 +11,9 @@ export const scoreSchema = z.object({
   professionalism: criterion,
   impact: criterion,
   brand: criterion,
-  remarks: z.string().trim().max(1500).optional().or(z.literal('')),
+  // Length is checked in words by the domain; the cap here is a guard against
+  // an oversized payload, not the editorial rule.
+  remarks: z.string().trim().min(1).max(6000),
   conflictDeclared: z.boolean().default(false),
 });
 

@@ -3,12 +3,80 @@
 import { revalidatePath } from 'next/cache';
 import { authorise } from '@/lib/auth/guards';
 import { assertSameOrigin } from '@/lib/auth/session';
-import { SCORING_CRITERIA, totalScore, validateScoreCard, type ScoreCard } from '@/domain/judging';
+import {
+  SCORING_CRITERIA,
+  totalScore,
+  validateRationale,
+  validateScoreCard,
+  type ScoreCard,
+} from '@/domain/judging';
 import { conflictSchema, scoreSchema } from '@/lib/validation/judging';
 import { recordAudit } from '@/server/audit';
 import { requireDb } from '@/server/db';
 
 export type JudgingState = { status: 'idle' | 'error' | 'success'; message?: string };
+
+/**
+ * Open a case.
+ *
+ * The judge confirms they have no conflict before they see the assessment. That
+ * confirmation is what moves an assignment from assigned to in progress — the
+ * three states in the judge's workspace are real, not cosmetic — and it is
+ * written to the audit log, because a declaration that nobody recorded is not a
+ * declaration.
+ */
+export async function confirmNoConflict(
+  _previous: JudgingState,
+  formData: FormData,
+): Promise<JudgingState> {
+  await assertSameOrigin();
+
+  let session;
+  try {
+    session = await authorise('judging:submit_score');
+  } catch {
+    return { status: 'error', message: 'You are not authorised to open this case.' };
+  }
+
+  const judgeId = session.user.judgeId;
+  if (!judgeId) return { status: 'error', message: 'This account is not on a PALMA panel.' };
+
+  const assignmentId = String(formData.get('assignmentId') ?? '');
+  if (!assignmentId) return { status: 'error', message: 'That assignment does not exist.' };
+
+  const db = requireDb();
+  const assignment = await db.judgingAssignment.findFirst({
+    where: { id: assignmentId, judgeId },
+    select: { id: true, status: true, candidacyId: true },
+  });
+
+  if (!assignment) return { status: 'error', message: 'That assignment is not yours.' };
+  if (assignment.status === 'recused') {
+    return { status: 'error', message: 'You have recused yourself from this candidacy.' };
+  }
+  if (assignment.status === 'completed') {
+    return { status: 'error', message: 'This assessment has already been submitted.' };
+  }
+
+  if (assignment.status === 'assigned') {
+    await db.judgingAssignment.update({
+      where: { id: assignment.id },
+      data: { status: 'in_progress' },
+    });
+
+    await recordAudit({
+      action: 'judge.no_conflict_confirmed',
+      entityType: 'JudgingAssignment',
+      entityId: assignment.id,
+      actor: { id: session.user.id, role: session.user.role, label: session.user.email },
+      summary: `No conflict declared on candidacy ${assignment.candidacyId}`,
+    });
+  }
+
+  revalidatePath('/judging');
+  revalidatePath(`/judging/${assignment.id}`);
+  return { status: 'success', message: 'No conflict declared. The assessment is open.' };
+}
 
 /**
  * Submit a score.
@@ -75,6 +143,9 @@ export async function submitScore(
     });
   }
 
+  const rationale = validateRationale(parsed.data.remarks ?? '');
+  if (!rationale.ok) return { status: 'error', message: rationale.message };
+
   const card = validateScoreCard(
     Object.fromEntries(
       SCORING_CRITERIA.map((criterion) => [criterion.key, parsed.data[criterion.key]]),
@@ -117,7 +188,8 @@ export async function submitScore(
   });
 
   revalidatePath('/judging');
-  return { status: 'success', message: 'Score submitted. It cannot be changed.' };
+  revalidatePath(`/judging/${assignment.id}`);
+  return { status: 'success', message: 'Assessment recorded. It cannot be changed.' };
 }
 
 export async function declareConflict(

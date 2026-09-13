@@ -3,26 +3,36 @@ export const SCORING_CRITERIA = [
     key: 'originality',
     label: 'Originality',
     description: 'Distinctiveness of the work and the ideas behind it.',
+    guidance:
+      'Would this work be recognisable as theirs with the name removed? Score the ideas and the form they take, not how unusual the subject happens to be this year.',
   },
   {
     key: 'consistency',
     label: 'Consistency',
     description: 'Sustained quality and output across the eligibility window.',
+    guidance:
+      'One exceptional piece is not a body of work. Look for quality held across the season, and do not penalise a deliberately small output that is uniformly strong.',
   },
   {
     key: 'professionalism',
     label: 'Professionalism',
     description: 'Conduct, reliability and standards in how the work is made.',
+    guidance:
+      'Craft, rigour, corrections, credit given to collaborators, and how the creator conducts themselves in the making. Not politeness, and not media training.',
   },
   {
     key: 'impact',
     label: 'Impact',
     description: 'Influence on audiences, peers and the wider creator industry.',
+    guidance:
+      'What changed because this work exists — practice other creators picked up, a subject taken seriously, a standard raised. Reach is not impact. Ignore audience size entirely.',
   },
   {
     key: 'brand',
     label: 'Brand',
     description: 'Coherence and craft of the creator’s public identity.',
+    guidance:
+      'How deliberately the work is presented: naming, design, titling, the fit between what is promised and what is delivered. Not how commercial it is.',
   },
 ] as const;
 
@@ -33,6 +43,38 @@ export const MAX_SCORE = 10;
 export const MAX_TOTAL = SCORING_CRITERIA.length * MAX_SCORE;
 
 export type ScoreCard = Record<CriterionKey, number>;
+
+/**
+ * The rationale.
+ *
+ * A score without reasoning is an opinion PALMA cannot defend. Judges write a
+ * short argument — not an essay, and not a sentence — that a stranger reading
+ * the case file afterwards could follow.
+ */
+export const RATIONALE_MIN_WORDS = 50;
+export const RATIONALE_MAX_WORDS = 500;
+
+export function countWords(value: string): number {
+  const trimmed = value.trim();
+  return trimmed === '' ? 0 : trimmed.split(/\s+/).length;
+}
+
+export function validateRationale(value: string): { ok: true } | { ok: false; message: string } {
+  const words = countWords(value);
+  if (words < RATIONALE_MIN_WORDS) {
+    return {
+      ok: false,
+      message: `A rationale needs at least ${RATIONALE_MIN_WORDS} words. You have written ${words}.`,
+    };
+  }
+  if (words > RATIONALE_MAX_WORDS) {
+    return {
+      ok: false,
+      message: `A rationale is capped at ${RATIONALE_MAX_WORDS} words. You have written ${words}.`,
+    };
+  }
+  return { ok: true };
+}
 
 export function isValidScore(value: number): boolean {
   return Number.isInteger(value) && value >= MIN_SCORE && value <= MAX_SCORE;

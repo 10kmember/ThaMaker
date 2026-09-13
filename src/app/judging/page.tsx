@@ -1,29 +1,31 @@
 import Link from 'next/link';
 import { PortalShell } from '@/components/palma/PortalShell';
-import { Stat } from '@/components/ui/stat';
-import { Table, TBody, THead } from '@/components/ui/table';
 import { EmptyState, Notice } from '@/components/ui/feedback';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { buildMetadata } from '@/lib/seo';
 import { requirePermission } from '@/lib/auth/guards';
-import { getJudgeDashboard } from '@/server/data/judging';
-import { formatShortDate } from '@/lib/format';
-import { titleCase } from '@/lib/utils';
+import { getJudgeOverview } from '@/server/data/judging';
+import { JUDGING_NAV, greeting } from '@/lib/judging-nav';
+import { formatDate, formatShortDate } from '@/lib/format';
+import { MIN_JUDGES_PER_CANDIDACY } from '@/domain/selection';
+import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata = buildMetadata({
   title: 'Judging',
-  description: 'The PALMA judge portal.',
+  description: 'The PALMA judging room.',
   path: '/judging',
   noIndex: true,
 });
 
-export default async function JudgingPage() {
+export default async function JudgingOverviewPage() {
   const session = await requirePermission('judging:view_assignments', '/judging');
-  const dashboard = session.user.judgeId ? await getJudgeDashboard(session.user.judgeId) : null;
+  const overview = session.user.judgeId
+    ? await getJudgeOverview(session.user.judgeId, session.user.id)
+    : null;
 
-  if (!dashboard) {
+  if (!overview) {
     return (
       <PortalShell title="PALMA Judging" userName={session.user.name}>
         <EmptyState
@@ -34,116 +36,194 @@ export default async function JudgingPage() {
     );
   }
 
-  const pending = dashboard.assigned.length;
+  const firstName = overview.judgeName.split(' ')[0] ?? overview.judgeName;
+  const { counts, season } = overview;
 
   return (
     <PortalShell
       title="PALMA Judging"
-      subtitle={dashboard.seasonTitle}
-      userName={dashboard.judgeName}
+      subtitle={`${greeting()}, ${firstName}.`}
+      nav={JUDGING_NAV}
+      activeHref="/judging"
+      userName={overview.judgeName}
     >
-      <div className="border-stone-deep grid gap-10 border-b pb-10 sm:grid-cols-4">
-        <Stat label="Assigned" value={dashboard.assigned.length + dashboard.completed.length} />
-        <Stat label="Pending" value={pending} />
-        <Stat label="Completed" value={dashboard.completed.length} />
-        <Stat label="Conflicts" value={dashboard.conflicts.length} />
-      </div>
+      <div className="grid gap-12 lg:grid-cols-12 lg:gap-16">
+        <div className="lg:col-span-8">
+          <p className="text-taupe-deep max-w-140 text-lg leading-relaxed">
+            {counts.remaining === 0
+              ? 'Your panel is clear. Every case assigned to you this season has been assessed.'
+              : 'Your judging panel is ready.'}
+          </p>
 
-      <section className="mt-12">
-        <h2 className="palma-label text-taupe-deep mb-6">Awaiting your score</h2>
-        {pending === 0 ? (
-          <EmptyState
-            title="Nothing awaiting you"
-            description="Every assigned nomination has been scored."
-          />
-        ) : (
-          <Table>
-            <THead>
-              <tr>
-                <th scope="col">Reference</th>
-                <th scope="col">Creator</th>
-                <th scope="col">Category</th>
-                <th scope="col">Assigned</th>
-                <th scope="col" className="text-right">
-                  Action
-                </th>
-              </tr>
-            </THead>
-            <TBody>
-              {dashboard.assigned.map((assignment) => (
-                <tr key={assignment.id}>
-                  <td className="font-mono text-xs tracking-wider">{assignment.reference}</td>
-                  <td className="font-display text-lg">{assignment.creatorName}</td>
-                  <td className="text-taupe-deep">{assignment.categoryName}</td>
-                  <td className="text-taupe-deep">{formatShortDate(assignment.assignedAt)}</td>
-                  <td className="text-right">
-                    <Link
-                      href={`/judging/${assignment.id}`}
-                      className="palma-label text-olive hover:text-ink"
-                    >
-                      Open
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </TBody>
-          </Table>
-        )}
-      </section>
-
-      {dashboard.completed.length > 0 ? (
-        <section className="mt-16">
-          <h2 className="palma-label text-taupe-deep mb-6">Completed</h2>
-          <Table>
-            <THead>
-              <tr>
-                <th scope="col">Reference</th>
-                <th scope="col">Creator</th>
-                <th scope="col">Category</th>
-                <th scope="col">Submitted</th>
-              </tr>
-            </THead>
-            <TBody>
-              {dashboard.completed.map((assignment) => (
-                <tr key={assignment.id}>
-                  <td className="font-mono text-xs tracking-wider">{assignment.reference}</td>
-                  <td className="font-display text-lg">{assignment.creatorName}</td>
-                  <td className="text-taupe-deep">{assignment.categoryName}</td>
-                  <td className="text-taupe-deep">{formatShortDate(assignment.completedAt)}</td>
-                </tr>
-              ))}
-            </TBody>
-          </Table>
-        </section>
-      ) : null}
-
-      {dashboard.conflicts.length > 0 ? (
-        <section className="mt-16">
-          <h2 className="palma-label text-taupe-deep mb-6">Declared conflicts</h2>
-          <ul className="flex flex-col gap-3">
-            {dashboard.conflicts.map((conflict) => (
-              <li
-                key={conflict.id}
-                className="border-stone-deep flex flex-wrap items-center justify-between gap-4 border p-5"
+          <div className="border-stone-deep mt-10 grid grid-cols-2 border-t sm:grid-cols-4">
+            {[
+              ['Assigned', counts.assigned],
+              ['Completed', counts.completed],
+              ['Remaining', counts.remaining],
+              ['Recused', counts.recused],
+            ].map(([label, value], index) => (
+              <div
+                key={String(label)}
+                className={cn(
+                  'border-stone-deep flex flex-col gap-2 border-b py-6',
+                  index % 2 === 1 && 'border-stone-deep/50 border-l pl-6',
+                  index % 2 === 0 && index > 0 && 'sm:border-stone-deep/50 sm:border-l sm:pl-6',
+                  index === 2 && 'sm:border-l sm:pl-6',
+                  index === 3 && 'border-l pl-6',
+                )}
               >
-                <span className="font-display text-lg">{titleCase(conflict.kind)}</span>
-                <Badge variant={conflict.status === 'dismissed' ? 'muted' : 'olive'}>
-                  {titleCase(conflict.status)}
-                </Badge>
-                <span className="palma-label text-taupe-deep">
-                  {formatShortDate(conflict.declaredAt)}
-                </span>
-              </li>
+                <span className="palma-label text-taupe-deep">{String(label)}</span>
+                <span className="font-display text-5xl tabular-nums">{String(value)}</span>
+              </div>
             ))}
-          </ul>
-        </section>
-      ) : null}
+          </div>
 
-      <Notice className="mt-16" title="How PALMA treats your scores">
-        Scores are submitted independently and are immutable once submitted. They are never shown to
-        creators, sponsors or the public. A declared conflict removes you from a nomination
-        immediately.
-      </Notice>
+          <section className="mt-14">
+            <div className="border-stone-deep flex flex-wrap items-baseline justify-between gap-4 border-b pb-4">
+              <h2 className="palma-label text-taupe-deep">Your assignments</h2>
+              <Link
+                href="/judging/assignments"
+                className="palma-link text-taupe-deep hover:text-ink text-sm"
+              >
+                Open the workspace
+              </Link>
+            </div>
+
+            {overview.categories.length === 0 ? (
+              <EmptyState
+                className="mt-8"
+                title="Nothing assigned yet"
+                description="Cases are assigned once screening closes. You will be notified."
+              />
+            ) : (
+              <ul className="flex flex-col">
+                {overview.categories.map((category) => {
+                  const done = category.completed >= category.assigned;
+                  const started = category.completed > 0;
+
+                  return (
+                    <li
+                      key={category.categoryId}
+                      className="palma-row border-stone-deep grid gap-3 border-b py-6 sm:grid-cols-12 sm:items-baseline sm:gap-6"
+                    >
+                      <span className="palma-row-lead font-display text-xl sm:col-span-5">
+                        {category.categoryName}
+                      </span>
+
+                      <span className="text-taupe-deep text-sm sm:col-span-2">
+                        {category.assigned} assigned
+                      </span>
+
+                      <span className="sm:col-span-3">
+                        <span className="palma-label text-taupe tabular-nums">
+                          {category.completed}/{category.assigned}
+                        </span>
+                        <span
+                          aria-hidden="true"
+                          className="bg-stone-deep/50 mt-2 block h-px w-full max-w-40"
+                        >
+                          <span
+                            className={cn('block h-px', done ? 'bg-olive' : 'bg-champagne-deep')}
+                            style={{
+                              width: `${Math.round((category.completed / Math.max(1, category.assigned)) * 100)}%`,
+                            }}
+                          />
+                        </span>
+                      </span>
+
+                      <span className="sm:col-span-2 sm:text-right">
+                        {done ? (
+                          <span className="palma-label text-olive">Complete</span>
+                        ) : category.nextAssignmentId ? (
+                          <Link
+                            href={`/judging/${category.nextAssignmentId}`}
+                            className="palma-label text-ink palma-link"
+                          >
+                            {started ? 'Continue' : 'Begin'}
+                          </Link>
+                        ) : null}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        </div>
+
+        <aside className="flex flex-col gap-10 lg:col-span-4">
+          <div className="border-stone-deep border p-7">
+            <h2 className="palma-label text-taupe-deep">{season.title}</h2>
+            <p className="font-display mt-4 text-2xl leading-tight">
+              {season.daysRemaining === null
+                ? 'No deadline published yet'
+                : season.daysRemaining === 0
+                  ? 'Judging closes today'
+                  : `Judging closes in ${season.daysRemaining} day${season.daysRemaining === 1 ? '' : 's'}`}
+            </p>
+            {season.closesAt ? (
+              <p className="text-taupe-deep mt-2 text-sm">{formatDate(season.closesAt)}</p>
+            ) : null}
+
+            {overview.isChair ? (
+              <p className="border-stone-deep text-taupe mt-6 border-t pt-5 text-xs leading-relaxed">
+                You chair this panel. You see the spread of scores before any list is confirmed, and
+                you score nothing yourself.
+              </p>
+            ) : null}
+          </div>
+
+          <div>
+            <h2 className="palma-label text-taupe-deep border-stone-deep border-b pb-3">Notices</h2>
+            {overview.notifications.length === 0 ? (
+              <p className="text-taupe mt-5 text-sm leading-relaxed">
+                Nothing outstanding. PALMA only writes to you about assignments, reassignments,
+                conflict decisions, deadlines and the opening and closing of judging.
+              </p>
+            ) : (
+              <ul className="mt-2 flex flex-col">
+                {overview.notifications.map((notification) => (
+                  <li
+                    key={notification.id}
+                    className="border-stone-deep/60 flex flex-col gap-1.5 border-b py-4 last:border-none"
+                  >
+                    <span className="flex items-baseline justify-between gap-4">
+                      <span className="font-display text-base">{notification.subject}</span>
+                      <span className="palma-label text-taupe shrink-0">
+                        {formatShortDate(notification.createdAt)}
+                      </span>
+                    </span>
+                    <span className="text-taupe-deep text-sm leading-relaxed">
+                      {notification.body}
+                    </span>
+                    {notification.href ? (
+                      <Link href={notification.href} className="palma-link text-ink text-sm">
+                        Open
+                      </Link>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          <Notice title="How PALMA treats your work">
+            Every case is scored independently by at least {MIN_JUDGES_PER_CANDIDACY} judges. You
+            are never shown another judge&rsquo;s score, and never shown how many people nominated a
+            creator. Submitted assessments are immutable.
+          </Notice>
+
+          {counts.remaining > 0 && overview.categories[0]?.nextAssignmentId ? (
+            <Button asChild size="lg" className="self-start">
+              <Link
+                href={`/judging/${overview.categories.find((c) => c.nextAssignmentId)?.nextAssignmentId}`}
+              >
+                Open the next case
+              </Link>
+            </Button>
+          ) : null}
+        </aside>
+      </div>
     </PortalShell>
   );
 }

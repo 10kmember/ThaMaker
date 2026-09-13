@@ -21,6 +21,7 @@ export const AUDIT_ACTIONS = [
   'judge.assigned',
   'judge.unassigned',
   'judge.conflict_declared',
+  'judge.no_conflict_confirmed',
   'judge.conflict_resolved',
   'score.submitted',
   'score.corrected',

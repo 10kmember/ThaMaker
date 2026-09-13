@@ -15,10 +15,18 @@ export type AuthState = {
   errors?: Record<string, string>;
 };
 
+/** Where a role belongs when it signs in without a destination in mind. */
+function homeFor(role: string): string {
+  if (role === 'judge') return '/judging';
+  if (role === 'admin' || role === 'super_admin' || role === 'editor') return '/admin';
+  return '/portal';
+}
+
 /** Only relative, single-slash paths are honoured as post-sign-in targets. */
-function safeNext(value: string | undefined | null): string {
-  if (!value) return '/portal';
-  if (!value.startsWith('/') || value.startsWith('//')) return '/portal';
+function safeNext(value: string | undefined | null, role: string): string {
+  const home = homeFor(role);
+  if (!value) return home;
+  if (!value.startsWith('/') || value.startsWith('//')) return home;
   return value;
 }
 
@@ -59,7 +67,7 @@ export async function signIn(_previous: AuthState, formData: FormData): Promise<
     actor: { id: user.id, role: user.role, label: user.email },
   });
 
-  redirect(safeNext(parsed.data.next));
+  redirect(safeNext(parsed.data.next, user.role));
 }
 
 export async function register(_previous: AuthState, formData: FormData): Promise<AuthState> {

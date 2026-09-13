@@ -4,6 +4,10 @@ import {
   MAX_TOTAL,
   rank,
   SCORING_CRITERIA,
+  RATIONALE_MAX_WORDS,
+  RATIONALE_MIN_WORDS,
+  countWords,
+  validateRationale,
   totalScore,
   validateScoreCard,
 } from '@/domain/judging';
@@ -60,5 +64,45 @@ describe('aggregation', () => {
       { candidacyId: 'c', totals: [40, 40] },
     ]);
     expect(ranked.map((entry) => entry.candidacyId)).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('the rationale', () => {
+  it('counts words, not characters', () => {
+    expect(countWords('')).toBe(0);
+    expect(countWords('   ')).toBe(0);
+    expect(countWords('one')).toBe(1);
+    expect(countWords('one  two\nthree\tfour')).toBe(4);
+  });
+
+  it('refuses a rationale that is really just an opinion', () => {
+    const result = validateRationale('Excellent work, clearly the strongest in the category.');
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.message).toContain(String(RATIONALE_MIN_WORDS));
+  });
+
+  it('accepts a rationale inside the range', () => {
+    const words = Array.from({ length: RATIONALE_MIN_WORDS }, (_, i) => `word${i}`).join(' ');
+    expect(validateRationale(words).ok).toBe(true);
+  });
+
+  it('refuses an essay', () => {
+    const words = Array.from({ length: RATIONALE_MAX_WORDS + 1 }, (_, i) => `word${i}`).join(' ');
+    const result = validateRationale(words);
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.message).toContain('capped');
+  });
+});
+
+describe('scoring criteria', () => {
+  it('gives every criterion guidance a judge can act on', () => {
+    for (const criterion of SCORING_CRITERIA) {
+      expect(criterion.guidance.length).toBeGreaterThan(40);
+    }
+  });
+
+  it('never names audience size as something to reward', () => {
+    const guidance = SCORING_CRITERIA.map((criterion) => criterion.guidance).join(' ');
+    expect(guidance).toMatch(/Ignore audience size/);
   });
 });
