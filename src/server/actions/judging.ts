@@ -52,7 +52,7 @@ export async function submitScore(
 
   const assignment = await db.judgingAssignment.findFirst({
     where: { id: parsed.data.assignmentId, judgeId },
-    include: { score: { select: { id: true } }, nomination: { select: { creatorId: true } } },
+    include: { score: { select: { id: true } }, candidacy: { select: { creatorId: true } } },
   });
 
   if (!assignment) return { status: 'error', message: 'That assignment is not yours.' };
@@ -60,15 +60,15 @@ export async function submitScore(
     return { status: 'error', message: 'A score has already been submitted for this nomination.' };
   }
   if (assignment.status === 'recused') {
-    return { status: 'error', message: 'You have recused yourself from this nomination.' };
+    return { status: 'error', message: 'You have recused yourself from this candidacy.' };
   }
 
   // A conflict declared at the point of scoring removes the judge immediately.
   if (parsed.data.conflictDeclared) {
     return declareConflictInternal({
       judgeId,
-      nominationId: assignment.nominationId,
-      creatorId: assignment.nomination.creatorId,
+      candidacyId: assignment.candidacyId,
+      creatorId: assignment.candidacy.creatorId,
       kind: 'other',
       note: 'Declared while scoring.',
       actor: { id: session.user.id, role: session.user.role, label: session.user.email },
@@ -91,7 +91,7 @@ export async function submitScore(
       data: {
         assignmentId: assignment.id,
         judgeId,
-        nominationId: assignment.nominationId,
+        candidacyId: assignment.candidacyId,
         ...card.card,
         total,
         remarks: parsed.data.remarks || null,
@@ -111,7 +111,7 @@ export async function submitScore(
     entityType: 'JudgingScore',
     entityId: score.id,
     actor: { id: session.user.id, role: session.user.role, label: session.user.email },
-    summary: `Score submitted for nomination ${assignment.nominationId}`,
+    summary: `Score submitted for candidacy ${assignment.candidacyId}`,
     // The score itself is recorded in the audit log but never surfaced publicly.
     after: { total, criteria: card.card },
   });
@@ -137,7 +137,7 @@ export async function declareConflict(
   if (!judgeId) return { status: 'error', message: 'This account is not on a PALMA panel.' };
 
   const parsed = conflictSchema.safeParse({
-    nominationId: formData.get('nominationId'),
+    candidacyId: formData.get('candidacyId'),
     kind: formData.get('kind'),
     note: formData.get('note') ?? '',
   });
@@ -145,16 +145,16 @@ export async function declareConflict(
   if (!parsed.success) return { status: 'error', message: 'Choose the kind of conflict.' };
 
   const db = requireDb();
-  const nomination = await db.nomination.findUnique({
-    where: { id: parsed.data.nominationId },
+  const candidacy = await db.candidacy.findUnique({
+    where: { id: parsed.data.candidacyId },
     select: { id: true, creatorId: true },
   });
-  if (!nomination) return { status: 'error', message: 'That nomination does not exist.' };
+  if (!candidacy) return { status: 'error', message: 'That candidacy does not exist.' };
 
   return declareConflictInternal({
     judgeId,
-    nominationId: nomination.id,
-    creatorId: nomination.creatorId,
+    candidacyId: candidacy.id,
+    creatorId: candidacy.creatorId,
     kind: parsed.data.kind,
     note: parsed.data.note || null,
     actor: { id: session.user.id, role: session.user.role, label: session.user.email },
@@ -163,7 +163,7 @@ export async function declareConflict(
 
 async function declareConflictInternal(input: {
   judgeId: string;
-  nominationId: string;
+  candidacyId: string;
   creatorId: string;
   kind: string;
   note: string | null;
@@ -175,7 +175,7 @@ async function declareConflictInternal(input: {
     const created = await tx.judgeConflict.create({
       data: {
         judgeId: input.judgeId,
-        nominationId: input.nominationId,
+        candidacyId: input.candidacyId,
         creatorId: input.creatorId,
         kind: input.kind as 'other',
         note: input.note,
@@ -184,7 +184,7 @@ async function declareConflictInternal(input: {
 
     // Declaring removes the judge now. Only an explicit dismissal restores them.
     await tx.judgingAssignment.updateMany({
-      where: { judgeId: input.judgeId, nominationId: input.nominationId },
+      where: { judgeId: input.judgeId, candidacyId: input.candidacyId },
       data: { status: 'recused', recusedAt: new Date() },
     });
 
@@ -196,13 +196,13 @@ async function declareConflictInternal(input: {
     entityType: 'JudgeConflict',
     entityId: conflict.id,
     actor: { id: input.actor.id, role: input.actor.role as 'judge', label: input.actor.label },
-    summary: `Conflict declared on nomination ${input.nominationId}`,
+    summary: `Conflict declared on candidacy ${input.candidacyId}`,
     after: { kind: input.kind },
   });
 
   revalidatePath('/judging');
   return {
     status: 'success',
-    message: 'Conflict declared. You have been removed from this nomination.',
+    message: 'Conflict declared. You have been removed from this candidacy.',
   };
 }

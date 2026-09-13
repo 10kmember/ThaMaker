@@ -62,16 +62,20 @@ Nominations scoring 80+ on integrity were refused at submission. Those between
 ## 3. Assign the panel
 
 `/admin/judging`, per category. Assignment is deterministic and conflict-aware:
-each eligible nomination is placed with three judges, load is spread evenly, and
+each eligible candidacy is placed with three judges, load is spread evenly, and
 any judge with an undismissed conflict is excluded before placement.
 
-Running it again adds only what is missing. Where a nomination could not be
-fully covered without a conflict, the result says so — seat another judge rather
-than lowering the bar.
+Running it again adds only what is missing. Where a candidacy could not be fully
+covered without a conflict, the result says so — seat another judge rather than
+lowering the bar.
 
 ## 4. Judging
 
 Judges score independently at `/judging`. Scores are immutable once submitted.
+
+A judge sees the creator, the category, the evidence PALMA gathered, and a
+sample of what nominators said — never how many nominated, and never who. The
+briefing is explicit that audience size is not a criterion.
 
 A judge who declares a conflict is removed from that nomination immediately;
 they are not asked to decide whether it matters. Only an explicit dismissal
@@ -87,12 +91,12 @@ are all preserved in the audit log.
 `/admin/selection` shows, per category: judge count, trimmed mean and spread.
 Watch for:
 
-- **Fewer than three judges** — the nomination is under-judged. Assign more.
+- **Fewer than three judges** — the candidacy is under-judged. Assign more.
 - **A spread of 20 or more** — the panel disagrees sharply. Review before
   confirming.
 - **A tie at the cut line** — flagged for chair adjudication.
 
-Confirming confers finalist honours on the top four eligible nominations and
+Confirming confers finalist honours on the top four eligible candidacies and
 mints a verification record for each. Then advance the stage to
 `finalists_announced`.
 
@@ -134,9 +138,21 @@ explicit content, ineligible creators and nomination manipulation.
 Reports come from anyone, signed in or not — a person being impersonated may
 well not hold a PALMA account.
 
+## Creator nomination links
+
+A creator's link (`/nominate/<slug>`) is issued once their profile is claimed
+and verified, and appears in their portal with a copy button. It pre-selects
+them on the nomination form and does nothing else: no weight in judging, no
+ranking, no separate tally that decides anything.
+
+If a link is being abused, the remedy is the candidacy, not the link: mark it
+ineligible with a written reason, and the audit log records who did so and why.
+
 ## Data retention
 
 - Public and permanent: creator profiles and the honours they hold.
-- Never public: scores, panel remarks, nomination evidence, nominator contact
-  details, verification data, reports, the audit log.
+- Never public: scores, panel remarks, evidence, nomination counts, nominator
+  addresses, verification data, reports, the audit log.
 - Never stored: identity documents, raw IP addresses.
+- Nominators hold no account and no profile — an address, a verification
+  timestamp, and the nominations made from it.

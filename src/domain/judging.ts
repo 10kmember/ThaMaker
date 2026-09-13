@@ -68,10 +68,10 @@ export function totalScore(card: ScoreCard): number {
   return SCORING_CRITERIA.reduce((sum, criterion) => sum + card[criterion.key], 0);
 }
 
-export type NominationScores = { nominationId: string; totals: number[] };
+export type CandidacyScores = { candidacyId: string; totals: number[] };
 
 export type AggregatedScore = {
-  nominationId: string;
+  candidacyId: string;
   judgeCount: number;
   total: number;
   mean: number;
@@ -83,8 +83,11 @@ export type AggregatedScore = {
 /**
  * Panels disagree, and a single outlier should not decide a PALMA. Once four or
  * more judges have scored, the highest and lowest are trimmed before ranking.
+ *
+ * Nothing here reads how many nominations a candidacy received: popularity
+ * brings a creator to PALMA's attention, and stops there.
  */
-export function aggregate(input: NominationScores): AggregatedScore {
+export function aggregate(input: CandidacyScores): AggregatedScore {
   const totals = [...input.totals].sort((a, b) => a - b);
   const judgeCount = totals.length;
   const sum = totals.reduce((a, b) => a + b, 0);
@@ -99,7 +102,7 @@ export function aggregate(input: NominationScores): AggregatedScore {
   const spread = judgeCount === 0 ? 0 : (totals[judgeCount - 1] ?? 0) - (totals[0] ?? 0);
 
   return {
-    nominationId: input.nominationId,
+    candidacyId: input.candidacyId,
     judgeCount,
     total: sum,
     mean: round(mean),
@@ -108,7 +111,7 @@ export function aggregate(input: NominationScores): AggregatedScore {
   };
 }
 
-export function rank(entries: NominationScores[]): AggregatedScore[] {
+export function rank(entries: CandidacyScores[]): AggregatedScore[] {
   return entries
     .map(aggregate)
     .sort((a, b) =>
@@ -116,7 +119,7 @@ export function rank(entries: NominationScores[]): AggregatedScore[] {
         ? b.trimmedMean - a.trimmedMean
         : b.judgeCount !== a.judgeCount
           ? b.judgeCount - a.judgeCount
-          : a.nominationId.localeCompare(b.nominationId),
+          : a.candidacyId.localeCompare(b.candidacyId),
     );
 }
 

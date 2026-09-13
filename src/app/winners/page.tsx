@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Container, PageHeader, Section } from '@/components/palma/layout';
+import { SeasonRail } from '@/components/palma/SeasonRail';
 import { EditorialImage } from '@/components/palma/EditorialImage';
 import { EmptyState } from '@/components/ui/feedback';
 import { Button } from '@/components/ui/button';
@@ -37,7 +38,11 @@ export default async function WinnersPage({ searchParams }: Props) {
   return (
     <>
       <PageHeader
-        label={season.title}
+        label={
+          <Link href={`/awards/${season.year}`} className="hover:text-ivory transition-colors">
+            {season.title}
+          </Link>
+        }
         title="The winners"
         standfirst={
           winners.length > 0
@@ -65,6 +70,14 @@ export default async function WinnersPage({ searchParams }: Props) {
           ) : undefined
         }
       />
+
+      {/* Finalists are a state of a season, not a destination of their own: the
+          rail keeps the rest of the season one click away. */}
+      <div className="border-stone-deep bg-ivory border-b">
+        <Container className="py-10">
+          <SeasonRail year={season.year} stage={season.stage} current="winners" tone="light" />
+        </Container>
+      </div>
 
       <Section>
         <Container>

@@ -14,11 +14,16 @@ export type RateLimitRule = {
 };
 
 export const RATE_LIMITS = {
-  nominationSubmit: { bucket: 'nomination:submit', limit: 5, windowSeconds: 60 * 60 },
+  /** Requesting a verification code. Generous: a household or campus shares an
+   *  address, and a creator's audience arrives through one network at once. */
+  nominationCode: { bucket: 'nomination:code', limit: 20, windowSeconds: 60 * 60 },
+  /** Entering a code. Tight, because guessing is the only reason to repeat. */
+  nominationVerify: { bucket: 'nomination:verify', limit: 15, windowSeconds: 15 * 60 },
   signIn: { bucket: 'auth:sign-in', limit: 10, windowSeconds: 15 * 60 },
   register: { bucket: 'auth:register', limit: 5, windowSeconds: 60 * 60 },
   report: { bucket: 'integrity:report', limit: 10, windowSeconds: 60 * 60 },
   verifyLookup: { bucket: 'verify:lookup', limit: 120, windowSeconds: 60 * 60 },
+  creatorSearch: { bucket: 'creator:search', limit: 120, windowSeconds: 10 * 60 },
 } satisfies Record<string, RateLimitRule>;
 
 export type RateLimitResult = {

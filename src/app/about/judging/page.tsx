@@ -3,7 +3,7 @@ import { Notice } from '@/components/ui/feedback';
 import { buildMetadata } from '@/lib/seo';
 import { SCORING_CRITERIA, MAX_TOTAL } from '@/domain/judging';
 import { CONFLICT_KINDS } from '@/domain/conflicts';
-import { MIN_JUDGES_PER_NOMINATION, DEFAULT_FINALIST_COUNT } from '@/domain/selection';
+import { MIN_JUDGES_PER_CANDIDACY, DEFAULT_FINALIST_COUNT } from '@/domain/selection';
 
 export const metadata = buildMetadata({
   title: 'How judging works',
@@ -26,7 +26,7 @@ export default function JudgingPage() {
           <div className="palma-prose">
             <p>
               Every eligible nomination is scored independently by at least{' '}
-              {MIN_JUDGES_PER_NOMINATION} judges against five criteria, each out of ten — a maximum
+              {MIN_JUDGES_PER_CANDIDACY} judges against five criteria, each out of ten — a maximum
               of {MAX_TOTAL}. Judges are briefed in writing to discount audience size. It is not a
               criterion, and it never will be.
             </p>
@@ -58,7 +58,7 @@ export default function JudgingPage() {
               spread before any list is confirmed.
             </p>
             <p>
-              The top {DEFAULT_FINALIST_COUNT} eligible nominations in each category are proposed as
+              The top {DEFAULT_FINALIST_COUNT} eligible candidacies in each category are proposed as
               finalists. The ranking is a recommendation: confirming it is a human act, performed by
               an authorised administrator, and written to the audit log with the state before and
               after.
@@ -67,7 +67,7 @@ export default function JudgingPage() {
             <h2 className="mt-12 mb-4 text-3xl">Conflicts of interest</h2>
             <p>
               A judge declares a conflict; they do not argue one. The moment a relationship is
-              declared, the judge is removed from that nomination. Only an explicit dismissal by an
+              declared, the judge is removed from that candidacy. Only an explicit dismissal by an
               administrator restores them, and both acts are recorded. Judges declare against these
               categories:
             </p>

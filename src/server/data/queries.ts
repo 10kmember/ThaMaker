@@ -606,11 +606,11 @@ export const getSeasonStats = cache(async (year: number): Promise<SeasonStats> =
   }
 
   const [nominations, underReview, eligible, judging, finalists, winners] = await Promise.all([
-    prisma.nomination.count({ where: { awardYear: { year }, status: { not: 'draft' } } }),
-    prisma.nomination.count({ where: { awardYear: { year }, status: 'under_review' } }),
-    prisma.nomination.count({ where: { awardYear: { year }, status: 'eligible' } }),
+    prisma.nomination.count({ where: { candidacy: { awardYear: { year } }, status: 'counted' } }),
+    prisma.candidacy.count({ where: { awardYear: { year }, status: 'under_review' } }),
+    prisma.candidacy.count({ where: { awardYear: { year }, status: 'eligible' } }),
     prisma.judgingAssignment.count({
-      where: { nomination: { awardYear: { year } }, status: { in: ['assigned', 'in_progress'] } },
+      where: { candidacy: { awardYear: { year } }, status: { in: ['assigned', 'in_progress'] } },
     }),
     prisma.honour.count({ where: { awardYear: { year }, kind: 'finalist', state: 'active' } }),
     prisma.honour.count({ where: { awardYear: { year }, kind: 'winner', state: 'active' } }),

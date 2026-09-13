@@ -70,7 +70,7 @@ describe('digests and tokens', () => {
 describe('rate limiting', () => {
   it('allows up to the limit, then refuses with a retry hint', async () => {
     __resetMemoryLimiter();
-    const rule = RATE_LIMITS.nominationSubmit;
+    const rule = RATE_LIMITS.nominationCode;
 
     for (let attempt = 0; attempt < rule.limit; attempt += 1) {
       const result = await consumeRateLimit(rule, 'identity-a');

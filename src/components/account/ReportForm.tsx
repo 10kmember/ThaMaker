@@ -60,8 +60,8 @@ export function ReportForm({ creatorSlug }: { creatorSlug?: string }) {
         >
           <Input id="creatorSlug" name="creatorSlug" defaultValue={creatorSlug} />
         </Field>
-        <Field htmlFor="nominationReference" label="Nomination reference">
-          <Input id="nominationReference" name="nominationReference" placeholder="PN-2027-000481" />
+        <Field htmlFor="candidacyReference" label="Candidacy reference">
+          <Input id="candidacyReference" name="candidacyReference" placeholder="PC-2027-0042" />
         </Field>
       </div>
 

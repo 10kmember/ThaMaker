@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Container, PageHeader, Section } from '@/components/palma/layout';
-import { NominationForm } from '@/components/nominate/NominationForm';
-import { EmptyState } from '@/components/ui/feedback';
+import { NominateForm } from '@/components/nominate/NominateForm';
+import { EmptyState, Notice } from '@/components/ui/feedback';
 import { Button } from '@/components/ui/button';
 import { buildMetadata } from '@/lib/seo';
 import { acceptsNominations } from '@/domain/season';
@@ -13,14 +13,11 @@ export const revalidate = 300;
 export const metadata = buildMetadata({
   title: 'Nominate a creator',
   description:
-    'Nominate a creator for a PALMA. Nominating is free, takes a few minutes, and cannot be bought — the shortlist is produced by judges, from evidence.',
+    'Nominate a creator for a PALMA. It takes under a minute, needs no account, and costs nothing — the audience nominates, PALMA judges.',
   path: '/nominate',
 });
 
-type Props = { searchParams: Promise<{ category?: string }> };
-
-export default async function NominatePage({ searchParams }: Props) {
-  const { category } = await searchParams;
+export default async function NominatePage() {
   const season = await getCurrentSeason();
   const categories = await listCategories(season.year);
   const open = acceptsNominations(season.stage);
@@ -30,7 +27,7 @@ export default async function NominatePage({ searchParams }: Props) {
       <PageHeader
         label={season.title}
         title="Nominate a creator"
-        standfirst="A nomination is a claim about work that has already been done. Make it specific, evidence it, and a panel will read it."
+        standfirst="Name someone, say why in a sentence, confirm your email. That is the whole of it — PALMA does the investigating."
         meta={
           season.nominationsCloseAt ? (
             <span className="palma-label text-ivory/55">
@@ -40,26 +37,57 @@ export default async function NominatePage({ searchParams }: Props) {
         }
       />
 
-      <Section className="py-16 sm:py-20">
+      <Section className="py-14 sm:py-20">
         <Container>
           {open ? (
-            <NominationForm
-              year={season.year}
-              categories={categories.map((entry) => ({
-                slug: entry.slug,
-                name: entry.name,
-                strapline: entry.strapline,
-              }))}
-              defaultCategory={
-                category && categories.some((entry) => entry.slug === category)
-                  ? category
-                  : undefined
-              }
-            />
+            <div className="grid gap-14 lg:grid-cols-12">
+              <div className="lg:col-span-7">
+                <NominateForm
+                  categories={categories.map((entry) => ({
+                    slug: entry.slug,
+                    name: entry.name,
+                    strapline: entry.strapline,
+                  }))}
+                />
+              </div>
+
+              <aside className="flex flex-col gap-6 lg:col-span-5 lg:pl-10">
+                <Notice title="Audience nominates. PALMA judges.">
+                  A nomination tells PALMA a creator is worth considering. It is not a vote, and the
+                  creator with the most nominations does not win — an independent panel decides,
+                  from evidence PALMA gathers itself.
+                </Notice>
+
+                <div className="border-stone-deep flex flex-col gap-4 border p-6">
+                  <h2 className="palma-label text-taupe-deep">What we ask for</h2>
+                  <ul className="text-taupe-deep flex flex-col gap-2 text-sm leading-relaxed">
+                    <li>The creator’s name.</li>
+                    <li>One category.</li>
+                    <li>A sentence on why.</li>
+                    <li>An email address, verified once.</li>
+                  </ul>
+                  <h2 className="palma-label text-taupe-deep mt-3">What we never ask for</h2>
+                  <ul className="text-taupe-deep flex flex-col gap-2 text-sm leading-relaxed">
+                    <li>An account, a password or a profile.</li>
+                    <li>Evidence, files, screenshots or links.</li>
+                    <li>Anything about you beyond the address.</li>
+                  </ul>
+                </div>
+
+                <div className="border-stone-deep flex flex-col gap-3 border p-6">
+                  <h2 className="palma-label text-taupe-deep">One signal each</h2>
+                  <p className="text-taupe-deep text-sm leading-relaxed">
+                    You can nominate one creator once per category — and as many different creators,
+                    in as many categories, as you like. Repeat nominations of the same creator in
+                    the same category do not stack.
+                  </p>
+                </div>
+              </aside>
+            </div>
           ) : (
             <EmptyState
               title="Nominations are closed"
-              description={`Nominations for ${season.title} are not open. The season moves to the panel next; finalists are announced on ${formatDate(season.finalistsAt)}.`}
+              description={`Nominations for ${season.title} are not open. Finalists are announced on ${formatDate(season.finalistsAt)}.`}
               action={
                 <Button asChild size="sm" variant="outline">
                   <Link href={`/awards/${season.year}`}>Follow the season</Link>

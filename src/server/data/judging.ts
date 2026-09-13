@@ -4,7 +4,7 @@ import { prisma } from '@/server/db';
 export type AssignmentSummary = {
   id: string;
   status: 'assigned' | 'in_progress' | 'completed' | 'recused' | 'reassigned';
-  nominationId: string;
+  candidacyId: string;
   reference: string;
   creatorName: string;
   creatorSlug: string;
@@ -37,7 +37,7 @@ export async function getJudgeDashboard(judgeId: string): Promise<JudgeDashboard
     include: {
       assignments: {
         include: {
-          nomination: { include: { creator: true, awardYear: true } },
+          candidacy: { include: { creator: true, awardYear: true } },
           category: true,
           score: { select: { id: true } },
         },
@@ -52,12 +52,12 @@ export async function getJudgeDashboard(judgeId: string): Promise<JudgeDashboard
   const map = (assignment: (typeof judge.assignments)[number]): AssignmentSummary => ({
     id: assignment.id,
     status: assignment.status,
-    nominationId: assignment.nominationId,
-    reference: assignment.nomination.reference,
-    creatorName: assignment.nomination.creator.displayName,
-    creatorSlug: assignment.nomination.creator.slug,
+    candidacyId: assignment.candidacyId,
+    reference: assignment.candidacy.reference,
+    creatorName: assignment.candidacy.creator.displayName,
+    creatorSlug: assignment.candidacy.creator.slug,
     categoryName: assignment.category.name,
-    year: assignment.nomination.awardYear.year,
+    year: assignment.candidacy.awardYear.year,
     assignedAt: assignment.assignedAt.toISOString(),
     completedAt: assignment.completedAt?.toISOString() ?? null,
   });
@@ -75,7 +75,7 @@ export async function getJudgeDashboard(judgeId: string): Promise<JudgeDashboard
       id: conflict.id,
       kind: conflict.kind,
       status: conflict.status,
-      subject: conflict.nominationId ?? conflict.creatorId ?? '—',
+      subject: conflict.candidacyId ?? conflict.creatorId ?? '—',
       declaredAt: conflict.declaredAt.toISOString(),
     })),
   };
@@ -84,7 +84,7 @@ export async function getJudgeDashboard(judgeId: string): Promise<JudgeDashboard
 export type AssignmentDetail = {
   id: string;
   status: string;
-  nominationId: string;
+  candidacyId: string;
   reference: string;
   creatorName: string;
   creatorSlug: string;
@@ -93,8 +93,9 @@ export type AssignmentDetail = {
   categoryCriteria: string;
   categoryEligibility: string;
   year: number;
-  statement: string;
   evidence: { id: string; kind: string; label: string; url: string | null; note: string | null }[];
+  /** A sample of what the audience said, never how many said it. */
+  audienceVoices: string[];
   alreadyScored: boolean;
 };
 
@@ -114,11 +115,19 @@ export async function getAssignmentForJudge(
     include: {
       category: true,
       score: { select: { id: true } },
-      nomination: {
+      candidacy: {
         include: {
           creator: true,
           awardYear: true,
           evidence: { orderBy: { createdAt: 'asc' } },
+          // A handful of nomination reasons, oldest first, with no count and
+          // no nominator attached: judges see the argument, not the crowd.
+          nominations: {
+            where: { status: 'counted' },
+            select: { reason: true },
+            orderBy: { countedAt: 'asc' },
+            take: 5,
+          },
         },
       },
     },
@@ -129,17 +138,17 @@ export async function getAssignmentForJudge(
   return {
     id: assignment.id,
     status: assignment.status,
-    nominationId: assignment.nominationId,
-    reference: assignment.nomination.reference,
-    creatorName: assignment.nomination.creator.displayName,
-    creatorSlug: assignment.nomination.creator.slug,
-    creatorCountry: assignment.nomination.creator.countryCode,
+    candidacyId: assignment.candidacyId,
+    reference: assignment.candidacy.reference,
+    creatorName: assignment.candidacy.creator.displayName,
+    creatorSlug: assignment.candidacy.creator.slug,
+    creatorCountry: assignment.candidacy.creator.countryCode,
     categoryName: assignment.category.name,
     categoryCriteria: assignment.category.judgingCriteria,
     categoryEligibility: assignment.category.eligibility,
-    year: assignment.nomination.awardYear.year,
-    statement: assignment.nomination.statement,
-    evidence: assignment.nomination.evidence.map((item) => ({
+    year: assignment.candidacy.awardYear.year,
+    audienceVoices: assignment.candidacy.nominations.map((entry) => entry.reason),
+    evidence: assignment.candidacy.evidence.map((item) => ({
       id: item.id,
       kind: item.kind,
       label: item.label,

@@ -1,70 +1,65 @@
 import { describe, expect, it } from 'vitest';
-import { fieldErrors, nominationSchema } from '@/lib/validation/nomination';
+import { fieldErrors, nominationDraftSchema } from '@/lib/validation/nomination';
+import { MAX_REASON_LENGTH, MIN_REASON_LENGTH } from '@/domain/nomination';
 
 const valid = {
-  awardYear: 2027,
+  creatorSlug: 'maya-rivers',
   categorySlug: 'best-independent-creator',
-  creatorName: 'Maya Rivers',
-  creatorCountry: 'gb',
-  source: 'public_nominator' as const,
-  nominatorEmail: 'nominator@example.com',
-  statement:
-    'Maya has published a researched long-form essay every month for six years without an agency behind her, and her work on platform labour changed how other creators publish their own numbers.',
-  evidence: [{ kind: 'external_link' as const, label: 'Series finale', url: 'example.com/finale' }],
-  ageConfirmed: true as const,
-  eligibilityConfirmed: true as const,
-  contentPolicyConfirmed: true as const,
+  reason: 'Six years of researched work published on schedule, without an agency behind her.',
+  email: 'Someone@Example.com',
 };
 
-describe('nomination schema', () => {
-  it('accepts a complete nomination and normalises its values', () => {
-    const result = nominationSchema.safeParse(valid);
+describe('the nomination form', () => {
+  it('accepts a complete nomination and normalises the address', () => {
+    const result = nominationDraftSchema.safeParse(valid);
     expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.creatorCountry).toBe('GB');
-      expect(result.data.evidence[0]?.url).toBe('https://example.com/finale');
+    if (result.success) expect(result.data.email).toBe('someone@example.com');
+  });
+
+  it('asks for a creator, a category, a reason and an email — and nothing else', () => {
+    const keys = Object.keys(nominationDraftSchema.shape);
+    expect(keys).toEqual(
+      expect.arrayContaining(['creatorSlug', 'categorySlug', 'reason', 'email']),
+    );
+    // No account, no evidence, no attachments, no statement of any length.
+    for (const absent of ['password', 'evidence', 'attachments', 'statement', 'name']) {
+      expect(keys).not.toContain(absent);
     }
   });
 
-  it('requires every declaration to be accepted', () => {
-    for (const key of ['ageConfirmed', 'eligibilityConfirmed', 'contentPolicyConfirmed'] as const) {
-      const result = nominationSchema.safeParse({ ...valid, [key]: false });
+  it('requires each of the four fields', () => {
+    for (const key of ['creatorSlug', 'categorySlug', 'reason', 'email'] as const) {
+      const result = nominationDraftSchema.safeParse({ ...valid, [key]: '' });
       expect(result.success, key).toBe(false);
     }
   });
 
-  it('requires at least one piece of evidence and caps it at six', () => {
-    expect(nominationSchema.safeParse({ ...valid, evidence: [] }).success).toBe(false);
+  it('keeps the reason short', () => {
+    expect(nominationDraftSchema.safeParse({ ...valid, reason: 'Great.' }).success).toBe(false);
     expect(
-      nominationSchema.safeParse({
-        ...valid,
-        evidence: Array.from({ length: 7 }, () => valid.evidence[0]),
-      }).success,
+      nominationDraftSchema.safeParse({ ...valid, reason: 'x'.repeat(MAX_REASON_LENGTH + 1) })
+        .success,
     ).toBe(false);
+    expect(
+      nominationDraftSchema.safeParse({ ...valid, reason: 'x'.repeat(MIN_REASON_LENGTH) }).success,
+    ).toBe(true);
   });
 
-  it('refuses evidence links that are not safe external references', () => {
-    const result = nominationSchema.safeParse({
-      ...valid,
-      evidence: [{ kind: 'external_link' as const, label: 'Bad', url: 'javascript:alert(1)' }],
-    });
+  it('refuses an address it cannot send a code to', () => {
+    const result = nominationDraftSchema.safeParse({ ...valid, email: 'not-an-email' });
     expect(result.success).toBe(false);
-  });
-
-  it('refuses a statement that is too short to judge', () => {
-    expect(nominationSchema.safeParse({ ...valid, statement: 'Great.' }).success).toBe(false);
-  });
-
-  it('reports errors keyed by field for the form to render', () => {
-    const result = nominationSchema.safeParse({ ...valid, nominatorEmail: 'not-an-email' });
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(fieldErrors(result.error)).toHaveProperty('nominatorEmail');
-    }
+    if (!result.success) expect(fieldErrors(result.error)).toHaveProperty('email');
   });
 
   it('treats the honeypot as a field that must stay empty', () => {
-    expect(nominationSchema.safeParse({ ...valid, website: 'http://spam' }).success).toBe(false);
-    expect(nominationSchema.safeParse({ ...valid, website: '' }).success).toBe(true);
+    expect(nominationDraftSchema.safeParse({ ...valid, website: 'http://spam' }).success).toBe(
+      false,
+    );
+    expect(nominationDraftSchema.safeParse({ ...valid, website: '' }).success).toBe(true);
+  });
+
+  it('carries the referral slug when one is present', () => {
+    const result = nominationDraftSchema.safeParse({ ...valid, referralSlug: 'maya-rivers' });
+    expect(result.success && result.data.referralSlug).toBe('maya-rivers');
   });
 });

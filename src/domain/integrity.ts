@@ -1,9 +1,13 @@
 /**
  * Nomination integrity.
  *
- * PALMA is decided by judges, not by volume. These signals exist to keep
- * automated and coordinated submissions out of the judging pool — never to
- * rank creators by popularity.
+ * PALMA expects creators to share their nomination links, and expects audiences
+ * to answer. That is legitimate mobilisation, not fraud, and the safeguards
+ * here are deliberately calibrated not to punish it.
+ *
+ * What they are for is narrower: one person's signal should count once, bots
+ * should not manufacture signals, and coordinated automation should be visible
+ * to a human. A weak signal flags for review; it does not reject.
  */
 
 export type IntegritySignalInput = {
@@ -11,36 +15,53 @@ export type IntegritySignalInput = {
   honeypot: string | null | undefined;
   /** Milliseconds between the form being rendered and submitted. */
   elapsedMs: number | null | undefined;
-  statement: string;
-  evidenceUrls: string[];
-  nominatorEmail?: string | null;
-  /** Nominations already made from this identity inside the current window. */
-  recentSubmissions: number;
+  reason: string;
+  email: string;
+  /** Nominations already made by this address inside the current window. */
+  recentByNominator: number;
+  /** Nominations this candidacy received in the last few minutes. */
+  recentForCandidacy?: number;
 };
 
 export type IntegrityAssessment = {
-  /** 0 (clean) to 100 (almost certainly abusive). */
+  /** 0 (clean) to 100 (almost certainly automated). */
   score: number;
-  /** Reject outright. */
+  /** Refuse outright. Reserved for signals a person cannot trip by accident. */
   reject: boolean;
-  /** Accept, but route to manual moderation. */
+  /** Count it, and show it to a moderator. */
   flagForReview: boolean;
   signals: string[];
 };
 
-const MIN_HUMAN_COMPLETION_MS = 4000;
+const MIN_HUMAN_COMPLETION_MS = 2500;
+
+/**
+ * Addresses from these providers are disposable by design. They are a review
+ * signal, never an automatic refusal — some people use them for good reasons.
+ */
 const DISPOSABLE_DOMAINS = new Set([
   'mailinator.com',
   'guerrillamail.com',
   '10minutemail.com',
   'yopmail.com',
   'trashmail.com',
+  'temp-mail.org',
+  'throwawaymail.com',
+  'sharklasers.com',
+  'getnada.com',
+  'dispostable.com',
 ]);
+
+export function isDisposableEmail(email: string): boolean {
+  const domain = email.split('@')[1]?.toLowerCase();
+  return domain ? DISPOSABLE_DOMAINS.has(domain) : false;
+}
 
 export function assessIntegrity(input: IntegritySignalInput): IntegrityAssessment {
   const signals: string[] = [];
   let score = 0;
 
+  // The only automatic refusal: a field no person can see was filled in.
   if (input.honeypot && input.honeypot.trim().length > 0) {
     signals.push('honeypot_filled');
     score += 100;
@@ -49,68 +70,64 @@ export function assessIntegrity(input: IntegritySignalInput): IntegrityAssessmen
   if (typeof input.elapsedMs === 'number' && input.elapsedMs >= 0) {
     if (input.elapsedMs < MIN_HUMAN_COMPLETION_MS) {
       signals.push('submitted_too_quickly');
-      score += 45;
+      score += 35;
     }
   }
 
-  const statement = input.statement.trim();
-  if (statement.length > 0) {
-    const words = statement.split(/\s+/);
+  const reason = input.reason.trim();
+  if (reason.length > 0) {
+    const words = reason.split(/\s+/);
     const unique = new Set(words.map((word) => word.toLowerCase()));
-    if (words.length >= 20 && unique.size / words.length < 0.35) {
-      signals.push('repetitive_statement');
-      score += 25;
-    }
-    if (/(https?:\/\/[^\s]+){4,}/.test(statement)) {
-      signals.push('link_stuffed_statement');
+    if (words.length >= 12 && unique.size / words.length < 0.3) {
+      signals.push('repetitive_reason');
       score += 20;
     }
-    if (statement === statement.toUpperCase() && statement.length > 60) {
-      signals.push('shouting_statement');
-      score += 10;
+    // Count links rather than matching a repeated group: URLs in real prose are
+    // separated by whitespace, which a `{2,}` repetition never spans.
+    const linkCount = reason.match(/https?:\/\/\S+/g)?.length ?? 0;
+    if (linkCount >= 2) {
+      signals.push('link_stuffed_reason');
+      score += 25;
+    }
+    if (reason === reason.toUpperCase() && reason.length > 60) {
+      signals.push('shouting_reason');
+      score += 5;
     }
   }
 
-  const hosts = input.evidenceUrls
-    .map((url) => {
-      try {
-        return new URL(url).hostname.replace(/^www\./, '');
-      } catch {
-        return null;
-      }
-    })
-    .filter((host): host is string => host !== null);
-
-  if (hosts.length > 0 && new Set(hosts).size === 1 && hosts.length >= 4) {
-    signals.push('single_source_evidence');
-    score += 10;
-  }
-
-  const domain = input.nominatorEmail?.split('@')[1]?.toLowerCase();
-  if (domain && DISPOSABLE_DOMAINS.has(domain)) {
+  if (isDisposableEmail(input.email)) {
     signals.push('disposable_email');
-    score += 35;
+    score += 30;
   }
 
-  if (input.recentSubmissions >= 3) {
-    signals.push('high_submission_rate');
-    score += 15 * (input.recentSubmissions - 2);
+  // A person nominating several creators in a sitting is ordinary. A person
+  // doing it many times in an hour is worth a look.
+  if (input.recentByNominator >= 5) {
+    signals.push('high_nominator_rate');
+    score += 10 * (input.recentByNominator - 4);
+  }
+
+  // A burst against one candidacy is the shape automation takes. It flags the
+  // candidacy for review; it never refuses the person in front of us, who is
+  // most likely a real member of that creator's audience.
+  if (typeof input.recentForCandidacy === 'number' && input.recentForCandidacy >= 40) {
+    signals.push('candidacy_burst');
+    score += 15;
   }
 
   score = Math.min(100, score);
 
   return {
     score,
-    reject: score >= 80,
-    flagForReview: score >= 30 && score < 80,
+    reject: score >= 100,
+    flagForReview: score >= 30 && score < 100,
     signals,
   };
 }
 
 /**
- * Duplicate detection across a category. Exact (year, category, creator) pairs
- * are already prevented by the database; this catches the softer case of the
- * same nominator re-submitting near-identical statements.
+ * Near-duplicate detection across the nominations for one candidacy. Identical
+ * wording from many addresses is the signature of a script, not a fanbase.
  */
 export function looksLikeDuplicate(a: string, b: string): boolean {
   const normalise = (value: string) =>
@@ -130,4 +147,33 @@ export function looksLikeDuplicate(a: string, b: string): boolean {
   const intersection = [...leftWords].filter((word) => rightWords.has(word)).length;
   const union = new Set([...leftWords, ...rightWords]).size;
   return union > 0 && intersection / union > 0.85;
+}
+
+/**
+ * Coordinated-activity heuristic for a candidacy, run by the integrity screen
+ * rather than at submission time. Returns a reason to show a moderator, or null.
+ */
+export function assessCandidacyPattern(input: {
+  nominationCount: number;
+  distinctReasons: number;
+  windowMinutes: number;
+  disposableEmailCount: number;
+}): string | null {
+  if (input.nominationCount < 10) return null;
+
+  const reasons: string[] = [];
+
+  if (input.distinctReasons / input.nominationCount < 0.4) {
+    reasons.push('many nominations share near-identical wording');
+  }
+
+  if (input.windowMinutes > 0 && input.nominationCount / input.windowMinutes > 20) {
+    reasons.push('nominations arrived faster than an audience plausibly acts');
+  }
+
+  if (input.disposableEmailCount / input.nominationCount > 0.3) {
+    reasons.push('a high share of disposable addresses');
+  }
+
+  return reasons.length > 0 ? `Flagged for review: ${reasons.join('; ')}.` : null;
 }

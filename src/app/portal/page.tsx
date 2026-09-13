@@ -50,7 +50,7 @@ export default async function PortalPage() {
     >
       <div className="border-stone-deep grid gap-10 border-b pb-10 sm:grid-cols-4">
         <Stat label="PALMA honours" value={portal.achievements.length} />
-        <Stat label="Nominations made" value={portal.nominations.length} />
+        <Stat label="Candidacies" value={portal.candidacies.length} />
         <Stat label="Verification" value={titleCase(portal.verification.status)} />
         <Stat label="Profile" value={portal.isPublished ? 'Published' : 'Unpublished'} />
       </div>
@@ -111,38 +111,31 @@ export default async function PortalPage() {
           </section>
 
           <section>
-            <h2 className="palma-label text-taupe-deep mb-6">Nominations you have submitted</h2>
-            {portal.nominations.length === 0 ? (
+            <h2 className="palma-label text-taupe-deep mb-6">Where you are in contention</h2>
+            {portal.candidacies.length === 0 ? (
               <EmptyState
-                title="No nominations yet"
-                description="Nominations you submit appear here with their current status."
-                action={
-                  <Button asChild size="sm" variant="outline">
-                    <Link href="/nominate">Nominate a creator</Link>
-                  </Button>
-                }
+                title="No candidacies yet"
+                description="A candidacy is created the first time someone nominates you in a category. Share your nomination link to let your audience put you forward."
               />
             ) : (
               <Table>
                 <THead>
                   <tr>
                     <th scope="col">Reference</th>
-                    <th scope="col">Creator</th>
                     <th scope="col">Category</th>
+                    <th scope="col">Season</th>
                     <th scope="col">Status</th>
                   </tr>
                 </THead>
                 <TBody>
-                  {portal.nominations.map((nomination) => (
-                    <tr key={nomination.id}>
-                      <td className="font-mono text-xs tracking-wider">{nomination.reference}</td>
-                      <td className="font-display text-lg">{nomination.creatorName}</td>
-                      <td className="text-taupe-deep">
-                        {nomination.categoryName} · {nomination.year}
-                      </td>
+                  {portal.candidacies.map((candidacy) => (
+                    <tr key={candidacy.id}>
+                      <td className="font-mono text-xs tracking-wider">{candidacy.reference}</td>
+                      <td className="font-display text-lg">{candidacy.categoryName}</td>
+                      <td className="text-taupe-deep">{candidacy.year}</td>
                       <td>
-                        <Badge variant={nomination.status === 'winner' ? 'champagne' : 'default'}>
-                          {titleCase(nomination.status)}
+                        <Badge variant={candidacy.status === 'winner' ? 'champagne' : 'default'}>
+                          {titleCase(candidacy.status)}
                         </Badge>
                       </td>
                     </tr>
@@ -150,6 +143,10 @@ export default async function PortalPage() {
                 </TBody>
               </Table>
             )}
+            <p className="text-taupe-deep mt-5 text-sm leading-relaxed">
+              PALMA does not show you how many nominations you have received. Nomination numbers do
+              not decide outcomes, and a running total would only invite you to campaign for one.
+            </p>
           </section>
 
           {portal.hasProfile && creator ? (
@@ -189,6 +186,33 @@ export default async function PortalPage() {
                   : ''}
               </p>
             ) : null}
+          </section>
+
+          <section className="border-stone-deep border p-7">
+            <h2 className="palma-label text-taupe-deep mb-5">Your nomination link</h2>
+            {portal.referralPath ? (
+              <>
+                <p className="text-taupe-deep mb-4 text-sm leading-relaxed">
+                  Share this with your audience. It opens a nomination page with you already chosen
+                  — nothing more. It carries no extra weight with the panel, and the number of
+                  nominations it brings in does not decide anything.
+                </p>
+                <p className="border-stone-deep bg-stone/25 mb-4 border px-4 py-3 font-mono text-sm break-all">
+                  {absoluteUrl(portal.referralPath)}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <CopyLink value={absoluteUrl(portal.referralPath)} label="Copy nomination link" />
+                  <Button asChild size="sm" variant="ghost">
+                    <Link href={portal.referralPath}>Preview it</Link>
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <p className="text-taupe-deep text-sm leading-relaxed">
+                Your nomination link is issued once your profile is claimed and verified. Complete
+                verification above to receive it.
+              </p>
+            )}
           </section>
 
           <section className="border-stone-deep border p-7">

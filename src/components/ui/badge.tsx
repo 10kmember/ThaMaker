@@ -11,6 +11,8 @@ const badgeVariants = cva(
         ink: 'border-ink/15 bg-ink text-ivory',
         olive: 'border-olive/25 bg-olive/10 text-olive',
         champagne: 'border-champagne-deep/50 bg-champagne/15 text-ink',
+        /** The ceremonial badge on an ink surface: ink text would disappear. */
+        champagneDark: 'border-champagne-deep/70 bg-champagne/12 text-champagne',
         outlineIvory: 'border-ivory/30 bg-transparent text-ivory/80',
         muted: 'border-transparent bg-stone/50 text-taupe-deep',
       },

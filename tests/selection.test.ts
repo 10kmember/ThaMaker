@@ -2,14 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { proposeFinalists, proposeWinner, type SelectionCandidate } from '@/domain/selection';
 
 const candidate = (id: string, totals: number[], eligible = true): SelectionCandidate => ({
-  nominationId: id,
+  candidacyId: id,
   creatorId: `creator-${id}`,
   totals,
   eligible,
 });
 
 describe('finalist selection', () => {
-  it('proposes the top four eligible nominations, in order', () => {
+  it('proposes the top four eligible candidacies, in order', () => {
     const result = proposeFinalists([
       candidate('a', [40, 41, 42]),
       candidate('b', [30, 31, 32]),
@@ -18,21 +18,21 @@ describe('finalist selection', () => {
       candidate('e', [10, 11, 12]),
     ]);
 
-    expect(result.selected.map((entry) => entry.nominationId)).toEqual(['c', 'a', 'b', 'd']);
+    expect(result.selected.map((entry) => entry.candidacyId)).toEqual(['c', 'a', 'b', 'd']);
     expect(result.selected[0]?.position).toBe(1);
   });
 
-  it('excludes ineligible nominations and says so', () => {
+  it('excludes ineligible candidacies and says so', () => {
     const result = proposeFinalists([
       candidate('a', [48, 48, 48], false),
       candidate('b', [30, 31, 32]),
     ]);
 
-    expect(result.selected.map((entry) => entry.nominationId)).toEqual(['b']);
+    expect(result.selected.map((entry) => entry.candidacyId)).toEqual(['b']);
     expect(result.warnings.join(' ')).toContain('excluded as ineligible');
   });
 
-  it('warns when nominations are under-judged', () => {
+  it('warns when candidacies are under-judged', () => {
     const result = proposeFinalists([candidate('a', [40]), candidate('b', [30, 31, 32])]);
     expect(result.warnings.join(' ')).toContain('fewer than 3 completed scores');
   });
@@ -55,7 +55,7 @@ describe('finalist selection', () => {
 describe('winner selection', () => {
   it('proposes the highest-ranked eligible finalist', () => {
     const result = proposeWinner([candidate('a', [40, 41, 42]), candidate('b', [48, 47, 49])]);
-    expect(result.selected[0]?.nominationId).toBe('b');
+    expect(result.selected[0]?.candidacyId).toBe('b');
     expect(result.warnings).toHaveLength(0);
   });
 

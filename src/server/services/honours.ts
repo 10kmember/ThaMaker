@@ -8,7 +8,7 @@ import { requireDb } from '@/server/db';
 export type HonourKind = 'shortlist' | 'finalist' | 'winner' | 'special_recognition';
 
 export type ConferInput = {
-  nominationId: string;
+  candidacyId: string;
   kind: HonourKind;
   position?: number;
   citation?: string | null;
@@ -29,8 +29,8 @@ export type ConferResult =
 export async function conferHonour(input: ConferInput): Promise<ConferResult> {
   const db = requireDb();
 
-  const nomination = await db.nomination.findUnique({
-    where: { id: input.nominationId },
+  const candidacy = await db.candidacy.findUnique({
+    where: { id: input.candidacyId },
     include: {
       creator: { include: { verification: true } },
       category: true,
@@ -38,24 +38,24 @@ export async function conferHonour(input: ConferInput): Promise<ConferResult> {
     },
   });
 
-  if (!nomination) return { ok: false, reason: 'That nomination does not exist.' };
+  if (!candidacy) return { ok: false, reason: 'That candidacy does not exist.' };
 
-  if (nomination.status === 'ineligible' || nomination.status === 'withdrawn') {
-    return { ok: false, reason: 'That nomination is not eligible for an honour.' };
+  if (candidacy.status === 'ineligible' || candidacy.status === 'withdrawn') {
+    return { ok: false, reason: 'That candidacy is not eligible for an honour.' };
   }
 
   const standing = canReceiveHonour({
-    creatorIsSuspended: nomination.creator.isSuspended,
-    creatorVerificationStatus: nomination.creator.verification?.status ?? 'unverified',
+    creatorIsSuspended: candidacy.creator.isSuspended,
+    creatorVerificationStatus: candidacy.creator.verification?.status ?? 'unverified',
   });
   if (!standing.ok) return { ok: false, reason: standing.reason! };
 
   const existing = await db.honour.findUnique({
     where: {
       awardYearId_categoryId_creatorId_kind: {
-        awardYearId: nomination.awardYearId,
-        categoryId: nomination.categoryId,
-        creatorId: nomination.creatorId,
+        awardYearId: candidacy.awardYearId,
+        categoryId: candidacy.categoryId,
+        creatorId: candidacy.creatorId,
         kind: input.kind,
       },
     },
@@ -67,10 +67,10 @@ export async function conferHonour(input: ConferInput): Promise<ConferResult> {
   const result = await db.$transaction(async (tx) => {
     const honour = await tx.honour.create({
       data: {
-        awardYearId: nomination.awardYearId,
-        categoryId: nomination.categoryId,
-        creatorId: nomination.creatorId,
-        nominationId: nomination.id,
+        awardYearId: candidacy.awardYearId,
+        categoryId: candidacy.categoryId,
+        creatorId: candidacy.creatorId,
+        candidacyId: candidacy.id,
         kind: input.kind,
         position: input.position ?? 0,
         citation: input.citation ?? null,
@@ -78,8 +78,8 @@ export async function conferHonour(input: ConferInput): Promise<ConferResult> {
       },
     });
 
-    await tx.nomination.update({
-      where: { id: nomination.id },
+    await tx.candidacy.update({
+      where: { id: candidacy.id },
       data: {
         status:
           input.kind === 'winner'
@@ -92,7 +92,7 @@ export async function conferHonour(input: ConferInput): Promise<ConferResult> {
 
     // The creator profile becomes public the moment they hold an honour.
     await tx.creator.update({
-      where: { id: nomination.creatorId },
+      where: { id: candidacy.creatorId },
       data: { isPublished: true },
     });
 
@@ -100,13 +100,13 @@ export async function conferHonour(input: ConferInput): Promise<ConferResult> {
       return { honourId: honour.id, code: null as string | null };
     }
 
-    const code = deriveCode(signingSecret(), nomination.awardYear.year, honour.id);
+    const code = deriveCode(signingSecret(), candidacy.awardYear.year, honour.id);
     const payload = {
       code,
-      creatorSlug: nomination.creator.slug,
-      creatorName: nomination.creator.displayName,
-      categoryName: nomination.category.name,
-      year: nomination.awardYear.year,
+      creatorSlug: candidacy.creator.slug,
+      creatorName: candidacy.creator.displayName,
+      categoryName: candidacy.category.name,
+      year: candidacy.awardYear.year,
       kind: input.kind,
       issuedAt: issuedAt.toISOString(),
     };
@@ -114,12 +114,12 @@ export async function conferHonour(input: ConferInput): Promise<ConferResult> {
     const achievement = await tx.achievement.create({
       data: {
         honourId: honour.id,
-        creatorId: nomination.creatorId,
+        creatorId: candidacy.creatorId,
         code,
         kind: input.kind,
-        year: nomination.awardYear.year,
-        categoryName: nomination.category.name,
-        creatorName: nomination.creator.displayName,
+        year: candidacy.awardYear.year,
+        categoryName: candidacy.category.name,
+        creatorName: candidacy.creator.displayName,
         issuedAt,
       },
     });
@@ -147,8 +147,8 @@ export async function conferHonour(input: ConferInput): Promise<ConferResult> {
     entityType: 'Honour',
     entityId: result.honourId,
     actor: input.actor,
-    summary: `${nomination.creator.displayName} — ${nomination.category.name} (${nomination.awardYear.year})`,
-    after: { kind: input.kind, code: result.code, nominationId: nomination.id },
+    summary: `${candidacy.creator.displayName} — ${candidacy.category.name} (${candidacy.awardYear.year})`,
+    after: { kind: input.kind, code: result.code, candidacyId: candidacy.id },
   });
 
   if (result.code) {
@@ -157,7 +157,7 @@ export async function conferHonour(input: ConferInput): Promise<ConferResult> {
       entityType: 'Achievement',
       entityId: result.code,
       actor: input.actor,
-      summary: `Verification record issued for ${nomination.creator.displayName}`,
+      summary: `Verification record issued for ${candidacy.creator.displayName}`,
     });
   }
 

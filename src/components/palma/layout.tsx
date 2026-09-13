@@ -80,7 +80,7 @@ export function PageHeader({
   children,
   tone = 'ink',
 }: {
-  label?: string;
+  label?: React.ReactNode;
   title: React.ReactNode;
   standfirst?: React.ReactNode;
   meta?: React.ReactNode;

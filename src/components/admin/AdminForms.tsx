@@ -9,7 +9,7 @@ import {
   assignJudges,
   confirmFinalists,
   confirmWinner,
-  reviewNomination,
+  reviewCandidacy,
   type AdminState,
 } from '@/server/actions/admin';
 import { SEASON_STAGES, STAGE_LABEL, type SeasonStage } from '@/domain/season';
@@ -21,27 +21,27 @@ function Feedback({ state }: { state: AdminState }) {
   return <Notice tone={state.status === 'error' ? 'error' : 'ceremonial'}>{state.message}</Notice>;
 }
 
-export function ReviewForm({ nominationId, status }: { nominationId: string; status: string }) {
-  const [state, action, pending] = useActionState(reviewNomination, initial);
+export function ReviewForm({ candidacyId, status }: { candidacyId: string; status: string }) {
+  const [state, action, pending] = useActionState(reviewCandidacy, initial);
 
   return (
     <form action={action} className="flex flex-col gap-3">
-      <input type="hidden" name="nominationId" value={nominationId} />
+      <input type="hidden" name="candidacyId" value={candidacyId} />
       <Feedback state={state} />
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-2">
-          <Label htmlFor={`decision-${nominationId}`}>Decision</Label>
-          <Select id={`decision-${nominationId}`} name="decision" defaultValue={status}>
+          <Label htmlFor={`decision-${candidacyId}`}>Decision</Label>
+          <Select id={`decision-${candidacyId}`} name="decision" defaultValue={status}>
             <option value="eligible">Eligible</option>
             <option value="under_review">Keep under review</option>
             <option value="ineligible">Ineligible</option>
-            <option value="duplicate">Duplicate</option>
+            <option value="withdrawn">Withdrawn</option>
           </Select>
         </div>
         <div className="flex flex-1 flex-col gap-2">
-          <Label htmlFor={`note-${nominationId}`}>Reason (required unless eligible)</Label>
-          <Input id={`note-${nominationId}`} name="note" maxLength={500} />
+          <Label htmlFor={`note-${candidacyId}`}>Reason (required unless eligible)</Label>
+          <Input id={`note-${candidacyId}`} name="note" maxLength={500} />
         </div>
         <Button type="submit" size="md" variant="outline" disabled={pending}>
           {pending ? 'Saving…' : 'Record decision'}

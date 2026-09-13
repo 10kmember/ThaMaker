@@ -14,10 +14,16 @@ import { conferHonour, revokeHonour } from '@/server/services/honours';
 
 export type AdminState = { status: 'idle' | 'error' | 'success'; message?: string };
 
-const JUDGES_PER_NOMINATION = 3;
+const JUDGES_PER_CANDIDACY = 3;
 
-/** Mark a nomination eligible, ineligible or duplicate after human review. */
-export async function reviewNomination(
+/**
+ * Rule on a candidacy after human review.
+ *
+ * This is the screening layer between the audience and the panel: it decides
+ * whether a creator's candidacy is eligible to be judged at all. It never reads
+ * the nomination count.
+ */
+export async function reviewCandidacy(
   _previous: AdminState,
   formData: FormData,
 ): Promise<AdminState> {
@@ -27,14 +33,14 @@ export async function reviewNomination(
   try {
     session = await authorise('admin:review_nominations');
   } catch {
-    return { status: 'error', message: 'You are not authorised to review nominations.' };
+    return { status: 'error', message: 'You are not authorised to review candidacies.' };
   }
 
-  const nominationId = String(formData.get('nominationId') ?? '');
+  const candidacyId = String(formData.get('candidacyId') ?? '');
   const decision = String(formData.get('decision') ?? '');
   const note = String(formData.get('note') ?? '').trim();
 
-  if (!['eligible', 'ineligible', 'duplicate', 'under_review'].includes(decision)) {
+  if (!['eligible', 'ineligible', 'withdrawn', 'under_review'].includes(decision)) {
     return { status: 'error', message: 'Unknown decision.' };
   }
   if (decision !== 'eligible' && note.length < 10) {
@@ -42,25 +48,28 @@ export async function reviewNomination(
   }
 
   const db = requireDb();
-  const before = await db.nomination.findUnique({
-    where: { id: nominationId },
+  const before = await db.candidacy.findUnique({
+    where: { id: candidacyId },
     select: { status: true, reference: true },
   });
-  if (!before) return { status: 'error', message: 'That nomination does not exist.' };
+  if (!before) return { status: 'error', message: 'That candidacy does not exist.' };
 
-  await db.nomination.update({
-    where: { id: nominationId },
+  await db.candidacy.update({
+    where: { id: candidacyId },
     data: {
       status: decision as 'eligible',
       reviewedAt: new Date(),
+      reviewedById: session.user.id,
       reviewNote: note || null,
+      // Ruling on it resolves whatever the integrity screen raised.
+      ...(decision === 'eligible' ? { integrityFlag: false } : {}),
     },
   });
 
   await recordAudit({
-    action: 'nomination.eligibility_changed',
-    entityType: 'Nomination',
-    entityId: nominationId,
+    action: 'candidacy.eligibility_changed',
+    entityType: 'Candidacy',
+    entityId: candidacyId,
     actor: { id: session.user.id, role: session.user.role, label: session.user.email },
     summary: `${before.reference} → ${decision}`,
     before: { status: before.status },
@@ -68,7 +77,7 @@ export async function reviewNomination(
   });
 
   revalidatePath('/admin/nominations');
-  return { status: 'success', message: `Nomination marked ${decision.replace('_', ' ')}.` };
+  return { status: 'success', message: `Candidacy marked ${decision.replace('_', ' ')}.` };
 }
 
 /**
@@ -94,13 +103,13 @@ export async function assignJudges(_previous: AdminState, formData: FormData): P
     where: { id: categoryId },
     include: {
       awardYear: { include: { judges: { include: { judge: true } } } },
-      nominations: { where: { status: 'eligible' }, select: { id: true, creatorId: true } },
+      candidacies: { where: { status: 'eligible' }, select: { id: true, creatorId: true } },
     },
   });
 
   if (!category) return { status: 'error', message: 'That category does not exist.' };
-  if (category.nominations.length === 0) {
-    return { status: 'error', message: 'No eligible nominations to assign in this category.' };
+  if (category.candidacies.length === 0) {
+    return { status: 'error', message: 'No eligible candidacies to assign in this category.' };
   }
 
   const judgeIds = category.awardYear.judges
@@ -113,39 +122,39 @@ export async function assignJudges(_previous: AdminState, formData: FormData): P
 
   const conflicts = await db.judgeConflict.findMany({
     where: { judgeId: { in: judgeIds }, status: { not: 'dismissed' } },
-    select: { judgeId: true, creatorId: true, nominationId: true, status: true },
+    select: { judgeId: true, creatorId: true, candidacyId: true, status: true },
   });
 
   const existing = await db.judgingAssignment.findMany({
     where: { categoryId },
-    select: { judgeId: true, nominationId: true },
+    select: { judgeId: true, candidacyId: true },
   });
-  const alreadyAssigned = new Set(existing.map((row) => `${row.judgeId}:${row.nominationId}`));
+  const alreadyAssigned = new Set(existing.map((row) => `${row.judgeId}:${row.candidacyId}`));
 
   const plan = planAssignments({
-    nominations: category.nominations,
+    candidacies: category.candidacies,
     judgeIds,
     conflicts: conflicts.map((conflict) => ({
       judgeId: conflict.judgeId,
       creatorId: conflict.creatorId,
-      nominationId: conflict.nominationId,
+      candidacyId: conflict.candidacyId,
       status: conflict.status,
     })),
-    judgesPerNomination: JUDGES_PER_NOMINATION,
+    judgesPerCandidacy: JUDGES_PER_CANDIDACY,
   });
 
   const fresh = plan.assignments.filter(
-    (assignment) => !alreadyAssigned.has(`${assignment.judgeId}:${assignment.nominationId}`),
+    (assignment) => !alreadyAssigned.has(`${assignment.judgeId}:${assignment.candidacyId}`),
   );
 
   if (fresh.length === 0) {
-    return { status: 'success', message: 'Every eligible nomination is already assigned.' };
+    return { status: 'success', message: 'Every eligible candidacy is already assigned.' };
   }
 
   await db.judgingAssignment.createMany({
     data: fresh.map((assignment) => ({
       judgeId: assignment.judgeId,
-      nominationId: assignment.nominationId,
+      candidacyId: assignment.candidacyId,
       categoryId,
     })),
     skipDuplicates: true,
@@ -165,7 +174,7 @@ export async function assignJudges(_previous: AdminState, formData: FormData): P
     status: 'success',
     message:
       plan.understaffed.length > 0
-        ? `${fresh.length} assignments created. ${plan.understaffed.length} nomination(s) could not be fully covered without a conflict.`
+        ? `${fresh.length} assignments created. ${plan.understaffed.length} candidacy(ies) could not be fully covered without a conflict.`
         : `${fresh.length} assignments created.`,
   };
 }
@@ -190,8 +199,8 @@ export async function confirmFinalists(
   const category = await db.category.findUnique({
     where: { id: categoryId },
     include: {
-      nominations: {
-        where: { status: { notIn: ['draft', 'withdrawn', 'ineligible', 'duplicate'] } },
+      candidacies: {
+        where: { status: { notIn: ['withdrawn', 'ineligible'] } },
         include: {
           creator: { include: { verification: true } },
           scores: { select: { total: true } },
@@ -203,25 +212,25 @@ export async function confirmFinalists(
   if (!category) return { status: 'error', message: 'That category does not exist.' };
 
   const proposal = proposeFinalists(
-    category.nominations.map((nomination) => ({
-      nominationId: nomination.id,
-      creatorId: nomination.creatorId,
-      totals: nomination.scores.map((score) => score.total),
+    category.candidacies.map((candidacy) => ({
+      candidacyId: candidacy.id,
+      creatorId: candidacy.creatorId,
+      totals: candidacy.scores.map((score) => score.total),
       eligible:
-        !nomination.creator.isSuspended && nomination.creator.verification?.status === 'verified',
+        !candidacy.creator.isSuspended && candidacy.creator.verification?.status === 'verified',
     })),
     DEFAULT_FINALIST_COUNT,
   );
 
   if (proposal.selected.length === 0) {
-    return { status: 'error', message: 'No eligible nominations can be advanced.' };
+    return { status: 'error', message: 'No eligible candidacies can be advanced.' };
   }
 
   const results = [];
   for (const finalist of proposal.selected) {
     results.push(
       await conferHonour({
-        nominationId: finalist.nominationId,
+        candidacyId: finalist.candidacyId,
         kind: 'finalist',
         position: finalist.position,
         actor: { id: session.user.id, role: session.user.role, label: session.user.email },
@@ -264,7 +273,7 @@ export async function confirmWinner(
   const finalists = await db.honour.findMany({
     where: { categoryId, kind: 'finalist', state: 'active' },
     include: {
-      nomination: {
+      candidacy: {
         include: {
           creator: { include: { verification: true } },
           scores: { select: { total: true } },
@@ -280,14 +289,14 @@ export async function confirmWinner(
 
   const proposal = proposeWinner(
     finalists
-      .filter((honour) => honour.nomination)
+      .filter((honour) => honour.candidacy)
       .map((honour) => ({
-        nominationId: honour.nomination!.id,
+        candidacyId: honour.candidacy!.id,
         creatorId: honour.creatorId,
-        totals: honour.nomination!.scores.map((score) => score.total),
+        totals: honour.candidacy!.scores.map((score) => score.total),
         eligible:
-          !honour.nomination!.creator.isSuspended &&
-          honour.nomination!.creator.verification?.status === 'verified',
+          !honour.candidacy!.creator.isSuspended &&
+          honour.candidacy!.creator.verification?.status === 'verified',
       })),
   );
 
@@ -297,7 +306,7 @@ export async function confirmWinner(
   }
 
   const result = await conferHonour({
-    nominationId: winner.nominationId,
+    candidacyId: winner.candidacyId,
     kind: 'winner',
     position: 1,
     citation,

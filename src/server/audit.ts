@@ -10,11 +10,14 @@ import type { Role } from '@/lib/auth/rbac';
  * operation changes the institutional record, it belongs in this list.
  */
 export const AUDIT_ACTIONS = [
-  'nomination.created',
-  'nomination.submitted',
-  'nomination.eligibility_changed',
+  'nomination.counted',
+  'nomination.rejected',
   'nomination.withdrawn',
-  'nomination.marked_duplicate',
+  'nominator.blocked',
+  'candidacy.created',
+  'candidacy.eligibility_changed',
+  'candidacy.integrity_flagged',
+  'candidacy.evidence_added',
   'judge.assigned',
   'judge.unassigned',
   'judge.conflict_declared',

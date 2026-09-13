@@ -60,12 +60,26 @@ export default async function AssignmentPage({ params }: Params) {
             </div>
           </dl>
 
-          <section className="flex flex-col gap-3">
-            <h2 className="palma-label text-taupe-deep">Supporting statement</h2>
-            <p className="text-ink/85 leading-relaxed whitespace-pre-wrap">
-              {assignment.statement}
-            </p>
-          </section>
+          {assignment.audienceVoices.length > 0 ? (
+            <section className="flex flex-col gap-4">
+              <h2 className="palma-label text-taupe-deep">What the audience said</h2>
+              <Notice>
+                A sample of the reasons given when this creator was nominated. PALMA does not tell
+                you how many nominations there were, and does not want you to weigh it: popularity
+                brings a creator to our attention, and stops there.
+              </Notice>
+              <ul className="flex flex-col gap-3">
+                {assignment.audienceVoices.map((voice, index) => (
+                  <li
+                    key={index}
+                    className="border-stone-deep text-ink/85 border-l-2 pl-5 text-sm leading-relaxed"
+                  >
+                    “{voice}”
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           <section className="flex flex-col gap-4">
             <h2 className="palma-label text-taupe-deep">External evidence</h2>
@@ -110,7 +124,7 @@ export default async function AssignmentPage({ params }: Params) {
         <div className="lg:col-span-5">
           <ScoreForm
             assignmentId={assignment.id}
-            nominationId={assignment.nominationId}
+            candidacyId={assignment.candidacyId}
             alreadyScored={assignment.alreadyScored}
           />
         </div>

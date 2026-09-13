@@ -3,11 +3,16 @@ import { notFound } from 'next/navigation';
 import { Container, PageHeader, Section, SectionHeading } from '@/components/palma/layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { SeasonProgress } from '@/components/palma/SeasonProgress';
+import { SeasonRail } from '@/components/palma/SeasonRail';
 import { CategoryCard } from '@/components/palma/CategoryCard';
 import { EditorialImage } from '@/components/palma/EditorialImage';
 import { JsonLd, breadcrumbJsonLd, buildMetadata } from '@/lib/seo';
-import { STAGE_LABEL, acceptsNominations, winnersArePublic } from '@/domain/season';
+import {
+  STAGE_LABEL,
+  acceptsNominations,
+  shortlistIsPublic,
+  winnersArePublic,
+} from '@/domain/season';
 import { formatDate } from '@/lib/format';
 import { getSeason, listCategories, listSeasonOutcomes, listSeasons } from '@/server/data/queries';
 
@@ -60,7 +65,9 @@ export default async function SeasonPage({ params }: Params) {
         standfirst={season.summary ?? undefined}
         meta={
           <>
-            <Badge variant={open ? 'champagne' : 'outlineIvory'}>{STAGE_LABEL[season.stage]}</Badge>
+            <Badge variant={open ? 'champagneDark' : 'outlineIvory'}>
+              {STAGE_LABEL[season.stage]}
+            </Badge>
             <span className="palma-label text-ivory/50">
               Ceremony {formatDate(season.ceremonyAt)}
             </span>
@@ -68,18 +75,16 @@ export default async function SeasonPage({ params }: Params) {
         }
       />
 
-      <Section className="py-16">
+      <Section id="shortlist" className="py-16">
         <Container>
-          <SeasonProgress
-            tone="light"
-            stage={season.stage}
-            dates={[
-              season.nominationsOpenAt,
-              season.shortlistAt,
-              season.finalistsAt,
-              season.ceremonyAt,
-            ]}
-          />
+          <h2 className="palma-label text-taupe-deep mb-8">The season</h2>
+          <SeasonRail year={season.year} stage={season.stage} tone="light" />
+
+          <p className="text-taupe-deep mt-10 max-w-160 text-sm leading-relaxed">
+            {shortlistIsPublic(season.stage)
+              ? 'The shortlist has been published. Each category below carries its own shortlist, finalists and, once the ceremony has taken place, its winner.'
+              : 'Nominations are screened by a person, the panel scores what is eligible, and each stage is published on the date set out before the season opened.'}
+          </p>
         </Container>
       </Section>
 

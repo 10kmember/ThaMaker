@@ -24,7 +24,7 @@ export default async function AdminJudgingPage() {
     orderBy: { position: 'asc' },
     include: {
       _count: { select: { assignments: true } },
-      nominations: { where: { status: 'eligible' }, select: { id: true } },
+      candidacies: { where: { status: 'eligible' }, select: { id: true } },
     },
   });
 
@@ -39,9 +39,9 @@ export default async function AdminJudgingPage() {
     <>
       <h2 className="text-3xl">Panel assignment</h2>
       <p className="text-taupe-deep mt-3 max-w-160 leading-relaxed">
-        Assignment is deterministic and conflict-aware: each eligible nomination is placed with
-        three judges, load is spread evenly, and any judge with a declared conflict is excluded
-        before placement. Running it twice adds only what is missing.
+        Assignment is deterministic and conflict-aware: each eligible candidacy is placed with three
+        judges, load is spread evenly, and any judge with a declared conflict is excluded before
+        placement. Running it twice adds only what is missing.
       </p>
 
       {categories.length === 0 ? (
@@ -53,7 +53,7 @@ export default async function AdminJudgingPage() {
               key={category.id}
               categoryId={category.id}
               categoryName={category.name}
-              eligibleCount={category.nominations.length}
+              eligibleCount={category.candidacies.length}
               assignedCount={category._count.assignments}
             />
           ))}
@@ -72,7 +72,7 @@ export default async function AdminJudgingPage() {
                 <span className="font-display text-lg">{conflict.judge.displayName}</span>
                 <span className="palma-label text-taupe-deep">{conflict.kind}</span>
                 <span className="text-taupe-deep text-sm">
-                  {conflict.nominationId ?? conflict.creatorId}
+                  {conflict.candidacyId ?? conflict.creatorId}
                 </span>
               </li>
             ))}

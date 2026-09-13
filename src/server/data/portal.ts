@@ -1,14 +1,13 @@
 import 'server-only';
+import { canIssueReferralLink, referralPath } from '@/domain/nomination';
 import { prisma } from '@/server/db';
 
-export type PortalNomination = {
+export type PortalCandidacy = {
   id: string;
   reference: string;
-  creatorName: string;
   categoryName: string;
   year: number;
   status: string;
-  submittedAt: string | null;
 };
 
 export type PortalAchievement = {
@@ -30,7 +29,9 @@ export type CreatorPortal = {
     verifiedAt: string | null;
     expiresAt: string | null;
   };
-  nominations: PortalNomination[];
+  candidacies: PortalCandidacy[];
+  /** The creator's own nomination link, once it has been issued. */
+  referralPath: string | null;
   achievements: PortalAchievement[];
   preferences: {
     seasonAnnouncements: boolean;
@@ -52,12 +53,12 @@ export async function getCreatorPortal(userId: string): Promise<CreatorPortal | 
         include: {
           verification: true,
           achievements: { include: { honour: true }, orderBy: { issuedAt: 'desc' } },
+          candidacies: {
+            include: { category: true, awardYear: true },
+            orderBy: { createdAt: 'desc' },
+            take: 50,
+          },
         },
-      },
-      nominationsMade: {
-        include: { creator: true, category: true, awardYear: true },
-        orderBy: { createdAt: 'desc' },
-        take: 50,
       },
     },
   });
@@ -75,15 +76,22 @@ export async function getCreatorPortal(userId: string): Promise<CreatorPortal | 
       verifiedAt: user.creator?.verification?.verifiedAt?.toISOString() ?? null,
       expiresAt: user.creator?.verification?.expiresAt?.toISOString() ?? null,
     },
-    nominations: user.nominationsMade.map((nomination) => ({
-      id: nomination.id,
-      reference: nomination.reference,
-      creatorName: nomination.creator.displayName,
-      categoryName: nomination.category.name,
-      year: nomination.awardYear.year,
-      status: nomination.status,
-      submittedAt: nomination.submittedAt?.toISOString() ?? null,
+    candidacies: (user.creator?.candidacies ?? []).map((candidacy) => ({
+      id: candidacy.id,
+      reference: candidacy.reference,
+      categoryName: candidacy.category.name,
+      year: candidacy.awardYear.year,
+      status: candidacy.status,
     })),
+    referralPath:
+      user.creator &&
+      canIssueReferralLink({
+        isClaimed: user.creator.isClaimed,
+        isSuspended: user.creator.isSuspended,
+        verificationStatus: user.creator.verification?.status ?? 'unverified',
+      })
+        ? referralPath(user.creator.slug)
+        : null,
     achievements: (user.creator?.achievements ?? []).map((achievement) => ({
       code: achievement.code,
       kind: achievement.kind,

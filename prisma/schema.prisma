@@ -48,24 +48,35 @@ enum VerificationStatus {
 }
 
 enum NominationSource {
-  self
-  public_nominator
-  authorised_nominator
+  /// Found through PALMA and nominated from the site.
+  organic
+  /// Arrived through a creator's own nomination link.
+  referral
+  /// Entered by PALMA itself, e.g. a category the panel wants contested.
   editorial
 }
 
+/// The life of a single audience nomination.
 enum NominationStatus {
-  draft
-  submitted
+  /// Written, but the nominator's email is not yet verified.
+  pending_verification
+  /// Verified and committed. This is the only state that counts.
+  counted
+  /// Refused by integrity screening or moderation.
+  rejected
+  /// Withdrawn by the nominator.
+  withdrawn
+}
+
+/// The life of a creator's candidacy in one category of one season.
+enum CandidacyStatus {
   under_review
   eligible
   ineligible
-  duplicate
-  withdrawn
   shortlisted
   finalist
   winner
-  rejected
+  withdrawn
 }
 
 enum EvidenceKind {
@@ -164,41 +175,40 @@ enum NotificationChannel {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id              String    @id @default(cuid())
+  email           String    @unique
   emailVerifiedAt DateTime?
-  name         String
-  passwordHash String
-  role         Role     @default(creator)
-  isActive     Boolean  @default(true)
-  lastLoginAt  DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  name            String
+  passwordHash    String
+  role            Role      @default(creator)
+  isActive        Boolean   @default(true)
+  lastLoginAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  creator            Creator?
-  judge              Judge?
-  sessions           AuthSession[]
-  nominationsMade    Nomination[]       @relation("NominationSubmitter")
-  auditLogs          AuditLog[]
-  notifications      Notification[]
-  moderationActions  ModerationAction[] @relation("ModerationActor")
-  reportsFiled       Report[]           @relation("ReportReporter")
-  articlesAuthored   Article[]          @relation("ArticleAuthor")
-  notificationPrefs  NotificationPreference?
+  creator           Creator?
+  judge             Judge?
+  sessions          AuthSession[]
+  auditLogs         AuditLog[]
+  notifications     Notification[]
+  moderationActions ModerationAction[]      @relation("ModerationActor")
+  reportsFiled      Report[]                @relation("ReportReporter")
+  articlesAuthored  Article[]               @relation("ArticleAuthor")
+  notificationPrefs NotificationPreference?
 
   @@index([role])
 }
 
 model AuthSession {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   userId     String
-  tokenHash  String   @unique
+  tokenHash  String    @unique
   csrfSecret String
   userAgent  String?
   ipHash     String?
   expiresAt  DateTime
   revokedAt  DateTime?
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -222,31 +232,35 @@ model NotificationPreference {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Creator {
-  id            String   @id @default(cuid())
-  slug          String   @unique
-  displayName   String
-  pronouns      String?
-  countryCode   String   @db.Char(2)
-  city          String?
-  headline      String?
-  biography     String?  @db.Text
-  portraitUrl   String?
-  portraitAlt   String?
-  websiteUrl    String?
-  isPublished   Boolean  @default(false)
-  isClaimed     Boolean  @default(false)
-  isSuspended   Boolean  @default(false)
-  userId        String?  @unique
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  displayName String
+  pronouns    String?
+  countryCode String   @db.Char(2)
+  city        String?
+  headline    String?
+  biography   String?  @db.Text
+  portraitUrl String?
+  portraitAlt String?
+  websiteUrl  String?
+  isPublished Boolean  @default(false)
+  isClaimed   Boolean  @default(false)
+  isSuspended Boolean  @default(false)
+  userId      String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  user            User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
-  verification    CreatorVerification?
-  nominations     Nomination[]
-  honours         Honour[]
-  achievements    Achievement[]
-  links           CreatorLink[]
-  reports         Report[]             @relation("ReportSubjectCreator")
+  user         User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  verification CreatorVerification?
+  candidacies  Candidacy[]
+  honours      Honour[]
+  achievements Achievement[]
+  links        CreatorLink[]
+  reports      Report[]             @relation("ReportSubjectCreator")
+
+  /// The creator's own nomination link: palmaawards.com/nominate/<slug>.
+  /// Issued once the profile is claimed and verified.
+  referralEnabled Boolean @default(false)
 
   @@index([countryCode])
   @@index([isPublished])
@@ -268,18 +282,18 @@ model CreatorLink {
 /// PALMA deliberately stores no identity documents — only the minimum state
 /// required to prove that assurance happened.
 model CreatorVerification {
-  id                  String             @id @default(cuid())
-  creatorId           String             @unique
-  status              VerificationStatus @default(unverified)
-  provider            String?
-  providerReference   String?
-  method              String?
-  verifiedAt          DateTime?
-  expiresAt           DateTime?
-  lastCheckedAt       DateTime?
-  failureCode         String?
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
+  id                String             @id @default(cuid())
+  creatorId         String             @unique
+  status            VerificationStatus @default(unverified)
+  provider          String?
+  providerReference String?
+  method            String?
+  verifiedAt        DateTime?
+  expiresAt         DateTime?
+  lastCheckedAt     DateTime?
+  failureCode       String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 
   creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
@@ -291,26 +305,26 @@ model CreatorVerification {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model AwardYear {
-  id                  String      @id @default(cuid())
-  year                Int         @unique
-  title               String
-  stage               SeasonStage @default(announced)
-  tagline             String?
-  summary             String?     @db.Text
-  nominationsOpenAt   DateTime?
-  nominationsCloseAt  DateTime?
-  shortlistAt         DateTime?
-  finalistsAt         DateTime?
-  ceremonyAt          DateTime?
-  isCurrent           Boolean     @default(false)
-  createdAt           DateTime    @default(now())
-  updatedAt           DateTime    @updatedAt
+  id                 String      @id @default(cuid())
+  year               Int         @unique
+  title              String
+  stage              SeasonStage @default(announced)
+  tagline            String?
+  summary            String?     @db.Text
+  nominationsOpenAt  DateTime?
+  nominationsCloseAt DateTime?
+  shortlistAt        DateTime?
+  finalistsAt        DateTime?
+  ceremonyAt         DateTime?
+  isCurrent          Boolean     @default(false)
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
 
-  categories    Category[]
-  nominations   Nomination[]
-  honours       Honour[]
-  judges        JudgePanelMembership[]
-  sponsorships  Sponsorship[]
+  categories   Category[]
+  candidacies  Candidacy[]
+  honours      Honour[]
+  judges       JudgePanelMembership[]
+  sponsorships Sponsorship[]
 
   @@index([stage])
 }
@@ -329,8 +343,8 @@ model Category {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  awardYear    AwardYear     @relation(fields: [awardYearId], references: [id], onDelete: Cascade)
-  nominations  Nomination[]
+  awardYear    AwardYear           @relation(fields: [awardYearId], references: [id], onDelete: Cascade)
+  candidacies  Candidacy[]
   honours      Honour[]
   assignments  JudgingAssignment[]
   sponsorships Sponsorship[]
@@ -341,65 +355,145 @@ model Category {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Nominations
+//
+// Two different things live here, and keeping them apart is the point:
+//
+//   Candidacy  — a creator's candidacy in one category of one season. This is
+//                what PALMA judges, and what carries an honour.
+//   Nomination — one person's signal that a creator deserves consideration.
+//
+// Many nominations point at one candidacy. Nomination volume is an input to
+// discovery, never to the outcome: nothing in the judging path reads the count.
 // ─────────────────────────────────────────────────────────────────────────────
 
-model Nomination {
-  id               String           @id @default(cuid())
-  reference        String           @unique
-  awardYearId      String
-  categoryId       String
-  creatorId        String
-  submittedById    String?
-  source           NominationSource @default(public_nominator)
-  status           NominationStatus @default(draft)
-  statement        String           @db.Text
-  nominatorName    String?
-  nominatorEmail   String?
-  nominatorRelation String?
-  eligibilityConfirmed Boolean      @default(false)
-  contentPolicyConfirmed Boolean    @default(false)
-  ageConfirmed     Boolean          @default(false)
-  ipHash           String?
-  submittedAt      DateTime?
-  reviewedAt       DateTime?
-  reviewNote       String?          @db.Text
-  duplicateOfId    String?
-  integrityScore   Int              @default(0)
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+/// A person who has nominated. Deliberately not a PALMA account: an email
+/// address, verified once, and nothing else.
+model Nominator {
+  id       String @id @default(cuid())
+  email    String @unique
+  /// Normalised form (lower-cased, provider aliases folded) so one person
+  /// cannot become several nominators through address tricks.
+  emailKey String @unique
 
-  awardYear   AwardYear            @relation(fields: [awardYearId], references: [id])
-  category    Category             @relation(fields: [categoryId], references: [id])
-  creator     Creator              @relation(fields: [creatorId], references: [id])
-  submittedBy User?                @relation("NominationSubmitter", fields: [submittedById], references: [id], onDelete: SetNull)
-  duplicateOf Nomination?          @relation("NominationDuplicate", fields: [duplicateOfId], references: [id], onDelete: SetNull)
-  duplicates  Nomination[]         @relation("NominationDuplicate")
-  evidence    NominationEvidence[]
+  verifiedAt      DateTime?
+  lastNominatedAt DateTime?
+  isBlocked       Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  nominations   Nomination[]
+  verifications NominatorVerification[]
+
+  @@index([verifiedAt])
+}
+
+/// A short-lived email verification code. Codes are stored hashed, expire, and
+/// are single-use; attempts are counted so a code cannot be brute-forced.
+model NominatorVerification {
+  id          String    @id @default(cuid())
+  nominatorId String
+  codeHash    String
+  expiresAt   DateTime
+  attempts    Int       @default(0)
+  consumedAt  DateTime?
+  ipHash      String?
+  createdAt   DateTime  @default(now())
+
+  nominator Nominator @relation(fields: [nominatorId], references: [id], onDelete: Cascade)
+
+  @@index([nominatorId])
+  @@index([expiresAt])
+}
+
+model Candidacy {
+  id          String          @id @default(cuid())
+  reference   String          @unique
+  awardYearId String
+  categoryId  String
+  creatorId   String
+  status      CandidacyStatus @default(under_review)
+
+  /// Count of counted nominations. Operational and judging-blind: it is shown
+  /// to administrators, never to judges, and never to the public.
+  nominationCount  Int       @default(0)
+  firstNominatedAt DateTime?
+  lastNominatedAt  DateTime?
+
+  /// Raised when integrity screening sees coordinated or automated activity.
+  integrityFlag Boolean   @default(false)
+  integrityNote String?   @db.Text
+  reviewedAt    DateTime?
+  reviewedById  String?
+  reviewNote    String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  awardYear   AwardYear           @relation(fields: [awardYearId], references: [id])
+  category    Category            @relation(fields: [categoryId], references: [id])
+  creator     Creator             @relation(fields: [creatorId], references: [id])
+  nominations Nomination[]
+  evidence    CandidacyEvidence[]
   assignments JudgingAssignment[]
   scores      JudgingScore[]
   honours     Honour[]
-  reports     Report[]             @relation("ReportSubjectNomination")
+  reports     Report[]            @relation("ReportSubjectCandidacy")
 
   @@unique([awardYearId, categoryId, creatorId])
   @@index([status])
   @@index([awardYearId, categoryId])
 }
 
-/// Evidence policy: PALMA points, it does not publish. Evidence is a reference
-/// for authorised judges — never hosted media.
-model NominationEvidence {
-  id           String       @id @default(cuid())
-  nominationId String
-  kind         EvidenceKind @default(external_link)
-  label        String
-  url          String?
-  note         String?      @db.Text
-  isExternal   Boolean      @default(true)
-  createdAt    DateTime     @default(now())
+model Nomination {
+  id          String           @id @default(cuid())
+  reference   String           @unique
+  candidacyId String
+  nominatorId String
+  source      NominationSource @default(organic)
+  status      NominationStatus @default(pending_verification)
 
-  nomination Nomination @relation(fields: [nominationId], references: [id], onDelete: Cascade)
+  /// A sentence or two. No essay, no evidence, no attachments.
+  reason String @db.Text
 
-  @@index([nominationId])
+  /// Set when the nomination arrived through a creator's own link.
+  referralSlug String?
+
+  ipHash           String?
+  userAgentHash    String?
+  integrityScore   Int      @default(0)
+  integritySignals String[]
+
+  createdAt       DateTime  @default(now())
+  verifiedAt      DateTime?
+  countedAt       DateTime?
+  rejectedAt      DateTime?
+  rejectionReason String?
+
+  candidacy Candidacy @relation(fields: [candidacyId], references: [id], onDelete: Cascade)
+  nominator Nominator @relation(fields: [nominatorId], references: [id], onDelete: Cascade)
+
+  /// One nomination per person, per creator, per category, per season —
+  /// enforced here rather than in the form.
+  @@unique([nominatorId, candidacyId])
+  @@index([status])
+  @@index([candidacyId])
+}
+
+/// Evidence is gathered by PALMA, not demanded of the audience. It is a private
+/// reference for authorised judges and is never published.
+model CandidacyEvidence {
+  id          String       @id @default(cuid())
+  candidacyId String
+  kind        EvidenceKind @default(external_link)
+  label       String
+  url         String?
+  note        String?      @db.Text
+  addedById   String?
+  createdAt   DateTime     @default(now())
+
+  candidacy Candidacy @relation(fields: [candidacyId], references: [id], onDelete: Cascade)
+
+  @@index([candidacyId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -407,16 +501,16 @@ model NominationEvidence {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Judge {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  displayName String
-  title       String?
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  displayName  String
+  title        String?
   organisation String?
-  biography   String?  @db.Text
-  countryCode String?  @db.Char(2)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  biography    String?  @db.Text
+  countryCode  String?  @db.Char(2)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
   memberships JudgePanelMembership[]
@@ -442,7 +536,7 @@ model JudgeConflict {
   id           String         @id @default(cuid())
   judgeId      String
   creatorId    String?
-  nominationId String?
+  candidacyId  String?
   kind         ConflictKind
   status       ConflictStatus @default(declared)
   note         String?        @db.Text
@@ -453,52 +547,52 @@ model JudgeConflict {
   judge Judge @relation(fields: [judgeId], references: [id], onDelete: Cascade)
 
   @@index([judgeId])
-  @@index([nominationId])
+  @@index([candidacyId])
 }
 
 model JudgingAssignment {
-  id           String           @id @default(cuid())
-  judgeId      String
-  nominationId String
-  categoryId   String
-  status       AssignmentStatus @default(assigned)
-  assignedAt   DateTime         @default(now())
-  completedAt  DateTime?
-  recusedAt    DateTime?
+  id          String           @id @default(cuid())
+  judgeId     String
+  candidacyId String
+  categoryId  String
+  status      AssignmentStatus @default(assigned)
+  assignedAt  DateTime         @default(now())
+  completedAt DateTime?
+  recusedAt   DateTime?
 
-  judge      Judge      @relation(fields: [judgeId], references: [id], onDelete: Cascade)
-  nomination Nomination @relation(fields: [nominationId], references: [id], onDelete: Cascade)
-  category   Category   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  score      JudgingScore?
+  judge     Judge         @relation(fields: [judgeId], references: [id], onDelete: Cascade)
+  candidacy Candidacy     @relation(fields: [candidacyId], references: [id], onDelete: Cascade)
+  category  Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  score     JudgingScore?
 
-  @@unique([judgeId, nominationId])
+  @@unique([judgeId, candidacyId])
   @@index([status])
 }
 
 /// Scores are immutable once submitted. Corrections are performed by an
 /// authorised administrator and leave both records in the audit log.
 model JudgingScore {
-  id              String   @id @default(cuid())
-  assignmentId    String   @unique
+  id              String    @id @default(cuid())
+  assignmentId    String    @unique
   judgeId         String
-  nominationId    String
+  candidacyId     String
   originality     Int
   consistency     Int
   professionalism Int
   impact          Int
   brand           Int
   total           Int
-  remarks         String?  @db.Text
-  submittedAt     DateTime @default(now())
+  remarks         String?   @db.Text
+  submittedAt     DateTime  @default(now())
   correctedAt     DateTime?
   correctedById   String?
-  correctionNote  String?  @db.Text
+  correctionNote  String?   @db.Text
 
   assignment JudgingAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   judge      Judge             @relation(fields: [judgeId], references: [id], onDelete: Cascade)
-  nomination Nomination        @relation(fields: [nominationId], references: [id], onDelete: Cascade)
+  candidacy  Candidacy         @relation(fields: [candidacyId], references: [id], onDelete: Cascade)
 
-  @@index([nominationId])
+  @@index([candidacyId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -508,25 +602,25 @@ model JudgingScore {
 /// A single table carries shortlist, finalist and winner states so that the
 /// Roll of Honour has one authoritative source per (year, category, creator).
 model Honour {
-  id           String      @id @default(cuid())
-  awardYearId  String
-  categoryId   String
-  creatorId    String
-  nominationId String?
-  kind         HonourKind
-  state        HonourState @default(active)
-  position     Int         @default(0)
-  citation     String?     @db.Text
-  announcedAt  DateTime?
-  revokedAt    DateTime?
-  revokedReason String?    @db.Text
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id            String      @id @default(cuid())
+  awardYearId   String
+  categoryId    String
+  creatorId     String
+  candidacyId   String?
+  kind          HonourKind
+  state         HonourState @default(active)
+  position      Int         @default(0)
+  citation      String?     @db.Text
+  announcedAt   DateTime?
+  revokedAt     DateTime?
+  revokedReason String?     @db.Text
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
   awardYear   AwardYear    @relation(fields: [awardYearId], references: [id], onDelete: Cascade)
   category    Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   creator     Creator      @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  nomination  Nomination?  @relation(fields: [nominationId], references: [id], onDelete: SetNull)
+  candidacy   Candidacy?   @relation(fields: [candidacyId], references: [id], onDelete: SetNull)
   achievement Achievement?
 
   @@unique([awardYearId, categoryId, creatorId, kind])
@@ -535,17 +629,17 @@ model Honour {
 
 /// The permanent, publicly citable record of an honour.
 model Achievement {
-  id          String      @id @default(cuid())
-  honourId    String      @unique
-  creatorId   String
-  code        String      @unique
-  kind        HonourKind
-  state       HonourState @default(active)
-  year        Int
+  id           String      @id @default(cuid())
+  honourId     String      @unique
+  creatorId    String
+  code         String      @unique
+  kind         HonourKind
+  state        HonourState @default(active)
+  year         Int
   categoryName String
-  creatorName String
-  issuedAt    DateTime    @default(now())
-  revokedAt   DateTime?
+  creatorName  String
+  issuedAt     DateTime    @default(now())
+  revokedAt    DateTime?
 
   honour              Honour               @relation(fields: [honourId], references: [id], onDelete: Cascade)
   creator             Creator              @relation(fields: [creatorId], references: [id], onDelete: Cascade)
@@ -558,14 +652,14 @@ model Achievement {
 /// Signed, immutable proof for /verify/PM-YYYY-XXXX. The signature binds the
 /// achievement's identity fields so a record cannot be forged or edited.
 model VerificationRecord {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   achievementId String
-  code          String   @unique
+  code          String    @unique
   signature     String
   payloadDigest String
-  issuedAt      DateTime @default(now())
+  issuedAt      DateTime  @default(now())
   lastViewedAt  DateTime?
-  viewCount     Int      @default(0)
+  viewCount     Int       @default(0)
 
   achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
 
@@ -577,15 +671,15 @@ model VerificationRecord {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Sponsor {
-  id          String   @id @default(cuid())
-  slug        String   @unique
-  name        String
-  summary     String?  @db.Text
-  websiteUrl  String?
-  logoUrl     String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  slug       String   @unique
+  name       String
+  summary    String?  @db.Text
+  websiteUrl String?
+  logoUrl    String?
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   sponsorships Sponsorship[]
 }
@@ -613,31 +707,31 @@ model Sponsorship {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model ArticleCategory {
-  id       String @id @default(cuid())
-  slug     String @unique
+  id       String  @id @default(cuid())
+  slug     String  @unique
   name     String
   summary  String?
-  position Int    @default(0)
+  position Int     @default(0)
 
   articles Article[]
 }
 
 model Article {
-  id            String        @id @default(cuid())
-  slug          String        @unique
-  title         String
-  standfirst    String        @db.Text
-  body          String        @db.Text
-  status        ArticleStatus @default(draft)
-  categoryId    String?
-  authorId      String?
-  authorName    String
-  heroImageUrl  String?
-  heroImageAlt  String?
-  readingMinutes Int          @default(4)
-  publishedAt   DateTime?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  id             String        @id @default(cuid())
+  slug           String        @unique
+  title          String
+  standfirst     String        @db.Text
+  body           String        @db.Text
+  status         ArticleStatus @default(draft)
+  categoryId     String?
+  authorId       String?
+  authorName     String
+  heroImageUrl   String?
+  heroImageAlt   String?
+  readingMinutes Int           @default(4)
+  publishedAt    DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   category ArticleCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   author   User?            @relation("ArticleAuthor", fields: [authorId], references: [id], onDelete: SetNull)
@@ -650,21 +744,21 @@ model Article {
 // ─────────────────────────────────────────────────────────────────────────────
 
 model Report {
-  id           String       @id @default(cuid())
-  reason       ReportReason
-  status       ReportStatus @default(open)
-  detail       String       @db.Text
-  reporterId   String?
-  creatorId    String?
-  nominationId String?
-  createdAt    DateTime     @default(now())
-  resolvedAt   DateTime?
-  resolutionNote String?    @db.Text
+  id             String       @id @default(cuid())
+  reason         ReportReason
+  status         ReportStatus @default(open)
+  detail         String       @db.Text
+  reporterId     String?
+  creatorId      String?
+  candidacyId    String?
+  createdAt      DateTime     @default(now())
+  resolvedAt     DateTime?
+  resolutionNote String?      @db.Text
 
-  reporter   User?       @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: SetNull)
-  creator    Creator?    @relation("ReportSubjectCreator", fields: [creatorId], references: [id], onDelete: SetNull)
-  nomination Nomination? @relation("ReportSubjectNomination", fields: [nominationId], references: [id], onDelete: SetNull)
-  actions    ModerationAction[]
+  reporter  User?              @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: SetNull)
+  creator   Creator?           @relation("ReportSubjectCreator", fields: [creatorId], references: [id], onDelete: SetNull)
+  candidacy Candidacy?         @relation("ReportSubjectCandidacy", fields: [candidacyId], references: [id], onDelete: SetNull)
+  actions   ModerationAction[]
 
   @@index([status])
 }
@@ -680,7 +774,7 @@ model ModerationAction {
   createdAt  DateTime             @default(now())
 
   report Report? @relation(fields: [reportId], references: [id], onDelete: SetNull)
-  actor  User   @relation("ModerationActor", fields: [actorId], references: [id], onDelete: Cascade)
+  actor  User    @relation("ModerationActor", fields: [actorId], references: [id], onDelete: Cascade)
 
   @@index([entityType, entityId])
 }
@@ -726,12 +820,12 @@ model Notification {
 
 /// Durable counters backing nomination-form rate limiting and abuse detection.
 model RateLimitCounter {
-  id        String   @id @default(cuid())
-  bucket    String
-  identity  String
-  count     Int      @default(0)
+  id           String   @id @default(cuid())
+  bucket       String
+  identity     String
+  count        Int      @default(0)
   windowEndsAt DateTime
-  createdAt DateTime @default(now())
+  createdAt    DateTime @default(now())
 
   @@unique([bucket, identity])
   @@index([windowEndsAt])

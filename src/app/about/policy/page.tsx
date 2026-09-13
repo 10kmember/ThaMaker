@@ -30,15 +30,17 @@ export default function PolicyPage() {
               feed, and no commentary.
             </p>
 
-            <h2 className="mt-12 mb-4 text-3xl">Evidence: point, do not publish</h2>
+            <h2 className="mt-12 mb-4 text-3xl">Evidence is ours to gather</h2>
             <p>
-              A nomination carries references — links, credits, published outcomes — which
-              authorised judges review on the platform where the work already lives. PALMA does not
-              copy, mirror or display that work. Evidence links are never shown on the public site.
+              PALMA does not ask the audience to prove anything. A nomination is a name, a category
+              and a sentence. If a creator’s candidacy needs evidencing, PALMA gathers it — from the
+              creator, from the public record, and from the platforms where the work already lives.
             </p>
             <p>
-              This is partly a legal position and mostly an editorial one. An institution that
-              recognises work does not need to republish it, and the moment it does, it takes on the
+              Evidence is a private reference for authorised judges. PALMA does not copy, mirror or
+              display a creator’s work, and evidence never appears on the public site. This is
+              partly a legal position and mostly an editorial one: an institution that recognises
+              work does not need to republish it, and the moment it does, it takes on the
               obligations of a platform and loses the detachment that makes its judgement worth
               anything.
             </p>

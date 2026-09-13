@@ -16,7 +16,7 @@ export const scoreSchema = z.object({
 });
 
 export const conflictSchema = z.object({
-  nominationId: z.string().trim().min(1),
+  candidacyId: z.string().trim().min(1),
   kind: z.enum(CONFLICT_KINDS.map((entry) => entry.key) as [string, ...string[]]),
   note: z.string().trim().max(1000).optional().or(z.literal('')),
 });

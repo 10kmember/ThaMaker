@@ -49,8 +49,8 @@ export async function fileReport(_previous: ReportState, formData: FormData): Pr
   const creator = parsed.data.creatorSlug
     ? await db.creator.findUnique({ where: { slug: parsed.data.creatorSlug } })
     : null;
-  const nomination = parsed.data.nominationReference
-    ? await db.nomination.findUnique({ where: { reference: parsed.data.nominationReference } })
+  const candidacy = parsed.data.candidacyReference
+    ? await db.candidacy.findUnique({ where: { reference: parsed.data.candidacyReference } })
     : null;
 
   const report = await db.report.create({
@@ -59,7 +59,7 @@ export async function fileReport(_previous: ReportState, formData: FormData): Pr
       detail: parsed.data.detail,
       reporterId: session?.user.id ?? null,
       creatorId: creator?.id ?? null,
-      nominationId: nomination?.id ?? null,
+      candidacyId: candidacy?.id ?? null,
     },
   });
 

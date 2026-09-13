@@ -3,7 +3,7 @@ import { Container, PageHeader, Section, SectionHeading } from '@/components/pal
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
-import { SeasonProgress } from '@/components/palma/SeasonProgress';
+import { SeasonRail } from '@/components/palma/SeasonRail';
 import { CategoryCard } from '@/components/palma/CategoryCard';
 import { Timeline } from '@/components/palma/Timeline';
 import { buildMetadata } from '@/lib/seo';
@@ -34,7 +34,7 @@ export default async function AwardsPage() {
         standfirst={season.summary ?? undefined}
         meta={
           <>
-            <Badge variant={open ? 'champagne' : 'outlineIvory'}>
+            <Badge variant={open ? 'champagneDark' : 'outlineIvory'}>
               {open ? 'Nominations open' : STAGE_LABEL[season.stage]}
             </Badge>
             <span className="palma-label text-ivory/50">
@@ -57,17 +57,7 @@ export default async function AwardsPage() {
           <div className="grid gap-14 lg:grid-cols-12">
             <div className="lg:col-span-7">
               <h2 className="palma-label text-taupe-deep">The season</h2>
-              <SeasonProgress
-                tone="light"
-                stage={season.stage}
-                dates={[
-                  season.nominationsOpenAt,
-                  season.shortlistAt,
-                  season.finalistsAt,
-                  season.ceremonyAt,
-                ]}
-                className="mt-8"
-              />
+              <SeasonRail year={season.year} stage={season.stage} tone="light" className="mt-8" />
             </div>
 
             <div className="lg:col-span-5">

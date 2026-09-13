@@ -1,51 +1,51 @@
 import { describe, expect, it } from 'vitest';
 import { isJudgeEligible, planAssignments, type ConflictRecord } from '@/domain/conflicts';
 
-const nomination = { id: 'nom-1', creatorId: 'creator-1' };
+const candidacy = { id: 'cand-1', creatorId: 'creator-1' };
 
 describe('conflict handling', () => {
-  it('removes a judge who has declared against the nomination', () => {
+  it('removes a judge who has declared against the candidacy', () => {
     const conflicts: ConflictRecord[] = [
-      { judgeId: 'j1', nominationId: 'nom-1', status: 'declared' },
+      { judgeId: 'j1', candidacyId: 'cand-1', status: 'declared' },
     ];
-    expect(isJudgeEligible('j1', nomination, conflicts)).toBe(false);
-    expect(isJudgeEligible('j2', nomination, conflicts)).toBe(true);
+    expect(isJudgeEligible('j1', candidacy, conflicts)).toBe(false);
+    expect(isJudgeEligible('j2', candidacy, conflicts)).toBe(true);
   });
 
-  it('removes a judge who has declared against the creator, not just the nomination', () => {
+  it('removes a judge who has declared against the creator, not just the candidacy', () => {
     const conflicts: ConflictRecord[] = [
       { judgeId: 'j1', creatorId: 'creator-1', status: 'declared' },
     ];
-    expect(isJudgeEligible('j1', nomination, conflicts)).toBe(false);
+    expect(isJudgeEligible('j1', candidacy, conflicts)).toBe(false);
   });
 
   it('restores a judge only when the conflict is explicitly dismissed', () => {
     expect(
-      isJudgeEligible('j1', nomination, [
-        { judgeId: 'j1', nominationId: 'nom-1', status: 'upheld' },
+      isJudgeEligible('j1', candidacy, [
+        { judgeId: 'j1', candidacyId: 'cand-1', status: 'upheld' },
       ]),
     ).toBe(false);
     expect(
-      isJudgeEligible('j1', nomination, [
-        { judgeId: 'j1', nominationId: 'nom-1', status: 'dismissed' },
+      isJudgeEligible('j1', candidacy, [
+        { judgeId: 'j1', candidacyId: 'cand-1', status: 'dismissed' },
       ]),
     ).toBe(true);
   });
 });
 
 describe('panel assignment', () => {
-  const nominations = [
+  const candidacies = [
     { id: 'n1', creatorId: 'c1' },
     { id: 'n2', creatorId: 'c2' },
     { id: 'n3', creatorId: 'c3' },
   ];
 
-  it('gives every nomination the requested number of judges', () => {
+  it('gives every candidacy the requested number of judges', () => {
     const plan = planAssignments({
-      nominations,
+      candidacies,
       judgeIds: ['j1', 'j2', 'j3', 'j4'],
       conflicts: [],
-      judgesPerNomination: 3,
+      judgesPerCandidacy: 3,
     });
 
     expect(plan.assignments).toHaveLength(9);
@@ -54,10 +54,10 @@ describe('panel assignment', () => {
 
   it('spreads load evenly across the panel', () => {
     const plan = planAssignments({
-      nominations,
+      candidacies,
       judgeIds: ['j1', 'j2', 'j3'],
       conflicts: [],
-      judgesPerNomination: 2,
+      judgesPerCandidacy: 2,
     });
 
     const load = new Map<string, number>();
@@ -69,22 +69,22 @@ describe('panel assignment', () => {
 
   it('never assigns a conflicted judge, and reports the shortfall', () => {
     const plan = planAssignments({
-      nominations: [{ id: 'n1', creatorId: 'c1' }],
+      candidacies: [{ id: 'n1', creatorId: 'c1' }],
       judgeIds: ['j1', 'j2'],
       conflicts: [{ judgeId: 'j1', creatorId: 'c1', status: 'declared' }],
-      judgesPerNomination: 2,
+      judgesPerCandidacy: 2,
     });
 
     expect(plan.assignments.map((a) => a.judgeId)).toEqual(['j2']);
-    expect(plan.understaffed).toEqual([{ nominationId: 'n1', assigned: 1 }]);
+    expect(plan.understaffed).toEqual([{ candidacyId: 'n1', assigned: 1 }]);
   });
 
   it('is deterministic, so a placement can be explained after the fact', () => {
     const input = {
-      nominations,
+      candidacies,
       judgeIds: ['j3', 'j1', 'j2'],
       conflicts: [],
-      judgesPerNomination: 2,
+      judgesPerCandidacy: 2,
     };
     expect(planAssignments(input)).toEqual(planAssignments(input));
   });

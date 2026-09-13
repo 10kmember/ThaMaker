@@ -18,7 +18,7 @@ export const reportSchema = z.object({
     .min(30, 'Tell us what you have seen, in at least 30 characters.')
     .max(2000),
   creatorSlug: z.string().trim().max(120).optional().or(z.literal('')),
-  nominationReference: z.string().trim().max(40).optional().or(z.literal('')),
+  candidacyReference: z.string().trim().max(40).optional().or(z.literal('')),
   contactEmail: z
     .string()
     .trim()

@@ -178,6 +178,7 @@ async function main() {
         websiteUrl: seed.websiteUrl,
         isPublished: true,
         isClaimed: true,
+        referralEnabled: seed.verified,
         verification: {
           create: {
             status: seed.verified ? 'verified' : 'pending',
@@ -243,9 +244,34 @@ async function main() {
   }
   console.log(`  judges: ${judgeIds.length}`);
 
-  // ── Historic seasons: nominations, scores and honours ─────────────────────
+  // ── Historic seasons: candidacies, audience nominations, scores, honours ──
+  //
+  // Seeds both halves of the model: a body of audience nominations from
+  // synthetic nominators, and the candidacies the panel actually judged.
+  let candidacyCount = 0;
   let nominationCount = 0;
   let honourCount = 0;
+
+  // A pool of nominators, reused across seasons the way real people are.
+  const nominatorIds: string[] = [];
+  for (let index = 1; index <= 60; index += 1) {
+    const email = `nominator${index}@example.com`;
+    const nominator = await prisma.nominator.upsert({
+      where: { emailKey: email },
+      update: {},
+      create: { email, emailKey: email, verifiedAt: new Date('2025-02-01T00:00:00.000Z') },
+    });
+    nominatorIds.push(nominator.id);
+  }
+
+  const REASONS = [
+    'Consistently excellent work all year, and generous with how they explain it.',
+    'They raised the standard for everyone else working in this space.',
+    'Six years of the same schedule without an agency behind them. That is the achievement.',
+    'The research is real and the craft is obvious. Nobody else is doing this.',
+    'They changed how I think about the work, and they credit everyone they collaborate with.',
+    'Quietly brilliant, and completely uninterested in gaming anyone.',
+  ];
 
   for (const season of seasonSeeds) {
     const awardYearId = seasonIds.get(season.year)!;
@@ -260,49 +286,82 @@ async function main() {
         const kind = index === 0 ? 'winner' : 'finalist';
         const issuedAt = new Date(kind === 'winner' ? season.ceremonyAt! : season.finalistsAt!);
 
-        const reference = `PN-${season.year}-${String(++nominationCount).padStart(6, '0')}`;
-
-        const nomination = await prisma.nomination.upsert({
+        const candidacy = await prisma.candidacy.upsert({
           where: {
             awardYearId_categoryId_creatorId: { awardYearId, categoryId, creatorId },
           },
           update: {},
           create: {
-            reference,
+            reference: `PC-${season.year}-${String(++candidacyCount).padStart(4, '0')}`,
             awardYearId,
             categoryId,
             creatorId,
-            source: 'public_nominator',
             status: kind,
-            statement: `${creator.displayName} was nominated for ${category.name} in the ${season.year} season on the strength of a full year of published work, reviewed by the panel against the category's criteria.`,
-            nominatorEmail: 'nominations@palmaawards.com',
-            eligibilityConfirmed: true,
-            contentPolicyConfirmed: true,
-            ageConfirmed: true,
-            submittedAt: new Date(season.nominationsOpenAt!),
             reviewedAt: new Date(season.shortlistAt!),
+            firstNominatedAt: new Date(season.nominationsOpenAt!),
+            lastNominatedAt: new Date(season.nominationsCloseAt!),
             evidence: {
               create: [
                 {
                   kind: 'external_link',
                   label: `${season.year} body of work`,
                   url: `https://example.com/${creatorSlug}/${season.year}`,
-                  note: 'Reviewed by the panel on the platform where it is published.',
+                  note: 'Gathered by PALMA and reviewed by the panel where it is published.',
                 },
               ],
             },
           },
         });
 
+        // Audience nominations: more for the winner, but the count never
+        // reaches the judging path — it exists so the admin screens are real.
+        const volume = kind === 'winner' ? 9 : 5 - index;
+        const existingNominations = await prisma.nomination.count({
+          where: { candidacyId: candidacy.id },
+        });
+
+        if (existingNominations === 0) {
+          for (let n = 0; n < volume; n += 1) {
+            const nominatorId = nominatorIds[(candidacyCount * 7 + n * 3) % nominatorIds.length]!;
+            const already = await prisma.nomination.findUnique({
+              where: { nominatorId_candidacyId: { nominatorId, candidacyId: candidacy.id } },
+            });
+            if (already) continue;
+
+            await prisma.nomination.create({
+              data: {
+                reference: `PN-${season.year}-${String(++nominationCount).padStart(6, '0')}`,
+                candidacyId: candidacy.id,
+                nominatorId,
+                source: n % 3 === 0 ? 'referral' : 'organic',
+                referralSlug: n % 3 === 0 ? creatorSlug : null,
+                status: 'counted',
+                reason: REASONS[(candidacyCount + n) % REASONS.length]!,
+                verifiedAt: new Date(season.nominationsOpenAt!),
+                countedAt: new Date(season.nominationsOpenAt!),
+              },
+            });
+          }
+
+          await prisma.candidacy.update({
+            where: { id: candidacy.id },
+            data: {
+              nominationCount: await prisma.nomination.count({
+                where: { candidacyId: candidacy.id },
+              }),
+            },
+          });
+        }
+
         // Panel scores, deterministic so the standings are reproducible.
         const basis = kind === 'winner' ? 9 : 8 - index;
         for (const [position, judgeId] of judgeIds.slice(0, 3).entries()) {
           const assignment = await prisma.judgingAssignment.upsert({
-            where: { judgeId_nominationId: { judgeId, nominationId: nomination.id } },
+            where: { judgeId_candidacyId: { judgeId, candidacyId: candidacy.id } },
             update: {},
             create: {
               judgeId,
-              nominationId: nomination.id,
+              candidacyId: candidacy.id,
               categoryId,
               status: 'completed',
               completedAt: issuedAt,
@@ -324,7 +383,7 @@ async function main() {
             create: {
               assignmentId: assignment.id,
               judgeId,
-              nominationId: nomination.id,
+              candidacyId: candidacy.id,
               ...card,
               total: Object.values(card).reduce((sum, value) => sum + value, 0),
               submittedAt: issuedAt,
@@ -341,7 +400,7 @@ async function main() {
             awardYearId,
             categoryId,
             creatorId,
-            nominationId: nomination.id,
+            candidacyId: candidacy.id,
             kind,
             position: index === 0 ? 1 : index,
             citation: kind === 'winner' ? (CITATIONS[categorySlug] ?? null) : null,
@@ -390,7 +449,9 @@ async function main() {
       }
     }
   }
-  console.log(`  nominations: ${nominationCount}, honours: ${honourCount}`);
+  console.log(
+    `  candidacies: ${candidacyCount}, nominations: ${nominationCount}, honours: ${honourCount}`,
+  );
 
   // ── Journal ───────────────────────────────────────────────────────────────
   for (const [position, category] of articleCategories.entries()) {

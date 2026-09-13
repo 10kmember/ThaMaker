@@ -15,11 +15,11 @@ const initial: JudgingState = { status: 'idle' };
 
 export function ScoreForm({
   assignmentId,
-  nominationId,
+  candidacyId,
   alreadyScored,
 }: {
   assignmentId: string;
-  nominationId: string;
+  candidacyId: string;
   alreadyScored: boolean;
 }) {
   const [state, action, pending] = useActionState(submitScore, initial);
@@ -118,12 +118,12 @@ export function ScoreForm({
         </p>
       </form>
 
-      <ConflictForm nominationId={nominationId} />
+      <ConflictForm candidacyId={candidacyId} />
     </div>
   );
 }
 
-function ConflictForm({ nominationId }: { nominationId: string }) {
+function ConflictForm({ candidacyId }: { candidacyId: string }) {
   const [state, action, pending] = useActionState(declareConflict, initial);
 
   if (state.status === 'success') {
@@ -136,12 +136,12 @@ function ConflictForm({ nominationId }: { nominationId: string }) {
 
   return (
     <form action={action} className="border-stone-deep flex flex-col gap-4 border p-6">
-      <input type="hidden" name="nominationId" value={nominationId} />
+      <input type="hidden" name="candidacyId" value={candidacyId} />
 
       <h3 className="palma-label text-taupe-deep">Declare a conflict of interest</h3>
       <p className="text-taupe-deep text-sm leading-relaxed">
         If you have any relationship with this creator, declare it. Declaring removes you from this
-        nomination immediately — you do not need to decide whether it matters.
+        candidacy immediately — you do not need to decide whether it matters.
       </p>
 
       {state.status === 'error' && state.message ? (

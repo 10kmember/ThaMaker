@@ -32,22 +32,22 @@ describe('score cards', () => {
 
 describe('aggregation', () => {
   it('uses the plain mean below four judges', () => {
-    const result = aggregate({ nominationId: 'n1', totals: [30, 40, 50] });
+    const result = aggregate({ candidacyId: 'n1', totals: [30, 40, 50] });
     expect(result.judgeCount).toBe(3);
     expect(result.mean).toBe(40);
     expect(result.trimmedMean).toBe(40);
   });
 
   it('trims the highest and lowest once four judges have scored', () => {
-    // A hostile 0 and an enthusiastic 50 should not decide this nomination.
-    const result = aggregate({ nominationId: 'n1', totals: [0, 40, 42, 50] });
+    // A hostile 0 and an enthusiastic 50 should not decide this candidacy.
+    const result = aggregate({ candidacyId: 'n1', totals: [0, 40, 42, 50] });
     expect(result.mean).toBe(33);
     expect(result.trimmedMean).toBe(41);
     expect(result.spread).toBe(50);
   });
 
-  it('handles an unscored nomination without dividing by zero', () => {
-    const result = aggregate({ nominationId: 'n1', totals: [] });
+  it('handles an unscored candidacy without dividing by zero', () => {
+    const result = aggregate({ candidacyId: 'n1', totals: [] });
     expect(result.mean).toBe(0);
     expect(result.trimmedMean).toBe(0);
     expect(result.judgeCount).toBe(0);
@@ -55,10 +55,10 @@ describe('aggregation', () => {
 
   it('ranks by trimmed mean, then judge count, then id', () => {
     const ranked = rank([
-      { nominationId: 'b', totals: [40, 40, 40] },
-      { nominationId: 'a', totals: [45, 45, 45] },
-      { nominationId: 'c', totals: [40, 40] },
+      { candidacyId: 'b', totals: [40, 40, 40] },
+      { candidacyId: 'a', totals: [45, 45, 45] },
+      { candidacyId: 'c', totals: [40, 40] },
     ]);
-    expect(ranked.map((entry) => entry.nominationId)).toEqual(['a', 'b', 'c']);
+    expect(ranked.map((entry) => entry.candidacyId)).toEqual(['a', 'b', 'c']);
   });
 });

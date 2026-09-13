@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Container, Section, SectionHeading } from '@/components/palma/layout';
 import { Reveal } from '@/components/palma/Reveal';
 import { CreatorCard } from '@/components/palma/CreatorCard';
-import { SeasonProgress } from '@/components/palma/SeasonProgress';
+import { SeasonRail } from '@/components/palma/SeasonRail';
 import { PalmMark } from '@/components/brand/PalmMark';
 import { HONOUR_LABEL } from '@/components/palma/badges';
 import { formatDate } from '@/lib/format';
@@ -86,7 +86,7 @@ export default async function HomePage() {
                 ) : null}
               </div>
               <div className="flex flex-col items-start gap-3 sm:items-end">
-                <Badge variant={open ? 'champagne' : 'outlineIvory'}>
+                <Badge variant={open ? 'champagneDark' : 'outlineIvory'}>
                   {open ? 'Nominations open' : STAGE_LABEL[season.stage]}
                 </Badge>
                 {season.nominationsCloseAt ? (
@@ -97,15 +97,7 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <SeasonProgress
-              stage={season.stage}
-              dates={[
-                season.nominationsOpenAt,
-                season.shortlistAt,
-                season.finalistsAt,
-                season.ceremonyAt,
-              ]}
-            />
+            <SeasonRail year={season.year} stage={season.stage} />
 
             <div className="border-ivory/12 flex flex-wrap items-center gap-x-8 gap-y-3 border-t pt-8">
               <span className="palma-label text-ivory/45">

@@ -70,7 +70,21 @@ Two recurring classes carry most of the institutional voice:
 Long-form Journal copy uses `.palma-prose`, which sets the measure, the
 paragraph rhythm and a drop capital on the opening paragraph.
 
-## 4. Layout
+## 4. Navigation
+
+Six destinations: **Awards · Categories · Nominate · PaROH · Journal · About**.
+
+Finalists and Winners are _states of a season_, not permanent places. They are
+reached from the season rail (`SeasonRail`), which appears on the homepage, the
+awards pages and on the finalist and winner pages themselves, so the rest of the
+season is always one click away. A state that has not been reached yet is not a
+link.
+
+PaROH keeps its casing everywhere it appears — `.palma-label-brand` exists for
+exactly that, because the uppercase label style would otherwise flatten it to
+"PAROH".
+
+## 5. Layout
 
 `Container` (`default` / `wide` / `narrow`), `Section` (tones: `ivory`, `stone`,
 `ink`, `olive`), `SectionHeading` and `PageHeader` carry the page rhythm. Use
@@ -80,7 +94,7 @@ what makes a site feel institutional.
 Dark sections take the `on-ink` class, which switches the focus ring to
 champagne so focus stays visible on ink.
 
-## 5. Motion
+## 6. Motion
 
 Ceremonial and editorial, never a tech demo.
 
@@ -97,7 +111,7 @@ never load-bearing.
 No parallax, no scroll hijacking, no particles, no WebGL, no animation on every
 component.
 
-## 6. Imagery
+## 7. Imagery
 
 `EditorialImage` renders an approved portrait, or an engraved institutional
 plate: the creator's initials in the display face over a palm engraving, on a
@@ -106,26 +120,30 @@ photography and never renders explicit imagery.
 
 Every image has an explicit aspect ratio, so nothing shifts as it loads.
 
-## 7. Components
+## 8. Components
 
 Primitives in `components/ui`: `Button`, `Badge`, `Pill`, `Card`, `Field`,
 `Input`, `Select`, `Textarea`, `Checkbox`, `Table`, `Tabs`, `Modal`, `Stat`,
 `EmptyState`, `Skeleton`, `Notice`.
 
 Editorial components in `components/palma`: `CreatorCard`, `CategoryCard`,
-`FinalistCard`, `WinnerReveal`, `SeasonProgress`, `Timeline`, `EditorialImage`,
+`FinalistCard`, `WinnerReveal`, `SeasonRail`, `Timeline`, `EditorialImage`,
 `AchievementBadge`, `VerificationBadge`, `CopyLink`, `PortalShell`.
+
+The nomination form (`components/nominate`) is held to one rule above all
+others: it must stay short. Anything that would add a step, a field or an upload
+belongs to PALMA's own process, not to the person nominating.
 
 Build on the design system before duplicating a UI pattern.
 
-## 8. Responsive
+## 9. Responsive
 
 Mobile-first. Supported: mobile Safari, Android Chrome, tablet, desktop, large
 desktop. No horizontal overflow at any width, no layout shift, explicit image
 dimensions, and navigation that collapses to a full-height panel rather than a
 cramped dropdown.
 
-## 9. Accessibility
+## 10. Accessibility
 
 Target WCAG 2.2 AA.
 

@@ -20,8 +20,8 @@ let seasonId = '';
 let categoryId = '';
 let verifiedCreatorId = '';
 let unverifiedCreatorId = '';
-let nominationId = '';
-let unverifiedNominationId = '';
+let candidacyId = '';
+let unverifiedCandidacyId = '';
 
 describe.skipIf(!hasDatabase)('conferring an honour (integration)', () => {
   beforeAll(async () => {
@@ -35,7 +35,7 @@ describe.skipIf(!hasDatabase)('conferring an honour (integration)', () => {
     });
     if (stale.length > 0) {
       const ids = stale.map((entry) => entry.id);
-      await db.nomination.deleteMany({ where: { awardYearId: { in: ids } } });
+      await db.candidacy.deleteMany({ where: { awardYearId: { in: ids } } });
       await db.awardYear.deleteMany({ where: { id: { in: ids } } });
       await db.creator.deleteMany({
         where: {
@@ -88,40 +88,36 @@ describe.skipIf(!hasDatabase)('conferring an honour (integration)', () => {
     });
     unverifiedCreatorId = unverified.id;
 
-    const nomination = await db.nomination.create({
+    const candidacy = await db.candidacy.create({
       data: {
-        reference: `PN-INT-${SUFFIX}-1`,
+        reference: `PC-INT-${SUFFIX}-1`,
         awardYearId: season.id,
         categoryId: category.id,
         creatorId: verified.id,
         status: 'eligible',
-        statement: 'x'.repeat(200),
-        nominatorEmail: 'integration@example.com',
       },
     });
-    nominationId = nomination.id;
+    candidacyId = candidacy.id;
 
-    const second = await db.nomination.create({
+    const second = await db.candidacy.create({
       data: {
-        reference: `PN-INT-${SUFFIX}-2`,
+        reference: `PC-INT-${SUFFIX}-2`,
         awardYearId: season.id,
         categoryId: category.id,
         creatorId: unverified.id,
         status: 'eligible',
-        statement: 'x'.repeat(200),
-        nominatorEmail: 'integration@example.com',
       },
     });
-    unverifiedNominationId = second.id;
+    unverifiedCandidacyId = second.id;
   });
 
   afterAll(async () => {
     const db = prisma;
     if (!db) return;
-    // Order matters: a season cannot be deleted while nominations reference it,
+    // Order matters: a season cannot be deleted while candidacies reference it,
     // which is the behaviour an institution wants — seasons are not disposable.
     await db.auditLog.deleteMany({ where: { actorLabel: 'integration-test' } });
-    await db.nomination.deleteMany({ where: { awardYearId: seasonId } });
+    await db.candidacy.deleteMany({ where: { awardYearId: seasonId } });
     await db.awardYear.delete({ where: { id: seasonId } }).catch(() => undefined);
     await db.creator.deleteMany({
       where: { id: { in: [verifiedCreatorId, unverifiedCreatorId] } },
@@ -130,7 +126,7 @@ describe.skipIf(!hasDatabase)('conferring an honour (integration)', () => {
   });
 
   it('mints a signed, verifiable record when a PALMA is conferred', async () => {
-    const result = await conferHonour({ nominationId, kind: 'winner', position: 1, actor });
+    const result = await conferHonour({ candidacyId, kind: 'winner', position: 1, actor });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.code).toMatch(/^PM-\d{4}-[0-9A-HJKMNP-TV-Z]{6}$/);
@@ -158,11 +154,11 @@ describe.skipIf(!hasDatabase)('conferring an honour (integration)', () => {
     ).toBe(true);
   });
 
-  it('publishes the creator and updates the nomination status', async () => {
+  it('publishes the creator and updates the candidacy status', async () => {
     const creator = await prisma!.creator.findUnique({ where: { id: verifiedCreatorId } });
-    const nomination = await prisma!.nomination.findUnique({ where: { id: nominationId } });
+    const candidacy = await prisma!.candidacy.findUnique({ where: { id: candidacyId } });
     expect(creator?.isPublished).toBe(true);
-    expect(nomination?.status).toBe('winner');
+    expect(candidacy?.status).toBe('winner');
   });
 
   it('writes the conferral to the audit log', async () => {
@@ -173,14 +169,14 @@ describe.skipIf(!hasDatabase)('conferring an honour (integration)', () => {
   });
 
   it('refuses to confer the same honour twice', async () => {
-    const again = await conferHonour({ nominationId, kind: 'winner', actor });
+    const again = await conferHonour({ candidacyId, kind: 'winner', actor });
     expect(again.ok).toBe(false);
     if (!again.ok) expect(again.reason).toContain('already been conferred');
   });
 
   it('refuses to confer an honour on an unverified creator', async () => {
     const result = await conferHonour({
-      nominationId: unverifiedNominationId,
+      candidacyId: unverifiedCandidacyId,
       kind: 'winner',
       actor,
     });

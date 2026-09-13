@@ -29,6 +29,11 @@ echo 'PALMA_ARCHIVE_MODE="1"' >> .env.local
 npm run dev
 ```
 
+Nomination emails go through **Resend**. Without `RESEND_API_KEY` the
+development server writes the verification code to its own log so the flow can
+be exercised offline; in production the nomination is refused rather than the
+code silently dropped.
+
 Seeded accounts use the password in `SEED_PASSWORD` (default
 `Palma-Development-2027`):
 
@@ -79,6 +84,7 @@ src/
   server/
     actions/      Server Actions (the only write path)
     data/         Read layer — Prisma when live, reference dataset otherwise
+    email/        Resend client and the two messages PALMA sends
     services/     Honours: conferral, verification records, revocation
     audit.ts      Append-only audit service
 prisma/           Schema and seed
@@ -90,19 +96,56 @@ score aggregation, conflict handling and selection are pure functions, so the
 rules of the institution can be read, reasoned about and tested without a
 database.
 
-## How the institution works
+## Audience nominates. PALMA judges.
 
-A season runs in four public beats — **Nominate → Shortlist → Finalists →
-Winners** — and a stage only ever advances one step at a time.
+Two different things are kept apart in the data model, and that separation is
+the whole design:
 
-1. **Nomination.** Free, open to anyone including the creator. Submission runs
-   rate limit → schema validation → integrity assessment → eligibility
-   assessment → transactional write → audit entry. Volume confers no advantage.
-2. **Review.** Every nomination is reviewed by a person before it reaches a
-   judge.
-3. **Judging.** At least three judges score each nomination independently
-   against five published criteria out of ten. Audience size is not a criterion.
-   Scores are immutable once submitted.
+|                |                                                                                                          |
+| -------------- | -------------------------------------------------------------------------------------------------------- |
+| **Nomination** | One person's signal that a creator deserves consideration.                                               |
+| **Candidacy**  | A creator's candidacy in one category of one season. This is what is judged, and what carries an honour. |
+
+Many nominations point at one candidacy. **Nothing in the judging path reads the
+count** — judges never see it, it is never published, and no ranking derives
+from it. Popularity brings a creator to PALMA's attention and stops there.
+
+### Nominating
+
+Under a minute, no account, no evidence, no essay. Someone names a creator, says
+why in a sentence, confirms their email, and leaves.
+
+```
+Search creator → category → a sentence → email → six-digit code → submit
+```
+
+Creators with a claimed, verified profile get their own link —
+`palmaawards.com/nominate/maya-rivers` — which pre-selects them and changes
+nothing else. It says "this is my nomination page", not "vote for me", and a
+nomination made through it counts exactly as one made any other way.
+
+Rules, enforced in the database rather than the form:
+
+- One nomination per person, per creator, per category, per season.
+- The same person may nominate other creators, and the same creator in other
+  categories, as often as they like.
+- A creator cannot nominate themselves, whichever alias of their address
+  they use.
+- A nomination does not exist until its email is verified. The submit button
+  stays disabled, and the server refuses an unverified submission regardless.
+
+### The season
+
+Four public beats — **Nominate → Shortlist → Finalists → Winners** — advancing
+one stage at a time.
+
+1. **Nomination.** Free, open to anyone. Runs rate limit → validation →
+   integrity assessment → verified email → counted, with an audit entry.
+2. **Screening.** A person rules on each _candidacy_ — eligible, ineligible or
+   withdrawn — before it reaches a judge. PALMA gathers the evidence itself.
+3. **Judging.** At least three judges score each candidacy independently against
+   five published criteria out of ten. Audience size is not a criterion, and
+   nomination counts are not shown. Scores are immutable once submitted.
 4. **Selection.** Once four or more judges have scored, the highest and lowest
    are trimmed before ranking. The ranking is a recommendation; an administrator
    confirms it, and that act is what confers an honour.
@@ -132,8 +175,14 @@ mistakes cannot be trusted about its successes.
   never grant it.
 - scrypt password hashing, hashed session tokens, double-submit CSRF plus
   same-origin checks, and secure headers including a strict CSP.
-- Durable rate limiting, honeypot and completion-timing signals, duplicate
-  detection, and human review before judging.
+- Durable rate limiting, honeypot and completion-timing signals, duplicate and
+  near-duplicate detection, disposable-address screening, and human review of
+  every candidacy before judging.
+- Integrity safeguards are calibrated for legitimate mobilisation: a creator
+  sharing their link and an audience answering is expected behaviour. Only a
+  filled honeypot refuses outright; everything else flags a candidacy for a
+  moderator rather than rejecting the person in front of us. IP address is never
+  a basis for refusal on its own.
 - IP addresses are never stored — only a salted one-way digest.
 - Age and identity assurance is delegated to a third-party provider. PALMA
   stores the status, the provider reference and the date. Never a document.

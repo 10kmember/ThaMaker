@@ -5,7 +5,7 @@ import { Table, TBody, THead } from '@/components/ui/table';
 import { buildMetadata } from '@/lib/seo';
 import { requirePermission } from '@/lib/auth/guards';
 import { getAdminOverview, getCategoryStandings } from '@/server/data/admin';
-import { MIN_JUDGES_PER_NOMINATION } from '@/domain/selection';
+import { MIN_JUDGES_PER_CANDIDACY } from '@/domain/selection';
 import { titleCase } from '@/lib/utils';
 
 export const metadata = buildMetadata({
@@ -26,7 +26,7 @@ export default async function AdminSelectionPage() {
     <>
       <h2 className="text-3xl">{overview.seasonTitle} standings</h2>
       <Notice className="mt-5" title="How this ranking is produced">
-        Nominations are ranked by trimmed mean — once four or more judges have scored, the highest
+        Candidacies are ranked by trimmed mean — once four or more judges have scored, the highest
         and lowest are removed. The ranking is a recommendation. Confirming it is the act that
         confers an honour, mints its verification record, and is written to the audit log.
       </Notice>
@@ -70,11 +70,11 @@ export default async function AdminSelectionPage() {
                       </THead>
                       <TBody>
                         {standing.candidates.map((candidate) => (
-                          <tr key={candidate.nominationId}>
+                          <tr key={candidate.candidacyId}>
                             <td className="font-display text-lg">{candidate.creatorName}</td>
                             <td
                               className={
-                                candidate.judgeCount < MIN_JUDGES_PER_NOMINATION
+                                candidate.judgeCount < MIN_JUDGES_PER_CANDIDACY
                                   ? 'text-red-800'
                                   : 'text-taupe-deep'
                               }

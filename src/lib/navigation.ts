@@ -3,18 +3,21 @@ export type NavItem = {
   label: string;
   /** Labels whose casing is part of the name, such as PaROH. */
   preserveCase?: boolean;
-  /** Shown in the condensed desktop bar; the rest collapse into the menu. */
-  primary?: boolean;
 };
 
+/**
+ * Six destinations, not eight.
+ *
+ * Finalists and Winners are *states of a season*, not permanent places: they
+ * live inside the Awards experience and are reached from the season rail. The
+ * navigation names what PALMA is, rather than listing its database tables.
+ */
 export const PUBLIC_NAV: NavItem[] = [
-  { href: '/awards', label: 'Awards', primary: true },
-  { href: '/categories', label: 'Categories', primary: true },
+  { href: '/awards', label: 'Awards' },
+  { href: '/categories', label: 'Categories' },
   { href: '/nominate', label: 'Nominate' },
-  { href: '/finalists', label: 'Finalists', primary: true },
-  { href: '/winners', label: 'Winners', primary: true },
-  { href: '/paroh', label: 'PaROH', primary: true, preserveCase: true },
-  { href: '/journal', label: 'Journal', primary: true },
+  { href: '/paroh', label: 'PaROH', preserveCase: true },
+  { href: '/journal', label: 'Journal' },
   { href: '/about', label: 'About' },
 ];
 

@@ -67,7 +67,7 @@ export default async function CategoryPage({ params, searchParams }: Params) {
         standfirst={category.strapline ?? undefined}
         meta={
           <>
-            <Badge variant={open ? 'champagne' : 'outlineIvory'}>
+            <Badge variant={open ? 'champagneDark' : 'outlineIvory'}>
               {open ? 'Open for nominations' : STAGE_LABEL[category.stage]}
             </Badge>
             {category.partner ? (
