@@ -27,13 +27,18 @@
   --font-sans:
     var(--font-palma-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial,
     sans-serif;
+  --font-annotation: var(--font-palma-annotation), 'Bradley Hand', 'Segoe Script', cursive;
 
   --radius-seal: 999px;
 
   --tracking-institution: 0.24em;
   --tracking-label: 0.14em;
 
+  /* The house curve. Every transition in PALMA uses it unless it states why. */
   --ease-ceremonial: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-editorial: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --ease-tactile: cubic-bezier(0.34, 1.4, 0.64, 1);
 
   --animate-reveal: reveal 0.9s var(--ease-ceremonial) both;
   --animate-rise: rise 0.7s var(--ease-ceremonial) both;
@@ -150,10 +155,204 @@
       transition-duration: 0.001ms !important;
       scroll-behavior: auto !important;
     }
+
+    /* Anything that hides content until it is approached must simply be
+       present. A reader who asked for less motion still gets the metadata. */
+    .palma-card-surface,
+    .palma-card-rule,
+    .palma-link::after {
+      opacity: 1 !important;
+      transform: none !important;
+    }
   }
 }
 
 @layer components {
+  /* ─────────────────────────────────────────────────────────────────────────
+     PALMA interaction language
+
+     Behaviours that appear hundreds of times live here as classes, not as
+     components: a rule that draws, a label that responds, an image that pushes
+     in. Defined once so a card, a row and a nav item are visibly related, and
+     so none of it costs hydration.
+
+     Every behaviour is wrapped in `motion-safe:`-equivalent guards through the
+     global reduced-motion rule at the foot of the base layer.
+     ───────────────────────────────────────────────────────────────────────── */
+
+  /* A link whose underline travels in from the leading edge. The default
+     behaviour for any editorial link that is not a button. */
+  .palma-link {
+    position: relative;
+    display: inline-block;
+    transition: color 220ms var(--ease-ceremonial);
+  }
+
+  .palma-link::after {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    bottom: -0.15em;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.55;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 380ms var(--ease-ceremonial);
+  }
+
+  .palma-link:hover::after,
+  .palma-link:focus-visible::after {
+    transform: scaleX(1);
+  }
+
+  /* Leaving: the rule retreats to the *trailing* edge rather than collapsing
+     back the way it came, so the gesture reads as completed rather than undone. */
+  .palma-link:not(:hover):not(:focus-visible)::after {
+    transform-origin: right;
+  }
+
+  /* An institutional label that acknowledges the cursor: the tracking opens a
+     fraction and the rule beneath it draws. Used on nav items and metadata. */
+  .palma-label-interactive {
+    transition:
+      color 220ms var(--ease-ceremonial),
+      letter-spacing 380ms var(--ease-ceremonial);
+  }
+
+  .palma-label-interactive:hover,
+  .palma-label-interactive:focus-visible {
+    letter-spacing: 0.18em;
+  }
+
+  /* The editorial card.
+
+     Nothing floats. The image pushes in a fraction, the border firms, the
+     title shifts toward its arrow, and secondary metadata surfaces — all at
+     the same easing, so it reads as one gesture rather than four. */
+  .palma-card-media {
+    overflow: hidden;
+  }
+
+  .palma-card-media > * {
+    transition: transform 640ms var(--ease-ceremonial);
+  }
+
+  .group\/card:hover .palma-card-media > *,
+  .group\/card:focus-visible .palma-card-media > * {
+    transform: scale(1.03);
+  }
+
+  /* Metadata that surfaces on approach without reserving layout space. */
+  .palma-card-surface {
+    opacity: 0;
+    transform: translateY(4px);
+    transition:
+      opacity 380ms var(--ease-ceremonial),
+      transform 380ms var(--ease-ceremonial);
+  }
+
+  .group\/card:hover .palma-card-surface,
+  .group\/card:focus-visible .palma-card-surface,
+  .group\/card:focus-within .palma-card-surface {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* A rule that travels the width of a row on approach. */
+  .palma-card-rule {
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 640ms var(--ease-ceremonial);
+  }
+
+  .group\/card:hover .palma-card-rule,
+  .group\/card:focus-visible .palma-card-rule,
+  .group\/card:focus-within .palma-card-rule {
+    transform: scaleX(1);
+  }
+
+  /* An arrow that advances. */
+  .palma-advance {
+    transition: transform 220ms var(--ease-ceremonial);
+  }
+
+  .group\/card:hover .palma-advance,
+  .group\/button:hover .palma-advance,
+  .group\/card:focus-visible .palma-advance {
+    transform: translateX(8px);
+  }
+
+  /* ── Illusion layer ─────────────────────────────────────────────────────
+     Outline type that fills with ink, and pointer-driven depth. Both are
+     built so the static state is already correct. */
+
+  .palma-ink-outline {
+    color: transparent;
+    -webkit-text-stroke: 1px color-mix(in oklab, currentColor 45%, transparent);
+  }
+
+  .palma-ink-fill {
+    --palma-fill: 100%;
+    color: transparent;
+    background-image: linear-gradient(
+      to right,
+      currentColor 0%,
+      currentColor var(--palma-fill),
+      transparent var(--palma-fill)
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  /* With no GSAP — reduced motion, or a failed chunk — the ink is simply
+     already there, and the outline underneath is invisible behind it. */
+  @media (prefers-reduced-motion: reduce) {
+    .palma-ink-fill {
+      --palma-fill: 100% !important;
+    }
+  }
+
+  .palma-depth {
+    --palma-depth-x: 0;
+    --palma-depth-y: 0;
+    --palma-depth-strength: 1;
+    perspective: 1200px;
+    transform-style: preserve-3d;
+  }
+
+  .palma-depth-item {
+    --palma-depth-level: 1;
+    transform: translate3d(
+      calc(var(--palma-depth-x) * var(--palma-depth-level) * var(--palma-depth-strength) * -6px),
+      calc(var(--palma-depth-y) * var(--palma-depth-level) * var(--palma-depth-strength) * -6px),
+      0
+    );
+    will-change: transform;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .palma-depth-item {
+      transform: none;
+    }
+  }
+
+  /* The hand in the margin.
+
+     A single annotation face, used two or three times on the entire site —
+     after a class of winners, beside the Roll of Honour. It is the one place
+     PALMA is allowed to sound like a person rather than an institution, and it
+     only works because everything around it is set straight. */
+  .palma-annotation {
+    font-family: var(--font-annotation);
+    font-size: 1.65rem;
+    line-height: 1.1;
+    letter-spacing: 0.01em;
+    color: color-mix(in oklab, currentColor 62%, transparent);
+    transform: rotate(-1.4deg);
+    display: inline-block;
+  }
+
   /* The institutional label: small, spaced, quietly authoritative. */
   .palma-label {
     font-size: 0.6875rem;

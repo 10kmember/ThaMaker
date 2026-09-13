@@ -4,6 +4,7 @@ import { EmptyState } from '@/components/ui/feedback';
 import { Input } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { PalmMark } from '@/components/brand/PalmMark';
+import { InkFill } from '@/components/motion/illusion';
 import { buildMetadata } from '@/lib/seo';
 import { countryName } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -64,11 +65,9 @@ export default async function ParohPage({ searchParams }: Props) {
         <Container className="relative py-20 sm:py-28">
           <div className="flex max-w-200 flex-col gap-8">
             <span className="palma-label-brand text-champagne">PaROH</span>
-            <h1 className="text-5xl leading-[0.95] sm:text-7xl lg:text-8xl">
-              PALMA
-              <br />
-              Roll of Honour
-            </h1>
+            <InkFill as="h1" className="text-5xl leading-[0.95] sm:text-7xl lg:text-8xl">
+              {'PALMA Roll of Honour'}
+            </InkFill>
             <p className="text-ivory/70 max-w-130 text-lg leading-relaxed">
               The permanent record of PALMA recipients. {total} {total === 1 ? 'honour' : 'honours'}{' '}
               held across {seasons.filter((s) => s.stage === 'archived').length || seasons.length}{' '}

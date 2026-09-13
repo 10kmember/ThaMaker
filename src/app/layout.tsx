@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from 'next';
-import { Fraunces, Inter } from 'next/font/google';
+import { Amatic_SC, Fraunces, Inter } from 'next/font/google';
 import { SiteHeader } from '@/components/palma/SiteHeader';
 import { SiteFooter } from '@/components/palma/SiteFooter';
+import { MotionProvider } from '@/components/motion/MotionProvider';
 import { JsonLd, organisationJsonLd, SITE_DESCRIPTOR, SITE_NAME } from '@/lib/seo';
 import { siteUrl } from '@/lib/env';
 import './globals.css';
@@ -17,6 +18,20 @@ const sans = Inter({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-palma-sans',
+});
+
+/**
+ * The annotation face.
+ *
+ * Used two or three times on the whole site — a hand in the margin of an
+ * institutional page. Used more than that it becomes a gimmick, so it is
+ * deliberately not available as a general utility: see `.palma-annotation`.
+ */
+const annotation = Amatic_SC({
+  subsets: ['latin'],
+  weight: ['700'],
+  display: 'swap',
+  variable: '--font-palma-annotation',
 });
 
 export const metadata: Metadata = {
@@ -48,7 +63,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-GB" className={`${display.variable} ${sans.variable}`}>
+    <html lang="en-GB" className={`${display.variable} ${sans.variable} ${annotation.variable}`}>
       <body className="flex min-h-dvh flex-col">
         <a
           href="#main"
@@ -56,11 +71,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           Skip to content
         </a>
-        <SiteHeader />
-        <main id="main" className="flex-1">
-          {children}
-        </main>
-        <SiteFooter />
+        <MotionProvider>
+          <SiteHeader />
+          <main id="main" className="flex-1">
+            {children}
+          </main>
+          <SiteFooter />
+        </MotionProvider>
         <JsonLd data={organisationJsonLd()} />
       </body>
     </html>

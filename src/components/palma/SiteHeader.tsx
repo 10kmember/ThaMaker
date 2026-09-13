@@ -3,17 +3,32 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { AnimatePresence, motion } from 'motion/react';
 import { Menu, X } from 'lucide-react';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { Button } from '@/components/ui/button';
 import { Container } from './layout';
 import { PUBLIC_NAV } from '@/lib/navigation';
 import { cn } from '@/lib/utils';
+import { DURATION, EASE, STAGGER } from '@/lib/motion';
 
+/**
+ * Navigation behaviour.
+ *
+ * Desktop: a rule sits under the active item and *travels* between items as
+ * the reader moves across the bar — one shared element rather than eight
+ * independent underlines, so the navigation reads as a single object that
+ * follows attention.
+ *
+ * Mobile: the panel is choreographed rather than toggled. It opens as a
+ * column of display type arriving in sequence, which is the same editorial
+ * gesture used everywhere else on the site, at menu scale.
+ */
 export function SiteHeader({ accountHref = '/portal' }: { accountHref?: string }) {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
   const [condensed, setCondensed] = React.useState(false);
+  const [hovered, setHovered] = React.useState<string | null>(null);
 
   React.useEffect(() => setOpen(false), [pathname]);
 
@@ -31,7 +46,15 @@ export function SiteHeader({ accountHref = '/portal' }: { accountHref?: string }
     };
   }, [open]);
 
+  React.useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && setOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const marked = hovered ?? PUBLIC_NAV.find((item) => isActive(item.href))?.href ?? null;
 
   return (
     <header
@@ -46,20 +69,35 @@ export function SiteHeader({ accountHref = '/portal' }: { accountHref?: string }
         <Wordmark size="sm" />
 
         <nav aria-label="Primary" className="hidden lg:block">
-          <ul className="flex items-center gap-7">
+          <ul className="flex items-center gap-7" onMouseLeave={() => setHovered(null)}>
             {PUBLIC_NAV.map((item) => (
-              <li key={item.href}>
+              <li key={item.href} className="relative">
                 <Link
                   href={item.href}
+                  onMouseEnter={() => setHovered(item.href)}
+                  onFocus={() => setHovered(item.href)}
                   aria-current={isActive(item.href) ? 'page' : undefined}
                   className={cn(
-                    'py-2 transition-colors',
+                    'block py-2 transition-colors duration-200',
                     item.preserveCase ? 'palma-label-brand' : 'palma-label',
-                    isActive(item.href) ? 'text-ink' : 'text-taupe-deep hover:text-ink',
+                    isActive(item.href) || hovered === item.href
+                      ? 'text-ink'
+                      : 'text-taupe-deep hover:text-ink',
                   )}
                 >
                   {item.label}
                 </Link>
+
+                {/* One rule, shared across the bar. Motion's layout animation
+                    moves it between items rather than cross-fading eight. */}
+                {marked === item.href ? (
+                  <motion.span
+                    layoutId="palma-nav-rule"
+                    aria-hidden="true"
+                    className="bg-ink absolute -bottom-px left-0 h-px w-full"
+                    transition={{ duration: DURATION.base, ease: EASE.ceremonial }}
+                  />
+                ) : null}
               </li>
             ))}
           </ul>
@@ -85,40 +123,72 @@ export function SiteHeader({ accountHref = '/portal' }: { accountHref?: string }
         </div>
       </Container>
 
-      <div
-        id="palma-mobile-nav"
-        hidden={!open}
-        className="border-stone-deep bg-ivory border-t lg:hidden"
-      >
-        <Container className="py-8">
-          <nav aria-label="Primary, mobile">
-            <ul className="flex flex-col">
-              {PUBLIC_NAV.map((item) => (
-                <li key={item.href} className="border-stone-deep/60 border-b last:border-none">
-                  <Link
-                    href={item.href}
-                    aria-current={isActive(item.href) ? 'page' : undefined}
-                    className={cn(
-                      'font-display flex items-center justify-between py-4 text-2xl',
-                      isActive(item.href) ? 'text-ink' : 'text-taupe-deep',
-                    )}
-                  >
-                    {item.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-          <div className="mt-8 flex flex-col gap-3">
-            <Button asChild size="md">
-              <Link href="/nominate">Nominate a creator</Link>
-            </Button>
-            <Button asChild size="md" variant="outline">
-              <Link href={accountHref}>Account</Link>
-            </Button>
-          </div>
-        </Container>
-      </div>
+      <AnimatePresence initial={false}>
+        {open ? (
+          <motion.div
+            id="palma-mobile-nav"
+            key="mobile-nav"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{
+              height: 0,
+              opacity: 0,
+              transition: { duration: DURATION.quick, ease: EASE.exit },
+            }}
+            transition={{ duration: DURATION.slow, ease: EASE.ceremonial }}
+            className="border-stone-deep bg-ivory overflow-hidden border-t lg:hidden"
+          >
+            <Container className="py-8">
+              <motion.nav
+                aria-label="Primary, mobile"
+                initial="hidden"
+                animate="visible"
+                variants={{
+                  hidden: {},
+                  visible: { transition: { staggerChildren: STAGGER.tight, delayChildren: 0.06 } },
+                }}
+              >
+                <ul className="flex flex-col">
+                  {PUBLIC_NAV.map((item) => (
+                    <motion.li
+                      key={item.href}
+                      variants={{
+                        hidden: { opacity: 0, y: 12 },
+                        visible: {
+                          opacity: 1,
+                          y: 0,
+                          transition: { duration: DURATION.base, ease: EASE.editorial },
+                        },
+                      }}
+                      className="border-stone-deep/60 border-b last:border-none"
+                    >
+                      <Link
+                        href={item.href}
+                        aria-current={isActive(item.href) ? 'page' : undefined}
+                        className={cn(
+                          'font-display flex items-center justify-between py-4 text-2xl',
+                          isActive(item.href) ? 'text-ink' : 'text-taupe-deep',
+                        )}
+                      >
+                        {item.label}
+                      </Link>
+                    </motion.li>
+                  ))}
+                </ul>
+              </motion.nav>
+
+              <div className="mt-8 flex flex-col gap-3">
+                <Button asChild size="md">
+                  <Link href="/nominate">Nominate a creator</Link>
+                </Button>
+                <Button asChild size="md" variant="outline">
+                  <Link href={accountHref}>Account</Link>
+                </Button>
+              </div>
+            </Container>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </header>
   );
 }

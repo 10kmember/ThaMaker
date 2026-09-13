@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Container, Section, SectionHeading } from '@/components/palma/layout';
 import { Reveal } from '@/components/palma/Reveal';
 import { CreatorCard } from '@/components/palma/CreatorCard';
-import { SeasonRail } from '@/components/palma/SeasonRail';
+import { SeasonChoreography } from '@/components/motion/SeasonChoreography';
 import { PalmMark } from '@/components/brand/PalmMark';
 import { HONOUR_LABEL } from '@/components/palma/badges';
 import { formatDate } from '@/lib/format';
@@ -97,7 +97,16 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <SeasonRail year={season.year} stage={season.stage} />
+            <SeasonChoreography
+              year={season.year}
+              stage={season.stage}
+              dates={[
+                season.nominationsOpenAt,
+                season.shortlistAt,
+                season.finalistsAt,
+                season.ceremonyAt,
+              ]}
+            />
 
             <div className="border-ivory/12 flex flex-wrap items-center gap-x-8 gap-y-3 border-t pt-8">
               <span className="palma-label text-ivory/45">
@@ -182,12 +191,16 @@ export default async function HomePage() {
                 The permanent record of PALMA recipients. Every honour, every season, kept so it can
                 still be cited a decade from now.
               </p>
-              <div>
-                <Button asChild variant="ivory" size="md">
-                  <Link href="/paroh" className="palma-label-brand">
-                    Enter the PaROH
-                  </Link>
-                </Button>
+              <div className="flex flex-col gap-5">
+                <div>
+                  <Button asChild variant="ivory" size="md">
+                    <Link href="/paroh" className="palma-label-brand">
+                      Enter the PaROH
+                    </Link>
+                  </Button>
+                </div>
+                {/* The one hand-written line on the homepage. */}
+                <p className="palma-annotation text-ivory">and one day, your name</p>
               </div>
             </div>
 

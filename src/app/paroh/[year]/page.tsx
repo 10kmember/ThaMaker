@@ -114,6 +114,7 @@ export default async function ParohYearPage({ params }: Params) {
                   sublegend="ROLL OF HONOUR"
                   className="text-olive h-48 w-48"
                 />
+                <p className="palma-annotation text-olive">and what a year it was</p>
                 <p className="text-taupe-deep max-w-72 text-center text-sm leading-relaxed">
                   Each honour in this class carries a permanent verification record. A PALMA can be
                   checked by anyone, at any time, from the code printed on the certificate.

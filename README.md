@@ -207,7 +207,14 @@ Display serif (Fraunces) for the wordmark, titles and honours; contemporary sans
 decorative, and `prefers-reduced-motion` removes it entirely — the winner reveal
 stays a complete, still composition.
 
-See [`docs/DESIGN.md`](docs/DESIGN.md) for the full system and
+Motion is a layered system, not scattered animation: CSS owns hover, focus and
+press at zero hydration cost; Motion owns entrances, exits and shared-element
+layout; GSAP owns the scroll choreography of a season; Three.js owns the trophy.
+GSAP and Three.js are in no route's first load, and neither is fetched at all
+under `prefers-reduced-motion`.
+
+See [`docs/DESIGN.md`](docs/DESIGN.md) for the visual system,
+[`docs/MOTION.md`](docs/MOTION.md) for the interaction language, and
 [`docs/OPERATIONS.md`](docs/OPERATIONS.md) for running a season.
 
 ## Before launch

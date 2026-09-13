@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { PalmaSeal } from '@/components/brand/PalmaSeal';
+import { PalmaTrophy } from '@/components/three/PalmaTrophy';
+import { DepthLayer, DepthItem } from '@/components/motion/illusion';
 import { EditorialImage } from './EditorialImage';
 import { CopyLink } from './CopyLink';
 import { Button } from '@/components/ui/button';
@@ -91,26 +92,26 @@ export function WinnerReveal({
             </div>
           </div>
 
-          <div className="flex flex-col items-center gap-10 lg:col-span-5">
-            <div
-              className="w-full max-w-80 motion-safe:animate-(--animate-reveal)"
-              style={{ animationDelay: '760ms' }}
-            >
+          {/* Portrait above, trophy below — and both lean toward the reader
+              together, at different rates, so the column reads as one object
+              with depth rather than two stacked panels. */}
+          <DepthLayer
+            className="mx-auto flex w-full max-w-80 flex-col items-center gap-2 lg:col-span-5"
+            strength={1.5}
+          >
+            <DepthItem depth={2.2} className="w-56 motion-safe:animate-(--animate-reveal)">
               <EditorialImage
                 name={winner.creator.displayName}
                 src={winner.creator.portraitUrl}
                 alt={winner.creator.portraitAlt}
-                sizes="(max-width: 1024px) 80vw, 20rem"
+                sizes="(max-width: 1024px) 55vw, 14rem"
               />
-            </div>
-            <PalmaSeal
-              animated
-              legend={`PALMA ${season.year}`}
-              sublegend="THE CREATOR HONOURS"
-              centre="Winner"
-              className="text-champagne/85 h-36 w-36"
-            />
-          </div>
+            </DepthItem>
+
+            <DepthItem depth={0.7} className="-mt-3 w-full motion-safe:animate-(--animate-rise)">
+              <PalmaTrophy legend={`PALMA ${season.year}`} centre="Winner" />
+            </DepthItem>
+          </DepthLayer>
         </div>
       </Container>
     </section>

@@ -6,6 +6,14 @@ import { countryName } from '@/lib/format';
 import { cn, ordinal, pluralise } from '@/lib/utils';
 import type { CreatorSummary } from '@/server/data/types';
 
+/**
+ * The editorial creator card.
+ *
+ * On approach: the portrait pushes in a fraction, a rule travels the width of
+ * the name, the arrow advances, and the honour line surfaces. Four movements,
+ * one easing, one gesture — the card acknowledges the reader rather than
+ * lifting off the page like a SaaS tile.
+ */
 export function CreatorCard({
   creator,
   index,
@@ -23,12 +31,12 @@ export function CreatorCard({
     <Link
       href={`/creators/${creator.slug}`}
       className={cn(
-        'group flex flex-col gap-4 focus:outline-none',
+        'group/card flex flex-col gap-4 focus:outline-none',
         'focus-visible:ring-olive focus-visible:ring-offset-ivory focus-visible:ring-2 focus-visible:ring-offset-4',
         className,
       )}
     >
-      <div className="relative overflow-hidden">
+      <div className="palma-card-media relative">
         <EditorialImage
           name={creator.displayName}
           src={creator.portraitUrl}
@@ -43,14 +51,17 @@ export function CreatorCard({
       </div>
 
       <div className="flex flex-col gap-2">
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="group-hover:text-olive text-xl leading-tight transition-colors">
-            {creator.displayName}
-          </h3>
-          <ArrowUpRight
-            className="text-taupe mt-1 size-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
-            aria-hidden="true"
-          />
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="group-hover/card:text-olive text-xl leading-tight transition-colors duration-200">
+              {creator.displayName}
+            </h3>
+            <ArrowUpRight
+              className="palma-advance text-taupe mt-1 size-4 shrink-0"
+              aria-hidden="true"
+            />
+          </div>
+          <span aria-hidden="true" className="palma-card-rule bg-ink/40 block h-px w-full" />
         </div>
 
         <p className="palma-label text-taupe-deep">{countryName(creator.countryCode)}</p>
@@ -60,10 +71,10 @@ export function CreatorCard({
         ) : null}
 
         {showStatus ? (
-          <div className="mt-1 flex flex-wrap items-center gap-2">
+          <div className="mt-1 flex min-h-7 flex-wrap items-center gap-2">
             <VerificationBadge status={creator.verificationStatus} />
             {creator.honourCount > 0 ? (
-              <span className="palma-label text-champagne-deep">
+              <span className="palma-label palma-card-surface text-champagne-deep">
                 {creator.honourCount} PALMA {pluralise(creator.honourCount, 'honour')}
               </span>
             ) : null}

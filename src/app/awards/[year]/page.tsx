@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { Container, PageHeader, Section, SectionHeading } from '@/components/palma/layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { SeasonRail } from '@/components/palma/SeasonRail';
+import { SeasonChoreography } from '@/components/motion/SeasonChoreography';
 import { CategoryCard } from '@/components/palma/CategoryCard';
 import { EditorialImage } from '@/components/palma/EditorialImage';
 import { JsonLd, breadcrumbJsonLd, buildMetadata } from '@/lib/seo';
@@ -78,7 +78,16 @@ export default async function SeasonPage({ params }: Params) {
       <Section id="shortlist" className="py-16">
         <Container>
           <h2 className="palma-label text-taupe-deep mb-8">The season</h2>
-          <SeasonRail year={season.year} stage={season.stage} tone="light" />
+          <SeasonChoreography
+            year={season.year}
+            stage={season.stage}
+            dates={[
+              season.nominationsOpenAt,
+              season.shortlistAt,
+              season.finalistsAt,
+              season.ceremonyAt,
+            ]}
+          />
 
           <p className="text-taupe-deep mt-10 max-w-160 text-sm leading-relaxed">
             {shortlistIsPublic(season.stage)
