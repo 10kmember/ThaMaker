@@ -149,3 +149,15 @@ export type SponsorView = {
   tier: 'headline' | 'category_partner' | 'supporting' | 'media';
   categoryName: string | null;
 };
+
+export type JudgeView = {
+  id: string;
+  displayName: string;
+  title: string | null;
+  organisation: string | null;
+  biography: string | null;
+  countryCode: string | null;
+  /** Seasons this judge has sat for, newest first. */
+  seasons: { year: number; isChair: boolean }[];
+  isChair: boolean;
+};

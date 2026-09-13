@@ -13,6 +13,7 @@ import type {
   CreatorSummary,
   FinalistView,
   HonourEntry,
+  JudgeView,
   RollOfHonourYear,
   SeasonStats,
   SeasonView,
@@ -501,6 +502,42 @@ export const listSponsors = cache(async (): Promise<SponsorView[]> => {
       tier: row.tier as SponsorView['tier'],
       categoryName: row.category?.name ?? null,
     }));
+});
+
+/**
+ * The panel, as the public sees it.
+ *
+ * Judges are published because a panel nobody can name is not independent, it
+ * is merely anonymous. What is never published is anything a judge *did*: no
+ * scores, no assignments, no conflict declarations. Who sat is public; how they
+ * voted is not, permanently.
+ */
+export const listJudges = cache(async (): Promise<JudgeView[]> => {
+  const rows = await prisma.judge.findMany({
+    where: { isActive: true },
+    include: { memberships: { include: { awardYear: true } } },
+    orderBy: { displayName: 'asc' },
+  });
+
+  return rows.map((row) => {
+    const seasons = row.memberships
+      .map((membership) => ({
+        year: membership.awardYear.year,
+        isChair: membership.isChair,
+      }))
+      .sort((a, b) => b.year - a.year);
+
+    return {
+      id: row.id,
+      displayName: row.displayName,
+      title: row.title,
+      organisation: row.organisation,
+      biography: row.biography,
+      countryCode: row.countryCode,
+      seasons,
+      isChair: seasons.some((season) => season.isChair),
+    };
+  });
 });
 
 export const getSeasonStats = cache(async (year: number): Promise<SeasonStats> => {

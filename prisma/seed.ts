@@ -199,17 +199,67 @@ async function main() {
 
   // ── Judges ────────────────────────────────────────────────────────────────
   const judgeSeeds = [
-    { email: 'chair@palmaawards.com', name: 'Panel Chair', title: 'Chair of the PALMA panel' },
-    { email: 'judge.one@palmaawards.com', name: 'Frances Okonjo', title: 'Commissioning editor' },
-    { email: 'judge.two@palmaawards.com', name: 'Daniel Whitlock', title: 'Studio founder' },
-    { email: 'judge.three@palmaawards.com', name: 'Ines Barros', title: 'Creative director' },
+    {
+      email: 'chair@palmaawards.com',
+      name: 'Adaeze Mbeki',
+      title: 'Chair of the PALMA panel',
+      organisation: 'Formerly Channel 4',
+      countryCode: 'GB',
+      biography:
+        'Twenty years commissioning factual and documentary work, latterly as head of digital commissioning. Chairs the panel, sees every score spread before a list is confirmed, and votes on nothing.',
+    },
+    {
+      email: 'judge.one@palmaawards.com',
+      name: 'Frances Okonjo',
+      title: 'Commissioning editor',
+      organisation: 'Independent',
+      countryCode: 'GB',
+      biography:
+        'Commissions long-form video and audio for independent publishers. Writes and teaches about editorial standards in creator-made journalism.',
+    },
+    {
+      email: 'judge.two@palmaawards.com',
+      name: 'Daniel Whitlock',
+      title: 'Studio founder',
+      organisation: 'Halfmoon Studio',
+      countryCode: 'GB',
+      biography:
+        'Founded a post-production studio working almost entirely with independent creators. Sits on the panel for the craft categories and recuses himself from anything the studio has touched.',
+    },
+    {
+      email: 'judge.three@palmaawards.com',
+      name: 'Ines Barros',
+      title: 'Creative director',
+      organisation: 'Estudio Vela, Lisbon',
+      countryCode: 'PT',
+      biography:
+        'Designs brand and title systems for broadcasters and independent studios across Europe. Brought on to the panel specifically to argue about craft.',
+    },
+    {
+      email: 'judge.four@palmaawards.com',
+      name: 'Marcus Hale',
+      title: 'Head of audio',
+      organisation: 'Northbank Audio',
+      countryCode: 'GB',
+      biography:
+        'Producer and studio head. Twelve years in podcasting, from three-person shows to network commissions, and a persistent sceptic of download numbers as a measure of anything.',
+    },
+    {
+      email: 'judge.five@palmaawards.com',
+      name: 'Priya Raghunathan',
+      title: 'Researcher',
+      organisation: 'Creator Economy Institute',
+      countryCode: 'GB',
+      biography:
+        'Researches the working conditions and economics of independent creative work. Publishes on platform dependency, and reads every nomination reason twice.',
+    },
   ];
 
   const judgeIds: string[] = [];
   for (const [index, seed] of judgeSeeds.entries()) {
     const user = await prisma.user.upsert({
       where: { email: seed.email },
-      update: {},
+      update: { name: seed.name },
       create: {
         email: seed.email,
         name: seed.name,
@@ -220,16 +270,20 @@ async function main() {
       },
     });
 
+    // The panel is published, so its profile fields converge on re-seed rather
+    // than keeping whatever an earlier run wrote.
+    const judgeProfile = {
+      displayName: seed.name,
+      title: seed.title,
+      organisation: seed.organisation,
+      countryCode: seed.countryCode,
+      biography: seed.biography,
+    };
+
     const judge = await prisma.judge.upsert({
       where: { userId: user.id },
-      update: {},
-      create: {
-        userId: user.id,
-        displayName: seed.name,
-        title: seed.title,
-        countryCode: 'GB',
-        biography: 'Seated on the PALMA panel for the current season.',
-      },
+      update: judgeProfile,
+      create: { userId: user.id, ...judgeProfile },
     });
     judgeIds.push(judge.id);
 

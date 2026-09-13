@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { siteUrl } from '@/lib/env';
 import { listArticles, listCategoryIndex, listCreators, listSeasons } from '@/server/data/queries';
+import { LEGAL_DOCUMENTS } from '@/lib/legal';
 
 export const revalidate = 3600;
 
@@ -41,7 +42,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly',
       priority: 0.5,
     },
+    {
+      url: `${siteUrl}/about/judges`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    },
+    {
+      url: `${siteUrl}/about/sponsors`,
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.5,
+    },
+    { url: `${siteUrl}/press`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${siteUrl}/contact`, lastModified: now, changeFrequency: 'yearly', priority: 0.5 },
     { url: `${siteUrl}/verify`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${siteUrl}/legal`, lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
+    // Every registered document has a page, so the register is the source of
+    // truth for the sitemap too — a new document appears here by existing.
+    ...LEGAL_DOCUMENTS.map((entry) => ({
+      url: `${siteUrl}/legal/${entry.slug}`,
+      lastModified: new Date(entry.effective),
+      changeFrequency: 'yearly' as const,
+      priority: 0.3,
+    })),
   ];
 
   return [

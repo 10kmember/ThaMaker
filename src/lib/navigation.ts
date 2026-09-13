@@ -46,8 +46,11 @@ export const FOOTER_NAV: { title: string; items: NavItem[] }[] = [
     items: [
       { href: '/about', label: 'About PALMA' },
       { href: '/about/judging', label: 'How judging works' },
+      { href: '/about/judges', label: 'The panel' },
+      { href: '/about/sponsors', label: 'Partners' },
       { href: '/about/policy', label: 'Content policy' },
-      { href: '/humans.txt', label: 'humans.txt' },
+      { href: '/press', label: 'Press' },
+      { href: '/contact', label: 'Contact' },
     ],
   },
   {
@@ -56,6 +59,22 @@ export const FOOTER_NAV: { title: string; items: NavItem[] }[] = [
       { href: '/portal', label: 'Creator portal' },
       { href: '/judging', label: 'Judge portal' },
       { href: '/sign-in', label: 'Sign in' },
+      { href: '/humans.txt', label: 'humans.txt' },
     ],
   },
+];
+
+/**
+ * The legal register, rendered as a fourth footer row rather than inside a
+ * column. A reader looking for the terms is not browsing; they want the list.
+ */
+export const LEGAL_NAV: NavItem[] = [
+  { href: '/legal', label: 'Legal register' },
+  { href: '/legal/terms', label: 'Terms' },
+  { href: '/legal/privacy', label: 'Privacy' },
+  { href: '/legal/cookies', label: 'Cookies' },
+  { href: '/legal/rules', label: 'Competition rules' },
+  { href: '/legal/complaints', label: 'Complaints' },
+  { href: '/legal/mark', label: 'Use of the mark' },
+  { href: '/legal/accessibility', label: 'Accessibility' },
 ];

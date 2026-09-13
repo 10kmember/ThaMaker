@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { PalmMark } from '@/components/brand/PalmMark';
 import { Container } from './layout';
-import { FOOTER_NAV } from '@/lib/navigation';
+import { FOOTER_NAV, LEGAL_NAV } from '@/lib/navigation';
 
 export function SiteFooter() {
   const year = new Date().getUTCFullYear();
@@ -41,25 +41,24 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div className="border-ivory/12 text-ivory/45 mt-16 flex flex-col gap-4 border-t pt-8 text-xs sm:flex-row sm:items-center sm:justify-between">
-          <p>© {year} PALMA. The Creator Honours. Palma Awards Ltd, United Kingdom.</p>
-          <ul className="flex flex-wrap gap-6">
-            <li>
-              <Link href="/about/policy" className="palma-quiet-link hover:text-ivory">
-                Content policy
-              </Link>
-            </li>
-            <li>
-              <Link href="/legal/privacy" className="palma-quiet-link hover:text-ivory">
-                Privacy
-              </Link>
-            </li>
-            <li>
-              <Link href="/legal/terms" className="palma-quiet-link hover:text-ivory">
-                Terms
-              </Link>
-            </li>
+        <nav aria-label="Legal register" className="border-ivory/12 mt-16 border-t pt-8">
+          <h2 className="palma-label text-champagne">The register</h2>
+          <ul className="text-ivory/55 mt-4 flex flex-wrap gap-x-7 gap-y-3 text-xs">
+            {LEGAL_NAV.map((item) => (
+              <li key={item.href}>
+                <Link href={item.href} className="palma-quiet-link hover:text-ivory">
+                  {item.label}
+                </Link>
+              </li>
+            ))}
           </ul>
+        </nav>
+
+        <div className="border-ivory/12 text-ivory/45 mt-8 flex flex-col gap-4 border-t pt-8 text-xs sm:flex-row sm:items-center sm:justify-between">
+          <p>© {year} PALMA. The Creator Honours. Palma Awards Ltd, United Kingdom.</p>
+          <p className="text-ivory/35">
+            Nominations are free. Honours cannot be bought. Scores are never published.
+          </p>
         </div>
       </Container>
     </footer>
