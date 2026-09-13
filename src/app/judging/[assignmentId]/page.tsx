@@ -1,0 +1,118 @@
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { ExternalLink } from 'lucide-react';
+import { PortalShell } from '@/components/palma/PortalShell';
+import { ScoreForm } from '@/components/judging/ScoreForm';
+import { Notice } from '@/components/ui/feedback';
+import { buildMetadata } from '@/lib/seo';
+import { requirePermission } from '@/lib/auth/guards';
+import { getAssignmentForJudge } from '@/server/data/judging';
+import { countryName } from '@/lib/format';
+import { titleCase } from '@/lib/utils';
+
+export const dynamic = 'force-dynamic';
+
+export const metadata = buildMetadata({
+  title: 'Judging',
+  description: 'Score a PALMA nomination.',
+  path: '/judging',
+  noIndex: true,
+});
+
+type Params = { params: Promise<{ assignmentId: string }> };
+
+export default async function AssignmentPage({ params }: Params) {
+  const { assignmentId } = await params;
+  const session = await requirePermission('judging:submit_score', `/judging/${assignmentId}`);
+  if (!session.user.judgeId) notFound();
+
+  const assignment = await getAssignmentForJudge(assignmentId, session.user.judgeId);
+  if (!assignment) notFound();
+
+  return (
+    <PortalShell
+      title="PALMA Judging"
+      subtitle={assignment.creatorName}
+      userName={session.user.name}
+    >
+      <Link href="/judging" className="palma-label text-taupe-deep hover:text-ink">
+        ← All assignments
+      </Link>
+
+      <div className="mt-10 grid gap-14 lg:grid-cols-12">
+        <div className="flex flex-col gap-10 lg:col-span-7">
+          <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
+            <div className="flex flex-col gap-1.5 border-t border-stone-deep pt-4">
+              <dt className="palma-label text-taupe-deep">Reference</dt>
+              <dd className="font-mono text-sm tracking-wider">{assignment.reference}</dd>
+            </div>
+            <div className="flex flex-col gap-1.5 border-t border-stone-deep pt-4">
+              <dt className="palma-label text-taupe-deep">Category</dt>
+              <dd className="font-display text-lg">{assignment.categoryName}</dd>
+            </div>
+            <div className="flex flex-col gap-1.5 border-t border-stone-deep pt-4">
+              <dt className="palma-label text-taupe-deep">Creator</dt>
+              <dd className="font-display text-lg">{assignment.creatorName}</dd>
+            </div>
+            <div className="flex flex-col gap-1.5 border-t border-stone-deep pt-4">
+              <dt className="palma-label text-taupe-deep">Country</dt>
+              <dd className="font-display text-lg">{countryName(assignment.creatorCountry)}</dd>
+            </div>
+          </dl>
+
+          <section className="flex flex-col gap-3">
+            <h2 className="palma-label text-taupe-deep">Supporting statement</h2>
+            <p className="leading-relaxed whitespace-pre-wrap text-ink/85">{assignment.statement}</p>
+          </section>
+
+          <section className="flex flex-col gap-4">
+            <h2 className="palma-label text-taupe-deep">External evidence</h2>
+            <Notice>
+              Evidence opens on the platform where the work lives. PALMA does not host it, and
+              nothing here is published on the public site.
+            </Notice>
+            <ul className="flex flex-col gap-3">
+              {assignment.evidence.map((item) => (
+                <li key={item.id} className="border border-stone-deep p-5">
+                  <div className="flex flex-wrap items-baseline justify-between gap-3">
+                    <span className="font-display text-lg">{item.label}</span>
+                    <span className="palma-label text-taupe">{titleCase(item.kind)}</span>
+                  </div>
+                  {item.url ? (
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      className="mt-2 inline-flex items-center gap-2 text-sm break-all text-olive underline underline-offset-4"
+                    >
+                      {item.url}
+                      <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
+                    </a>
+                  ) : null}
+                  {item.note ? (
+                    <p className="mt-2 text-sm text-taupe-deep">{item.note}</p>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="flex flex-col gap-3 border-t border-stone-deep pt-8">
+            <h2 className="palma-label text-taupe-deep">Category eligibility</h2>
+            <p className="text-sm leading-relaxed text-taupe-deep">{assignment.categoryEligibility}</p>
+            <h2 className="palma-label mt-4 text-taupe-deep">Judging guidance</h2>
+            <p className="text-sm leading-relaxed text-taupe-deep">{assignment.categoryCriteria}</p>
+          </section>
+        </div>
+
+        <div className="lg:col-span-5">
+          <ScoreForm
+            assignmentId={assignment.id}
+            nominationId={assignment.nominationId}
+            alreadyScored={assignment.alreadyScored}
+          />
+        </div>
+      </div>
+    </PortalShell>
+  );
+}

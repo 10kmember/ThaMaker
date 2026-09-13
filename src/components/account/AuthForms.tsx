@@ -1,0 +1,110 @@
+'use client';
+
+import { useActionState } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { CheckboxField, Field, Input } from '@/components/ui/form';
+import { Notice } from '@/components/ui/feedback';
+import { register, signIn, type AuthState } from '@/server/actions/auth';
+
+const initial: AuthState = { status: 'idle' };
+
+export function SignInForm({ next }: { next?: string }) {
+  const [state, action, pending] = useActionState(signIn, initial);
+
+  return (
+    <form action={action} className="flex flex-col gap-6">
+      {next ? <input type="hidden" name="next" value={next} /> : null}
+
+      {state.status === 'error' && state.message ? (
+        <Notice tone="error" title="Could not sign in">
+          {state.message}
+        </Notice>
+      ) : null}
+
+      <Field htmlFor="email" label="Email" required error={state.errors?.email}>
+        <Input id="email" name="email" type="email" required autoComplete="email" />
+      </Field>
+
+      <Field htmlFor="password" label="Password" required error={state.errors?.password}>
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          required
+          autoComplete="current-password"
+        />
+      </Field>
+
+      <Button type="submit" size="md" disabled={pending}>
+        {pending ? 'Signing in…' : 'Sign in'}
+      </Button>
+
+      <p className="text-sm text-taupe-deep">
+        No account?{' '}
+        <Link href="/register" className="underline underline-offset-4 hover:text-ink">
+          Create one
+        </Link>
+        .
+      </p>
+    </form>
+  );
+}
+
+export function RegisterForm() {
+  const [state, action, pending] = useActionState(register, initial);
+
+  return (
+    <form action={action} className="flex flex-col gap-6">
+      {state.status === 'error' && state.message ? (
+        <Notice tone="error" title="Could not create the account">
+          {state.message}
+        </Notice>
+      ) : null}
+
+      <Field htmlFor="name" label="Your name" required error={state.errors?.name}>
+        <Input id="name" name="name" required autoComplete="name" />
+      </Field>
+
+      <Field htmlFor="email" label="Email" required error={state.errors?.email}>
+        <Input id="email" name="email" type="email" required autoComplete="email" />
+      </Field>
+
+      <Field
+        htmlFor="password"
+        label="Password"
+        required
+        hint="At least 12 characters, mixing cases or including a number."
+        error={state.errors?.password}
+      >
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          required
+          autoComplete="new-password"
+          minLength={12}
+        />
+      </Field>
+
+      <CheckboxField
+        id="acceptTerms"
+        name="acceptTerms"
+        label="I accept the PALMA terms and content policy."
+        error={state.errors?.acceptTerms}
+      />
+
+      <Button type="submit" size="md" disabled={pending}>
+        {pending ? 'Creating account…' : 'Create account'}
+      </Button>
+
+      <p className="text-sm text-taupe-deep">
+        Already have an account?{' '}
+        <Link href="/sign-in" className="underline underline-offset-4 hover:text-ink">
+          Sign in
+        </Link>
+        .
+      </p>
+    </form>
+  );
+}

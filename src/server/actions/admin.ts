@@ -1,0 +1,458 @@
+'use server';
+
+import { revalidatePath } from 'next/cache';
+import { authorise } from '@/lib/auth/guards';
+import { assertSameOrigin } from '@/lib/auth/session';
+import { planAssignments } from '@/domain/conflicts';
+import { canAdvance, SEASON_STAGES, type SeasonStage } from '@/domain/season';
+import { proposeFinalists, proposeWinner, DEFAULT_FINALIST_COUNT } from '@/domain/selection';
+import { SCORING_CRITERIA, totalScore, validateScoreCard } from '@/domain/judging';
+import { scoreCorrectionSchema } from '@/lib/validation/judging';
+import { recordAudit } from '@/server/audit';
+import { requireDb } from '@/server/db';
+import { conferHonour, revokeHonour } from '@/server/services/honours';
+
+export type AdminState = { status: 'idle' | 'error' | 'success'; message?: string };
+
+const JUDGES_PER_NOMINATION = 3;
+
+/** Mark a nomination eligible, ineligible or duplicate after human review. */
+export async function reviewNomination(
+  _previous: AdminState,
+  formData: FormData,
+): Promise<AdminState> {
+  await assertSameOrigin();
+
+  let session;
+  try {
+    session = await authorise('admin:review_nominations');
+  } catch {
+    return { status: 'error', message: 'You are not authorised to review nominations.' };
+  }
+
+  const nominationId = String(formData.get('nominationId') ?? '');
+  const decision = String(formData.get('decision') ?? '');
+  const note = String(formData.get('note') ?? '').trim();
+
+  if (!['eligible', 'ineligible', 'duplicate', 'under_review'].includes(decision)) {
+    return { status: 'error', message: 'Unknown decision.' };
+  }
+  if (decision !== 'eligible' && note.length < 10) {
+    return { status: 'error', message: 'Record a reason of at least 10 characters.' };
+  }
+
+  const db = requireDb();
+  const before = await db.nomination.findUnique({
+    where: { id: nominationId },
+    select: { status: true, reference: true },
+  });
+  if (!before) return { status: 'error', message: 'That nomination does not exist.' };
+
+  await db.nomination.update({
+    where: { id: nominationId },
+    data: {
+      status: decision as 'eligible',
+      reviewedAt: new Date(),
+      reviewNote: note || null,
+    },
+  });
+
+  await recordAudit({
+    action: 'nomination.eligibility_changed',
+    entityType: 'Nomination',
+    entityId: nominationId,
+    actor: { id: session.user.id, role: session.user.role, label: session.user.email },
+    summary: `${before.reference} → ${decision}`,
+    before: { status: before.status },
+    after: { status: decision, note: note || null },
+  });
+
+  revalidatePath('/admin/nominations');
+  return { status: 'success', message: `Nomination marked ${decision.replace('_', ' ')}.` };
+}
+
+/**
+ * Assign the panel for a category.
+ *
+ * Assignment is deterministic and conflict-aware: the same inputs produce the
+ * same panel, so a placement can be explained after the fact.
+ */
+export async function assignJudges(_previous: AdminState, formData: FormData): Promise<AdminState> {
+  await assertSameOrigin();
+
+  let session;
+  try {
+    session = await authorise('admin:assign_judging');
+  } catch {
+    return { status: 'error', message: 'You are not authorised to assign judging.' };
+  }
+
+  const categoryId = String(formData.get('categoryId') ?? '');
+  const db = requireDb();
+
+  const category = await db.category.findUnique({
+    where: { id: categoryId },
+    include: {
+      awardYear: { include: { judges: { include: { judge: true } } } },
+      nominations: { where: { status: 'eligible' }, select: { id: true, creatorId: true } },
+    },
+  });
+
+  if (!category) return { status: 'error', message: 'That category does not exist.' };
+  if (category.nominations.length === 0) {
+    return { status: 'error', message: 'No eligible nominations to assign in this category.' };
+  }
+
+  const judgeIds = category.awardYear.judges
+    .filter((membership) => membership.judge.isActive)
+    .map((membership) => membership.judgeId);
+
+  if (judgeIds.length === 0) {
+    return { status: 'error', message: 'No active judges are seated on this season’s panel.' };
+  }
+
+  const conflicts = await db.judgeConflict.findMany({
+    where: { judgeId: { in: judgeIds }, status: { not: 'dismissed' } },
+    select: { judgeId: true, creatorId: true, nominationId: true, status: true },
+  });
+
+  const existing = await db.judgingAssignment.findMany({
+    where: { categoryId },
+    select: { judgeId: true, nominationId: true },
+  });
+  const alreadyAssigned = new Set(existing.map((row) => `${row.judgeId}:${row.nominationId}`));
+
+  const plan = planAssignments({
+    nominations: category.nominations,
+    judgeIds,
+    conflicts: conflicts.map((conflict) => ({
+      judgeId: conflict.judgeId,
+      creatorId: conflict.creatorId,
+      nominationId: conflict.nominationId,
+      status: conflict.status,
+    })),
+    judgesPerNomination: JUDGES_PER_NOMINATION,
+  });
+
+  const fresh = plan.assignments.filter(
+    (assignment) => !alreadyAssigned.has(`${assignment.judgeId}:${assignment.nominationId}`),
+  );
+
+  if (fresh.length === 0) {
+    return { status: 'success', message: 'Every eligible nomination is already assigned.' };
+  }
+
+  await db.judgingAssignment.createMany({
+    data: fresh.map((assignment) => ({
+      judgeId: assignment.judgeId,
+      nominationId: assignment.nominationId,
+      categoryId,
+    })),
+    skipDuplicates: true,
+  });
+
+  await recordAudit({
+    action: 'judge.assigned',
+    entityType: 'Category',
+    entityId: categoryId,
+    actor: { id: session.user.id, role: session.user.role, label: session.user.email },
+    summary: `${fresh.length} assignments created in ${category.name}`,
+    after: { assignments: fresh.length, understaffed: plan.understaffed },
+  });
+
+  revalidatePath('/admin/judging');
+  return {
+    status: 'success',
+    message:
+      plan.understaffed.length > 0
+        ? `${fresh.length} assignments created. ${plan.understaffed.length} nomination(s) could not be fully covered without a conflict.`
+        : `${fresh.length} assignments created.`,
+  };
+}
+
+/** Confirm the panel's ranking as this category's finalists. */
+export async function confirmFinalists(
+  _previous: AdminState,
+  formData: FormData,
+): Promise<AdminState> {
+  await assertSameOrigin();
+
+  let session;
+  try {
+    session = await authorise('admin:select_finalists');
+  } catch {
+    return { status: 'error', message: 'You are not authorised to select finalists.' };
+  }
+
+  const categoryId = String(formData.get('categoryId') ?? '');
+  const db = requireDb();
+
+  const category = await db.category.findUnique({
+    where: { id: categoryId },
+    include: {
+      nominations: {
+        where: { status: { notIn: ['draft', 'withdrawn', 'ineligible', 'duplicate'] } },
+        include: {
+          creator: { include: { verification: true } },
+          scores: { select: { total: true } },
+        },
+      },
+    },
+  });
+
+  if (!category) return { status: 'error', message: 'That category does not exist.' };
+
+  const proposal = proposeFinalists(
+    category.nominations.map((nomination) => ({
+      nominationId: nomination.id,
+      creatorId: nomination.creatorId,
+      totals: nomination.scores.map((score) => score.total),
+      eligible:
+        !nomination.creator.isSuspended &&
+        nomination.creator.verification?.status === 'verified',
+    })),
+    DEFAULT_FINALIST_COUNT,
+  );
+
+  if (proposal.selected.length === 0) {
+    return { status: 'error', message: 'No eligible nominations can be advanced.' };
+  }
+
+  const results = [];
+  for (const finalist of proposal.selected) {
+    results.push(
+      await conferHonour({
+        nominationId: finalist.nominationId,
+        kind: 'finalist',
+        position: finalist.position,
+        actor: { id: session.user.id, role: session.user.role, label: session.user.email },
+      }),
+    );
+  }
+
+  const conferred = results.filter((result) => result.ok).length;
+
+  revalidatePath('/admin/selection');
+  revalidatePath('/finalists');
+
+  return {
+    status: 'success',
+    message: [
+      `${conferred} finalist honour(s) conferred in ${category.name}.`,
+      ...proposal.warnings,
+    ].join(' '),
+  };
+}
+
+/** Confer the PALMA itself. The single most consequential action in the system. */
+export async function confirmWinner(_previous: AdminState, formData: FormData): Promise<AdminState> {
+  await assertSameOrigin();
+
+  let session;
+  try {
+    session = await authorise('admin:select_winners');
+  } catch {
+    return { status: 'error', message: 'You are not authorised to select winners.' };
+  }
+
+  const categoryId = String(formData.get('categoryId') ?? '');
+  const citation = String(formData.get('citation') ?? '').trim() || null;
+  const db = requireDb();
+
+  const finalists = await db.honour.findMany({
+    where: { categoryId, kind: 'finalist', state: 'active' },
+    include: {
+      nomination: {
+        include: {
+          creator: { include: { verification: true } },
+          scores: { select: { total: true } },
+        },
+      },
+      category: true,
+    },
+  });
+
+  if (finalists.length === 0) {
+    return { status: 'error', message: 'Confirm the finalists before selecting a winner.' };
+  }
+
+  const proposal = proposeWinner(
+    finalists
+      .filter((honour) => honour.nomination)
+      .map((honour) => ({
+        nominationId: honour.nomination!.id,
+        creatorId: honour.creatorId,
+        totals: honour.nomination!.scores.map((score) => score.total),
+        eligible:
+          !honour.nomination!.creator.isSuspended &&
+          honour.nomination!.creator.verification?.status === 'verified',
+      })),
+  );
+
+  const winner = proposal.selected[0];
+  if (!winner) {
+    return { status: 'error', message: proposal.warnings.join(' ') || 'No eligible winner.' };
+  }
+
+  const result = await conferHonour({
+    nominationId: winner.nominationId,
+    kind: 'winner',
+    position: 1,
+    citation,
+    actor: { id: session.user.id, role: session.user.role, label: session.user.email },
+  });
+
+  if (!result.ok) return { status: 'error', message: result.reason };
+
+  revalidatePath('/admin/selection');
+  revalidatePath('/winners');
+  revalidatePath('/paroh');
+
+  return {
+    status: 'success',
+    message: [`PALMA conferred. Verification code ${result.code}.`, ...proposal.warnings].join(' '),
+  };
+}
+
+export async function revokeHonourAction(
+  _previous: AdminState,
+  formData: FormData,
+): Promise<AdminState> {
+  await assertSameOrigin();
+
+  let session;
+  try {
+    session = await authorise('admin:revoke_honour');
+  } catch {
+    return { status: 'error', message: 'You are not authorised to revoke honours.' };
+  }
+
+  const result = await revokeHonour({
+    honourId: String(formData.get('honourId') ?? ''),
+    reason: String(formData.get('reason') ?? ''),
+    actor: { id: session.user.id, role: session.user.role, label: session.user.email },
+  });
+
+  if (!result.ok) return { status: 'error', message: result.reason ?? 'Could not revoke.' };
+
+  revalidatePath('/paroh');
+  return { status: 'success', message: 'Honour revoked. The verification record now reads revoked.' };
+}
+
+/**
+ * Controlled score correction.
+ *
+ * Judges cannot edit a submitted score. An administrator can, once, with a
+ * written reason — and both the original and the correction are preserved.
+ */
+export async function correctScore(_previous: AdminState, formData: FormData): Promise<AdminState> {
+  await assertSameOrigin();
+
+  let session;
+  try {
+    session = await authorise('admin:correct_score');
+  } catch {
+    return { status: 'error', message: 'You are not authorised to correct scores.' };
+  }
+
+  const parsed = scoreCorrectionSchema.safeParse(
+    Object.fromEntries([
+      ['scoreId', formData.get('scoreId')],
+      ['correctionNote', formData.get('correctionNote')],
+      ...SCORING_CRITERIA.map((criterion) => [criterion.key, formData.get(criterion.key)] as const),
+    ]),
+  );
+
+  if (!parsed.success) {
+    return { status: 'error', message: parsed.error.issues[0]?.message ?? 'Check the correction.' };
+  }
+
+  const db = requireDb();
+  const existing = await db.judgingScore.findUnique({ where: { id: parsed.data.scoreId } });
+  if (!existing) return { status: 'error', message: 'That score does not exist.' };
+
+  const card = validateScoreCard({
+    originality: parsed.data.originality,
+    consistency: parsed.data.consistency,
+    professionalism: parsed.data.professionalism,
+    impact: parsed.data.impact,
+    brand: parsed.data.brand,
+  });
+  if (!card.ok) return { status: 'error', message: 'Every criterion must be 0 to 10.' };
+
+  const total = totalScore(card.card);
+
+  await db.judgingScore.update({
+    where: { id: existing.id },
+    data: {
+      ...card.card,
+      total,
+      correctedAt: new Date(),
+      correctedById: session.user.id,
+      correctionNote: parsed.data.correctionNote,
+    },
+  });
+
+  await recordAudit({
+    action: 'score.corrected',
+    entityType: 'JudgingScore',
+    entityId: existing.id,
+    actor: { id: session.user.id, role: session.user.role, label: session.user.email },
+    summary: parsed.data.correctionNote,
+    before: {
+      originality: existing.originality,
+      consistency: existing.consistency,
+      professionalism: existing.professionalism,
+      impact: existing.impact,
+      brand: existing.brand,
+      total: existing.total,
+    },
+    after: { ...card.card, total },
+  });
+
+  revalidatePath('/admin');
+  return { status: 'success', message: 'Score corrected and recorded in the audit log.' };
+}
+
+/** Seasons move one stage at a time, and always forwards. */
+export async function advanceSeason(_previous: AdminState, formData: FormData): Promise<AdminState> {
+  await assertSameOrigin();
+
+  let session;
+  try {
+    session = await authorise('admin:manage_seasons');
+  } catch {
+    return { status: 'error', message: 'You are not authorised to manage seasons.' };
+  }
+
+  const year = Number(formData.get('year'));
+  const target = String(formData.get('stage') ?? '') as SeasonStage;
+  if (!SEASON_STAGES.includes(target)) return { status: 'error', message: 'Unknown stage.' };
+
+  const db = requireDb();
+  const season = await db.awardYear.findUnique({ where: { year } });
+  if (!season) return { status: 'error', message: 'That season does not exist.' };
+
+  if (!canAdvance(season.stage as SeasonStage, target)) {
+    return {
+      status: 'error',
+      message: 'A season advances one stage at a time. Going back is a controlled correction.',
+    };
+  }
+
+  await db.awardYear.update({ where: { year }, data: { stage: target } });
+
+  await recordAudit({
+    action: 'season.stage_changed',
+    entityType: 'AwardYear',
+    entityId: season.id,
+    actor: { id: session.user.id, role: session.user.role, label: session.user.email },
+    summary: `${season.title}: ${season.stage} → ${target}`,
+    before: { stage: season.stage },
+    after: { stage: target },
+  });
+
+  revalidatePath('/admin');
+  revalidatePath('/awards');
+  return { status: 'success', message: `${season.title} advanced to ${target.replace(/_/g, ' ')}.` };
+}

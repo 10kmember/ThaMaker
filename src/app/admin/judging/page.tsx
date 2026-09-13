@@ -1,0 +1,88 @@
+import { AssignJudgesForm } from '@/components/admin/AdminForms';
+import { EmptyState, Notice } from '@/components/ui/feedback';
+import { buildMetadata } from '@/lib/seo';
+import { requirePermission } from '@/lib/auth/guards';
+import { prisma } from '@/server/db';
+
+export const metadata = buildMetadata({
+  title: 'Judging',
+  description: 'Assign PALMA judging panels.',
+  path: '/admin/judging',
+  noIndex: true,
+});
+
+export default async function AdminJudgingPage() {
+  await requirePermission('admin:assign_judging', '/admin/judging');
+
+  const db = prisma;
+  if (!db) {
+    return <Notice tone="warning">PALMA is running without a database.</Notice>;
+  }
+
+  const categories = await db.category.findMany({
+    where: { awardYear: { isCurrent: true } },
+    orderBy: { position: 'asc' },
+    include: {
+      _count: { select: { assignments: true } },
+      nominations: { where: { status: 'eligible' }, select: { id: true } },
+    },
+  });
+
+  const conflicts = await db.judgeConflict.findMany({
+    where: { status: 'declared' },
+    include: { judge: true },
+    orderBy: { declaredAt: 'desc' },
+    take: 20,
+  });
+
+  return (
+    <>
+      <h2 className="text-3xl">Panel assignment</h2>
+      <p className="mt-3 max-w-160 leading-relaxed text-taupe-deep">
+        Assignment is deterministic and conflict-aware: each eligible nomination is placed with
+        three judges, load is spread evenly, and any judge with a declared conflict is excluded
+        before placement. Running it twice adds only what is missing.
+      </p>
+
+      {categories.length === 0 ? (
+        <EmptyState className="mt-10" title="No categories in the current season" />
+      ) : (
+        <div className="mt-10 flex flex-col gap-4">
+          {categories.map((category) => (
+            <AssignJudgesForm
+              key={category.id}
+              categoryId={category.id}
+              categoryName={category.name}
+              eligibleCount={category.nominations.length}
+              assignedCount={category._count.assignments}
+            />
+          ))}
+        </div>
+      )}
+
+      {conflicts.length > 0 ? (
+        <section className="mt-14">
+          <h3 className="palma-label mb-5 text-taupe-deep">Conflicts awaiting resolution</h3>
+          <ul className="flex flex-col gap-3">
+            {conflicts.map((conflict) => (
+              <li
+                key={conflict.id}
+                className="flex flex-wrap items-center justify-between gap-4 border border-stone-deep p-5"
+              >
+                <span className="font-display text-lg">{conflict.judge.displayName}</span>
+                <span className="palma-label text-taupe-deep">{conflict.kind}</span>
+                <span className="text-sm text-taupe-deep">
+                  {conflict.nominationId ?? conflict.creatorId}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <Notice className="mt-6">
+            A declared conflict has already removed the judge from the nomination. Dismissing one is
+            a deliberate act and is written to the audit log.
+          </Notice>
+        </section>
+      ) : null}
+    </>
+  );
+}

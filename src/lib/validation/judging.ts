@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MAX_SCORE, MIN_SCORE, SCORING_CRITERIA } from '@/domain/judging';
+import { MAX_SCORE, MIN_SCORE } from '@/domain/judging';
 import { CONFLICT_KINDS } from '@/domain/conflicts';
 
 const criterion = z.coerce.number().int().min(MIN_SCORE).max(MAX_SCORE);
@@ -23,7 +23,11 @@ export const conflictSchema = z.object({
 
 export const scoreCorrectionSchema = z.object({
   scoreId: z.string().trim().min(1),
-  ...Object.fromEntries(SCORING_CRITERIA.map((entry) => [entry.key, criterion])),
+  originality: criterion,
+  consistency: criterion,
+  professionalism: criterion,
+  impact: criterion,
+  brand: criterion,
   correctionNote: z
     .string()
     .trim()
