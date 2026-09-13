@@ -30,9 +30,18 @@ export const PERMISSIONS = [
   'judging:submit_score',
   'judging:declare_conflict',
 
-  // Editorial
+  // Editorial — the presentation of the record, never its outcomes
   'journal:write',
   'journal:publish',
+  'creators:view_records',
+  'editorial:create_creator',
+  'editorial:edit_creator',
+  'editorial:write_internal_note',
+
+  // Operations queues
+  'claims:review',
+  'claims:decide',
+  'verification:review_manual',
 
   // Moderation
   'moderation:view_reports',
@@ -72,13 +81,41 @@ const JUDGE: Permission[] = [
   'judging:declare_conflict',
 ];
 
-const EDITOR: Permission[] = ['journal:write', 'journal:publish'];
+/**
+ * Editorial maintains the *presentation* of the record: bios, imagery, links,
+ * descriptions, the Journal. It has no permission that touches an outcome —
+ * no selection, no revocation, no score correction — and that boundary is the
+ * point of the role rather than an oversight in this list.
+ */
+const EDITOR: Permission[] = [
+  'admin:view_dashboard',
+  'creators:view_records',
+  'journal:write',
+  'journal:publish',
+  'creators:view_records',
+  'editorial:create_creator',
+  'editorial:edit_creator',
+  'editorial:write_internal_note',
+  'claims:review',
+];
 
-const MODERATOR: Permission[] = ['moderation:view_reports', 'moderation:act'];
+const MODERATOR: Permission[] = [
+  'admin:view_dashboard',
+  // A moderator reads records to investigate; editing their presentation is
+  // editorial's job, so the page renders read-only for them.
+  'creators:view_records',
+  'moderation:view_reports',
+  'moderation:act',
+  'editorial:write_internal_note',
+  'claims:review',
+  'claims:decide',
+  'verification:review_manual',
+];
 
 const ADMIN: Permission[] = [
   ...EDITOR,
   ...MODERATOR,
+  'claims:decide',
   'admin:view_dashboard',
   'admin:manage_seasons',
   'admin:manage_categories',
@@ -121,6 +158,20 @@ export function canAll(role: Role | null | undefined, permissions: Permission[])
 export function canAny(role: Role | null | undefined, permissions: Permission[]): boolean {
   return permissions.some((permission) => can(role, permission));
 }
+
+/**
+ * Outcomes of the award. No editor or moderator holds any of these, at any
+ * time, by any route — the back office maintains the accuracy of the record
+ * and never its results.
+ */
+export const OUTCOME_PERMISSIONS: readonly Permission[] = [
+  'admin:select_finalists',
+  'admin:select_winners',
+  'admin:revoke_honour',
+  'admin:correct_score',
+  'admin:assign_judging',
+  'admin:resolve_conflicts',
+];
 
 /**
  * Sponsors hold no role in this matrix by design. Sponsorship is a commercial

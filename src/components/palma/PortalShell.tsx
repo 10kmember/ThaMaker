@@ -30,13 +30,17 @@ export function PortalShell({
     <div className="bg-ivory min-h-dvh">
       <div className="on-ink border-ink bg-ink text-ivory border-b">
         <Container className="flex flex-col gap-6 py-10">
-          <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-5">
               <Wordmark size="sm" />
               <span className="palma-label text-champagne">{title}</span>
             </div>
-            <div className="flex items-center gap-3">
-              {userName ? <span className="palma-label text-ivory/50">{userName}</span> : null}
+            {/* A long account email must not widen the page on a phone: the
+                label truncates and the row wraps rather than pushing out. */}
+            <div className="flex min-w-0 items-center gap-3">
+              {userName ? (
+                <span className="palma-label text-ivory/50 min-w-0 truncate">{userName}</span>
+              ) : null}
               <form action={signOut}>
                 <Button type="submit" variant="quiet" size="sm">
                   Sign out

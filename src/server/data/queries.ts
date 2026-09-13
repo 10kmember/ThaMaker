@@ -221,7 +221,10 @@ export const getCreator = cache(async (slug: string): Promise<CreatorProfile | n
     links: row.links.map((link) => ({ label: link.label, url: link.url })),
     verificationStatus: (row.verification?.status ??
       'unverified') as CreatorSummary['verificationStatus'],
-    isClaimed: row.isClaimed,
+    // `userId` is the truth about who holds a record. The `isClaimed` column is
+    // a denormalised convenience written on approval, and a boolean that can
+    // drift from the relation it summarises is not a source of truth.
+    isClaimed: row.userId !== null,
     record,
     honourCount: record.filter((entry) => entry.state === 'active').length,
     winCount: record.filter((entry) => entry.kind === 'winner' && entry.state === 'active').length,

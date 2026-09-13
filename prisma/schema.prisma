@@ -165,6 +165,32 @@ enum ModerationActionKind {
   restored
 }
 
+enum ClaimStatus {
+  submitted
+  awaiting_information
+  escalated
+  approved
+  rejected
+  withdrawn
+}
+
+/// Why a claim reached manual age assurance rather than the provider's
+/// automated path.
+enum VerificationCaseReason {
+  provider_unavailable
+  provider_exception
+  result_requires_review
+  reverification_due
+}
+
+enum VerificationCaseStatus {
+  open
+  awaiting_information
+  verified
+  refused
+  abandoned
+}
+
 enum NotificationChannel {
   email
   in_app
@@ -186,15 +212,20 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  creator           Creator?
-  judge             Judge?
-  sessions          AuthSession[]
-  auditLogs         AuditLog[]
-  notifications     Notification[]
-  moderationActions ModerationAction[]      @relation("ModerationActor")
-  reportsFiled      Report[]                @relation("ReportReporter")
-  articlesAuthored  Article[]               @relation("ArticleAuthor")
-  notificationPrefs NotificationPreference?
+  creator                  Creator?
+  judge                    Judge?
+  sessions                 AuthSession[]
+  auditLogs                AuditLog[]
+  notifications            Notification[]
+  moderationActions        ModerationAction[]      @relation("ModerationActor")
+  reportsFiled             Report[]                @relation("ReportReporter")
+  articlesAuthored         Article[]               @relation("ArticleAuthor")
+  notificationPrefs        NotificationPreference?
+  claimsMade               CreatorClaim[]          @relation("ClaimClaimant")
+  claimsDecided            CreatorClaim[]          @relation("ClaimReviewer")
+  invitationsIssued        ClaimInvitation[]       @relation("InvitationIssuer")
+  creatorNotes             CreatorNote[]           @relation("CreatorNoteAuthor")
+  verificationCasesDecided VerificationCase[]      @relation("VerificationCaseReviewer")
 
   @@index([role])
 }
@@ -250,13 +281,17 @@ model Creator {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user         User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
-  verification CreatorVerification?
-  candidacies  Candidacy[]
-  honours      Honour[]
-  achievements Achievement[]
-  links        CreatorLink[]
-  reports      Report[]             @relation("ReportSubjectCreator")
+  user              User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  verification      CreatorVerification?
+  candidacies       Candidacy[]
+  honours           Honour[]
+  achievements      Achievement[]
+  links             CreatorLink[]
+  reports           Report[]             @relation("ReportSubjectCreator")
+  claims            CreatorClaim[]
+  invitations       ClaimInvitation[]
+  staffNotes        CreatorNote[]
+  verificationCases VerificationCase[]
 
   /// The creator's own nomination link: palmaawards.com/nominate/<slug>.
   /// Issued once the profile is claimed and verified.
@@ -700,6 +735,130 @@ model Sponsorship {
   category  Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@unique([sponsorId, awardYearId, categoryId])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Claims, staff notes & manual verification
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// A request to control an existing PALMA creator record.
+///
+/// A claim never creates a creator. The record already exists — PALMA made it
+/// when the creator was first nominated — and an approved claim only links a
+/// User to it. There is no second profile, and no route by which one appears.
+model CreatorClaim {
+  id        String      @id @default(cuid())
+  reference String      @unique
+  creatorId String
+  userId    String
+  status    ClaimStatus @default(submitted)
+
+  /// What the claimant says about themselves. Supplied to establish control of
+  /// the identity, not to become the public record.
+  claimedIdentity String  @db.Text
+  supportingNote  String? @db.Text
+  contactEmail    String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Set when PALMA asks for more before deciding.
+  informationRequestedAt   DateTime?
+  informationRequestedNote String?   @db.Text
+  escalatedAt              DateTime?
+
+  decidedAt    DateTime?
+  decidedById  String?
+  decisionNote String?   @db.Text
+
+  creator   Creator            @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  user      User               @relation("ClaimClaimant", fields: [userId], references: [id], onDelete: Cascade)
+  decidedBy User?              @relation("ClaimReviewer", fields: [decidedById], references: [id], onDelete: SetNull)
+  links     CreatorClaimLink[]
+
+  /// One open claim per person per creator. A rejected claim does not bar a
+  /// better-evidenced one later, so this is not a hard unique on the pair.
+  @@index([status])
+  @@index([creatorId])
+  @@index([userId])
+}
+
+/// Links a claimant offers as evidence of control. Never published.
+model CreatorClaimLink {
+  id      String @id @default(cuid())
+  claimId String
+  label   String
+  url     String
+
+  claim CreatorClaim @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  @@index([claimId])
+}
+
+/// A secure, single-use invitation to claim a record PALMA created first.
+/// The token is stored hashed: the link is knowledge, not a database row.
+model ClaimInvitation {
+  id         String    @id @default(cuid())
+  creatorId  String
+  tokenHash  String    @unique
+  issuedById String?
+  expiresAt  DateTime
+  usedAt     DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  creator  Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  issuedBy User?   @relation("InvitationIssuer", fields: [issuedById], references: [id], onDelete: SetNull)
+
+  @@index([creatorId])
+}
+
+/// Staff-only working notes on a creator record. Never public, never shown to
+/// the creator, and kept structurally apart from anything that is.
+model CreatorNote {
+  id        String   @id @default(cuid())
+  creatorId String
+  authorId  String?
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  author  User?   @relation("CreatorNoteAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([creatorId])
+}
+
+/// Manual age assurance, for the cases the provider cannot settle.
+///
+/// PALMA's permanent record is a status, a reference and a hash — never the
+/// documents. Where media is received for a manual check it is held in a
+/// restricted workspace outside this database and deleted on decision; this
+/// row records that the deletion happened and when.
+model VerificationCase {
+  id        String                 @id @default(cuid())
+  reference String                 @unique
+  creatorId String
+  reason    VerificationCaseReason
+  status    VerificationCaseStatus @default(open)
+
+  openedAt     DateTime  @default(now())
+  decidedAt    DateTime?
+  decidedById  String?
+  decisionNote String?   @db.Text
+
+  /// The outcome PALMA keeps. No documents, no date of birth, no address.
+  resultHash        String?
+  providerReference String?
+
+  /// The privacy lifecycle, made explicit so an operator can see it.
+  mediaReceivedAt DateTime?
+  mediaDeletedAt  DateTime?
+
+  creator   Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  decidedBy User?   @relation("VerificationCaseReviewer", fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([creatorId])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

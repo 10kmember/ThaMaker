@@ -6,7 +6,6 @@ import { CheckboxField, Field, Input, Select, Textarea } from '@/components/ui/f
 import { Notice } from '@/components/ui/feedback';
 import { COUNTRIES } from '@/lib/countries';
 import {
-  claimCreatorProfile,
   startVerification,
   updateCreatorProfile,
   updateNotificationPreferences,
@@ -164,34 +163,6 @@ export function PreferencesForm({
       <Button type="submit" variant="outline" size="md" disabled={pending} className="self-start">
         {pending ? 'Saving…' : 'Save preferences'}
       </Button>
-    </form>
-  );
-}
-
-export function ClaimForm({ creatorSlug }: { creatorSlug?: string }) {
-  const [state, action, pending] = useActionState(claimCreatorProfile, initial);
-
-  return (
-    <form action={action} className="flex flex-col gap-5">
-      <Feedback state={state} />
-
-      <Field
-        htmlFor="creator"
-        label="Profile address"
-        required
-        hint="The last part of your PALMA profile link, for example maya-rivers."
-      >
-        <Input id="creator" name="creator" defaultValue={creatorSlug} required />
-      </Field>
-
-      <Button type="submit" size="md" disabled={pending} className="self-start">
-        {pending ? 'Claiming…' : 'Claim profile'}
-      </Button>
-
-      <p className="text-taupe-deep text-xs leading-relaxed">
-        A claim is reviewed by PALMA before the profile is treated as yours. Claiming a profile you
-        do not hold is impersonation and ends eligibility.
-      </p>
     </form>
   );
 }

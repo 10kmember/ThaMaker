@@ -86,7 +86,7 @@ export async function getCreatorPortal(userId: string): Promise<CreatorPortal | 
     referralPath:
       user.creator &&
       canIssueReferralLink({
-        isClaimed: user.creator.isClaimed,
+        isClaimed: user.creator.userId !== null,
         isSuspended: user.creator.isSuspended,
         verificationStatus: user.creator.verification?.status ?? 'unverified',
       })

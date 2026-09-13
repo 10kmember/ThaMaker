@@ -180,48 +180,11 @@ export async function startVerification(_previous: CreatorState): Promise<Creato
   };
 }
 
-export async function claimCreatorProfile(
-  _previous: CreatorState,
-  formData: FormData,
-): Promise<CreatorState> {
-  await assertSameOrigin();
-
-  let session;
-  try {
-    session = await authorise('creator:claim_profile');
-  } catch {
-    return { status: 'error', message: 'Sign in to claim a profile.' };
-  }
-
-  const slug = String(formData.get('creator') ?? '').trim();
-  if (!slug) return { status: 'error', message: 'Choose the profile to claim.' };
-
-  const db = requireDb();
-  const creator = await db.creator.findUnique({ where: { slug } });
-
-  if (!creator) return { status: 'error', message: 'That profile does not exist.' };
-  if (creator.userId && creator.userId !== session.user.id) {
-    return {
-      status: 'error',
-      message: 'That profile is already claimed. Contact PALMA if you believe this is wrong.',
-    };
-  }
-
-  // A claim is a request, not an entitlement: PALMA confirms it out of band
-  // before the profile is treated as the creator's own.
-  await db.creator.update({
-    where: { id: creator.id },
-    data: { userId: session.user.id, isClaimed: true },
-  });
-
-  await recordAudit({
-    action: 'creator.profile_claimed',
-    entityType: 'Creator',
-    entityId: creator.id,
-    actor: { id: session.user.id, role: session.user.role, label: session.user.email },
-    summary: `${creator.displayName} claimed`,
-  });
-
-  revalidatePath('/portal');
-  return { status: 'success', message: 'Profile claimed. Complete verification next.' };
-}
+/**
+ * Claiming moved.
+ *
+ * A claim used to link the account on the spot. It is now a request reviewed
+ * by a person — see `requestProfileClaim` in `@/server/actions/claims`. The
+ * old behaviour is deliberately gone rather than deprecated: an instant claim
+ * is exactly the thing PALMA must not offer.
+ */

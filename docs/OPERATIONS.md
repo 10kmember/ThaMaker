@@ -7,18 +7,134 @@ the audit log with the actor, the entity and the state before and after.
 
 ## Roles
 
-| Role          | Can                                                                |
-| ------------- | ------------------------------------------------------------------ |
-| `visitor`     | Read the public record. Nominate.                                  |
-| `creator`     | Claim a profile, verify, submit and track nominations.             |
-| `judge`       | See their own assignments, score, declare conflicts.               |
-| `editor`      | Write and publish the Journal.                                     |
-| `moderator`   | See and act on reports.                                            |
-| `admin`       | Run the season: review, assign, select, revoke, correct, moderate. |
-| `super_admin` | Everything, plus users and system settings.                        |
+| Role          | Can                                                                                           |
+| ------------- | --------------------------------------------------------------------------------------------- |
+| `visitor`     | Read the public record. Nominate.                                                             |
+| `creator`     | Claim a profile, verify, submit and track nominations.                                        |
+| `judge`       | See their own assignments, score, declare conflicts.                                          |
+| `editor`      | Write and publish the Journal. Create and edit creator records, invite claims, review claims. |
+| `moderator`   | See and act on reports. Decide claims. Run manual age verification. Read creator records.     |
+| `admin`       | Run the season: review, assign, select, revoke, correct, moderate.                            |
+| `super_admin` | Everything, plus users and system settings.                                                   |
 
 Sponsors hold **no role**. Sponsorship is recorded against a season or category
 and grants no access to nominations, judges, scores or outcomes.
+
+## The back office
+
+PALMA Operations is organised around queues, not analytics. The home screen
+answers one question — what is waiting on a person — and everything else sits
+behind it.
+
+| Queue                   | Path                  | Held by                                       |
+| ----------------------- | --------------------- | --------------------------------------------- |
+| Creator claims          | `/admin/claims`       | editor (review), moderator and admin (decide) |
+| Manual age verification | `/admin/verification` | moderator, admin                              |
+| Creator records         | `/admin/creators`     | editor and admin edit; moderator reads        |
+| Reports                 | `/admin/moderation`   | moderator, admin                              |
+
+### The two things that are not the same
+
+A **creator profile** is a PALMA record. It exists before the creator has an
+account — PALMA writes one the first time a creator is nominated.
+
+A **creator account** is the authenticated person who has successfully claimed
+that record.
+
+    PALMA writes the record
+           ↓
+    public profile exists, unclaimed
+           ↓
+    creator sees "Is this you?"
+           ↓
+    claim request + evidence
+           ↓
+    age and identity assurance
+           ↓
+    editorial review
+           ↓
+    APPROVED
+           ↓
+    User linked to the existing Creator
+           ↓
+    creator dashboard unlocked
+
+Approving a claim never creates a creator. It links a `User` to the `Creator`
+row that already existed, in one transaction, and raises the account to the
+`creator` role only if it holds none. The public profile is the same profile it
+was the moment before — `Unclaimed` becomes `Claimed`, and nothing else changes.
+
+`Creator.userId` is the truth about who holds a record. `isClaimed` is a
+denormalised convenience written on approval, and nothing reads it: a boolean
+that can drift from the relation it summarises is not a source of truth.
+
+### What a claimed creator may change
+
+Presentation only: display name, pronouns, country, city, headline, biography,
+portrait, website and links. The list is in `src/domain/claim.ts` and it is the
+whole list.
+
+What they may never change, however verified they are: nominations,
+candidacies, shortlist, finalist and winner status, honours, judging scores and
+assignments, verification history, achievements, PaROH entries, award dates and
+the audit log. A test asserts the two lists are disjoint, because a field that
+drifted into both would quietly hand PALMA's history to the person it is about.
+
+"Delete my 2027 finalist record" is not a setting. It is a request under
+[complaints and appeals](../src/app/legal/complaints/page.tsx), and it is
+usually refused.
+
+### Claim invitations
+
+PALMA often knows about a creator before the creator knows about PALMA. An
+editor issues an invitation from the record page; the link is shown once, works
+once, expires in 30 days, and is stored only as a SHA-256 hash — so it cannot
+be read back out of the database.
+
+A token proves PALMA sent the link. It does not prove the holder is the
+creator, so it is evidence at review and never a substitute for it.
+
+### Manual age verification
+
+Most age and identity assurance is settled by PALMA's provider, which PALMA
+never sees the inside of. The cases it cannot settle become cases:
+
+    submission
+       ↓
+    restricted verification workspace
+       ↓
+    moderator verifies the requirement
+       ↓
+    result recorded (status + provider reference + result hash)
+       ↓
+    submitted media deleted
+       ↓
+    audit event
+
+The permanent record is four small things: a status, a provider reference, a
+result hash and a timestamp. Never a document, a date of birth, an ID number or
+an address — a test asserts an outcome carrying any of those is rejected.
+
+**A case cannot be closed while media is still held.** Closing is what triggers
+deletion, so a closed case with media outstanding would leave documents in a
+workspace with nothing left to prompt anyone to remove them. The operator
+confirms deletion on the same screen that records the outcome, and the UI shows
+the stage explicitly: no media received, held, or deleted.
+
+### Public and internal are never mixed
+
+Everything on the creator record form is published. Anything a member of staff
+wants to record privately — provenance, a conversation, a doubt — goes in an
+internal note: a different table, a different permission, and never shown to
+the creator or the public.
+
+### The editorial boundary
+
+Editorial maintains the _accuracy_ of the record and never its _results_.
+`OUTCOME_PERMISSIONS` in `src/lib/auth/rbac.ts` names the six that decide an
+award — selection, revocation, score correction, panel assignment, conflict
+resolution — and no editor or moderator holds any of them, at any time, by any
+route. A test asserts it rather than trusting the matrix to stay right.
 
 ## Entrances
 

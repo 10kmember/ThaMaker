@@ -14,6 +14,7 @@ export default function robots(): MetadataRoute.Robots {
           '/judge',
           '/staff',
           '/portal',
+          '/claim',
           '/sign-in',
           '/register',
           '/api/',

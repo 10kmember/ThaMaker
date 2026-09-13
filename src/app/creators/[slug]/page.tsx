@@ -227,16 +227,30 @@ export default async function CreatorPage({ params }: Params) {
                 </div>
               </div>
 
-              <div className="border-stone-deep flex flex-col gap-3 border p-7">
-                <h2 className="palma-label text-taupe-deep">Is this you?</h2>
-                <p className="text-taupe-deep text-sm leading-relaxed">
-                  Claim this profile to complete verification, manage permitted details and download
-                  your PALMA assets.
-                </p>
-                <Button asChild size="sm" variant="outline" className="mt-1 self-start">
-                  <Link href={`/portal/claim?creator=${creator.slug}`}>Claim this profile</Link>
-                </Button>
-              </div>
+              {/* A record exists before its creator has an account. This is the
+                  only route by which the two are ever joined — and it opens a
+                  request, not a door. */}
+              {creator.isClaimed ? (
+                <div className="border-stone-deep flex flex-col gap-3 border p-7">
+                  <h2 className="palma-label text-olive">Claimed record</h2>
+                  <p className="text-taupe-deep text-sm leading-relaxed">
+                    This creator holds their PALMA record and maintains how they are described here.
+                    The honours, and the record of how they were reached, remain PALMA&rsquo;s.
+                  </p>
+                </div>
+              ) : (
+                <div className="border-stone-deep flex flex-col gap-3 border p-7">
+                  <h2 className="palma-label text-taupe-deep">Is this you?</h2>
+                  <p className="text-taupe-deep text-sm leading-relaxed">
+                    PALMA wrote this record when {creator.displayName} was first nominated. Claim it
+                    to manage how you are described — PALMA reviews every claim by hand before the
+                    record is treated as yours.
+                  </p>
+                  <Button asChild size="sm" variant="outline" className="mt-1 self-start">
+                    <Link href={`/portal/claim?creator=${creator.slug}`}>Claim this profile</Link>
+                  </Button>
+                </div>
+              )}
             </aside>
           </div>
         </Container>

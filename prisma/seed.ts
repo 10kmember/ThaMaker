@@ -177,7 +177,9 @@ async function main() {
         biography: seed.biography,
         websiteUrl: seed.websiteUrl,
         isPublished: true,
-        isClaimed: true,
+        // Seeded records are unclaimed, because nobody holds them. A record is
+        // claimed when a User is linked to it and not a moment before.
+        isClaimed: false,
         referralEnabled: seed.verified,
         verification: {
           create: {
