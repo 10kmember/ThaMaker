@@ -31,7 +31,7 @@ export default async function ClaimsQueuePage({
     <>
       <div className="flex flex-col gap-3">
         <span className="palma-label text-taupe-deep">Queue</span>
-        <h2 className="text-4xl">Creator claims</h2>
+        <h1 className="text-4xl">Creator claims</h1>
         <p className="text-taupe-deep max-w-160 leading-relaxed">
           A claim asks to control a record PALMA already holds. Approving links an account to the
           existing record — it never creates a second profile, and it never hands over the history.

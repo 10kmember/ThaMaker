@@ -38,7 +38,7 @@ export default async function CreatorRecordsPage({
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div className="flex flex-col gap-3">
           <span className="palma-label text-taupe-deep">Content</span>
-          <h2 className="text-4xl">Creator records</h2>
+          <h1 className="text-4xl">Creator records</h1>
           <p className="text-taupe-deep max-w-160 leading-relaxed">
             A PALMA record exists before the creator has an account. PALMA writes it, publishes it,
             and invites the creator to claim it.

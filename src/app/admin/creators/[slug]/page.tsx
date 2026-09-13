@@ -45,7 +45,7 @@ export default async function CreatorRecordPage({ params }: { params: Promise<{ 
 
       <div className="mt-8 flex flex-col gap-3">
         <span className="palma-label text-taupe-deep">Creator record</span>
-        <h2 className="text-4xl">{record.displayName}</h2>
+        <h1 className="text-4xl">{record.displayName}</h1>
         <div className="flex flex-wrap items-center gap-3">
           <Badge variant={record.heldBy ? 'olive' : 'muted'}>
             {record.heldBy ? 'Claimed' : 'Unclaimed'}

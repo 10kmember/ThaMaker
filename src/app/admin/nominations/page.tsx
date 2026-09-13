@@ -29,6 +29,15 @@ export default async function AdminNominationsPage({
 
   return (
     <>
+      <div className="mb-8 flex flex-col gap-3">
+        <span className="palma-label text-taupe-deep">Awards</span>
+        <h1 className="text-4xl">Nominations</h1>
+        <p className="text-taupe-deep max-w-160 leading-relaxed">
+          Screening: eligibility, duplicate detection and integrity. Every candidacy here is
+          reviewed by a person before a judge ever sees it.
+        </p>
+      </div>
+
       <div className="flex flex-wrap items-center gap-2">
         <Link
           href="/admin/nominations"

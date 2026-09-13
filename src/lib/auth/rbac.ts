@@ -49,6 +49,8 @@ export const PERMISSIONS = [
 
   // Administration
   'admin:view_dashboard',
+  'admin:view_analytics',
+  'admin:enforce',
   'admin:manage_seasons',
   'admin:manage_categories',
   'admin:review_nominations',
@@ -117,6 +119,8 @@ const ADMIN: Permission[] = [
   ...MODERATOR,
   'claims:decide',
   'admin:view_dashboard',
+  'admin:view_analytics',
+  'admin:enforce',
   'admin:manage_seasons',
   'admin:manage_categories',
   'admin:review_nominations',

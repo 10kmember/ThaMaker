@@ -127,6 +127,30 @@
     --color-slate-ink: #2f4a63;
     --color-amber: #b8831a;
     --color-amber-ink: #7d5a11;
+
+    /* Chart colours.
+
+       Separate tokens from the pigments, because a chart asks a different
+       question of a colour than a card does. Two series are validated as a
+       categorical pair in *both* themes — all-pairs, under simulated
+       protanopia and deuteranopia — and a third exists but is only clean on
+       ivory, so any chart reaching for it also carries direct labels. Beyond
+       three series PALMA facets rather than inventing a hue.
+
+       The ordinal ramp is one hue, light to dark, for things that have an
+       order: a funnel, a tier, a stage. Never a rainbow. */
+    --palma-chart-1: #a03740;
+    --palma-chart-2: #31509b;
+    --palma-chart-3: #b8831a;
+
+    --palma-ramp-1: #a3ad9d;
+    --palma-ramp-2: #8c9787;
+    --palma-ramp-3: #667060;
+    --palma-ramp-4: #4a5148;
+
+    /* The chart's own furniture: recessive, never competing with the data. */
+    --palma-grid: #d8d3c9;
+    --palma-axis: #aaa397;
   }
 
   /* Inverted panels.
@@ -190,6 +214,21 @@
     --color-slate-ink: #a4bcd8;
     --color-amber: #dcae4a;
     --color-amber-ink: #e8c67e;
+
+    /* Chart steps for ink. Not a flip of the light ones — chosen against this
+       surface and re-validated on it, which is why indigo sits darker here
+       than the pigment it is named for. */
+    --palma-chart-1: #d1727a;
+    --palma-chart-2: #6f8ace;
+    --palma-chart-3: #dcae4a;
+
+    --palma-ramp-1: #5d6858;
+    --palma-ramp-2: #7c886f;
+    --palma-ramp-3: #9aa78d;
+    --palma-ramp-4: #b8c4ab;
+
+    --palma-grid: #2c2e31;
+    --palma-axis: #6f6a62;
   }
 
   [data-theme='archive'] {

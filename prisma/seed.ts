@@ -94,7 +94,7 @@ async function main() {
     update: {},
     create: {
       email: 'admin@palmaawards.com',
-      name: 'PALMA Administrator',
+      name: 'Sarah Okonkwo',
       role: 'super_admin',
       passwordHash,
       emailVerifiedAt: new Date(),
@@ -107,7 +107,7 @@ async function main() {
     update: {},
     create: {
       email: 'editor@palmaawards.com',
-      name: 'PALMA Editorial',
+      name: 'Tom Ashworth',
       role: 'editor',
       passwordHash,
       emailVerifiedAt: new Date(),

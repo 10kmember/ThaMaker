@@ -1,159 +1,207 @@
 import Link from 'next/link';
 import { Notice } from '@/components/ui/feedback';
-import { Stat } from '@/components/ui/stat';
+import { StatGrid } from '@/components/admin/StatGrid';
+import { PeriodFilter } from '@/components/admin/PeriodFilter';
 import { AdvanceSeasonForm } from '@/components/admin/AdminForms';
 import { buildMetadata } from '@/lib/seo';
-import { getAdminOverview } from '@/server/data/admin';
-import { getQueueCounts } from '@/server/data/operations';
 import { requirePermission } from '@/lib/auth/guards';
 import { can } from '@/lib/auth/rbac';
+import { getCommandCentre, isPeriod, PERIOD_LABEL } from '@/server/data/command-centre';
+import { getSystemHealth } from '@/server/data/system-health';
 import { greeting } from '@/lib/judging-nav';
 import { STAGE_LABEL, type SeasonStage } from '@/domain/season';
-import { cn } from '@/lib/utils';
+import { formatDate } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata = buildMetadata({
-  title: 'Operations',
-  description: 'PALMA operations.',
+  title: 'Command centre',
+  description: 'PALMA administration.',
   path: '/admin',
   noIndex: true,
 });
 
-export default async function OperationsPage() {
+export default async function CommandCentrePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string }>;
+}) {
   const session = await requirePermission('admin:view_dashboard', '/admin');
-  const [queues, overview] = await Promise.all([getQueueCounts(), getAdminOverview()]);
+  const { period: raw } = await searchParams;
+  const period = isPeriod(raw) ? raw : '30d';
+
+  const [centre, health] = await Promise.all([
+    getCommandCentre(period),
+    can(session.user.role, 'admin:manage_system') ? getSystemHealth() : Promise.resolve(null),
+  ]);
 
   const firstName = session.user.name.split(' ')[0] ?? session.user.name;
+  const { creators, awards, operations, platform } = centre;
 
-  const needsAttention = [
-    {
-      href: '/admin/claims',
-      label: 'Creator claim requests',
-      count: queues.claims,
-      note: 'People asking to control a PALMA record.',
-      visible: can(session.user.role, 'claims:review'),
-    },
-    {
-      href: '/admin/verification',
-      label: 'Manual age verification cases',
-      count: queues.verification,
-      note: 'Cases the provider could not settle.',
-      visible: can(session.user.role, 'verification:review_manual'),
-    },
-    {
-      href: '/admin/creators?filter=unpublished',
-      label: 'Records awaiting publication',
-      count: queues.unpublishedRecords,
-      note: 'Written by PALMA, not yet public.',
-      visible: can(session.user.role, 'editorial:edit_creator'),
-    },
-    {
-      href: '/admin/moderation',
-      label: 'Reports',
-      count: queues.reports,
-      note: 'Open and under investigation.',
-      visible: can(session.user.role, 'moderation:view_reports'),
-    },
-    {
-      href: '/admin/claims?filter=escalated',
-      label: 'Escalations',
-      count: queues.escalations,
-      note: 'Handed up for an administrator.',
-      visible: can(session.user.role, 'claims:review'),
-    },
-  ].filter((item) => item.visible);
+  const outstanding =
+    operations.openClaims +
+    operations.escalations +
+    operations.verificationQueue +
+    operations.reports;
 
-  const outstanding = needsAttention.reduce((sum, item) => sum + item.count, 0);
+  const degraded = health?.services.filter((service) => service.state !== 'operational') ?? [];
 
   return (
     <>
       <div className="flex flex-col gap-3">
-        <span className="palma-label text-taupe-deep">PALMA Operations</span>
-        <h2 className="text-4xl">
+        <span className="palma-label text-taupe-deep">Command centre</span>
+        <h1 className="text-4xl">
           {greeting()}, {firstName}.
-        </h2>
-        <p className="text-taupe-deep max-w-140 leading-relaxed">
+        </h1>
+        <p className="text-taupe-deep max-w-160 leading-relaxed">
           {outstanding === 0
-            ? 'Nothing is waiting on a person. The queues are clear.'
-            : `${outstanding} item${outstanding === 1 ? '' : 's'} need a decision.`}
+            ? 'Nothing is waiting on a person across the institution.'
+            : `${outstanding} item${outstanding === 1 ? '' : 's'} across the queues need a decision.`}{' '}
+          Figures below cover{' '}
+          <strong className="text-ink">{PERIOD_LABEL[period].toLowerCase()}</strong>
+          {centre.since ? ` — since ${formatDate(centre.since)}` : ''}.
         </p>
       </div>
 
-      <section className="mt-12">
-        <h3 className="palma-label text-taupe-deep border-stone-deep border-b pb-4">
-          Needs attention
-        </h3>
-
-        <ul className="flex flex-col">
-          {needsAttention.map((item) => (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                className="palma-row border-stone-deep flex flex-wrap items-baseline gap-x-6 gap-y-2 border-b py-5"
-              >
-                <span
-                  className={cn(
-                    'font-display w-14 shrink-0 text-4xl tabular-nums',
-                    item.count > 0 ? 'text-ink' : 'text-stone-deep',
-                  )}
-                >
-                  {item.count}
-                </span>
-                <span className="flex min-w-0 flex-col gap-1">
-                  <span className="palma-row-lead font-display text-xl">{item.label}</span>
-                  <span className="text-taupe text-sm">{item.note}</span>
-                </span>
-                <span aria-hidden="true" className="text-taupe ml-auto shrink-0">
-                  →
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-
-        {needsAttention.length === 0 ? (
-          <p className="text-taupe mt-6 text-sm">
-            Your role holds no queue permissions. Nothing here needs you.
-          </p>
-        ) : null}
-      </section>
-
-      {overview ? (
-        <section className="mt-16">
-          <div className="border-stone-deep flex flex-wrap items-baseline justify-between gap-4 border-b pb-4">
-            <h3 className="palma-label text-taupe-deep">The season</h3>
-            <span className="palma-label text-taupe">
-              {overview.seasonTitle} · {STAGE_LABEL[overview.stage as SeasonStage]}
-            </span>
-          </div>
-
-          <div className="mt-8 grid gap-8 sm:grid-cols-3 lg:grid-cols-6">
-            <Stat label="Nominations" value={overview.counts.nominations} />
-            <Stat label="Under review" value={overview.counts.underReview} />
-            <Stat label="Eligible" value={overview.counts.eligible} />
-            <Stat label="Judging" value={overview.counts.judging} />
-            <Stat label="Finalists" value={overview.counts.finalists} />
-            <Stat label="Winners" value={overview.counts.winners} />
-          </div>
-
-          <div className="border-stone-deep mt-10 grid gap-8 border-t pt-10 sm:grid-cols-3">
-            <Stat label="Creator records" value={overview.counts.creators} />
-            <Stat label="Unclaimed and public" value={queues.unclaimedRecords} />
-            <Stat label="Awaiting publication" value={queues.unpublishedRecords} />
-          </div>
-
-          {can(session.user.role, 'admin:manage_seasons') ? (
-            <div className="mt-12 max-w-140">
-              <AdvanceSeasonForm stage={overview.stage as SeasonStage} year={overview.seasonYear} />
-            </div>
-          ) : null}
-        </section>
-      ) : (
-        <Notice tone="warning" title="No current season" className="mt-16">
-          No season is marked current. The queues above still work; the season machinery does not.
+      {degraded.length > 0 ? (
+        <Notice tone="warning" title="A service is not healthy" className="mt-8">
+          {degraded.map((service) => service.name).join(', ')} —{' '}
+          <Link href="/admin/health" className="palma-link text-ink">
+            system health
+          </Link>
+          .
         </Notice>
-      )}
+      ) : null}
+
+      <div className="border-stone-deep mt-10 border-b pb-5">
+        <PeriodFilter period={period} basePath="/admin" />
+      </div>
+
+      <div className="mt-12 flex flex-col gap-14">
+        <StatGrid
+          title="Creators"
+          stats={[
+            { label: 'Total records', value: creators.total, href: '/admin/creators' },
+            { label: 'Added', value: creators.added, note: PERIOD_LABEL[period] },
+            {
+              label: 'Claimed',
+              value: creators.claimed,
+              href: '/admin/creators?filter=claimed',
+            },
+            {
+              label: 'Unclaimed',
+              value: creators.unclaimed,
+              href: '/admin/creators?filter=unclaimed',
+            },
+            { label: 'Verified', value: creators.verified },
+            {
+              label: 'Verification pending',
+              value: creators.verificationPending,
+              tone: 'attention',
+            },
+            {
+              label: 'Unpublished',
+              value: creators.unpublished,
+              href: '/admin/creators?filter=unpublished',
+            },
+            { label: 'Suspended', value: creators.suspended, tone: 'attention' },
+          ]}
+        />
+
+        {awards ? (
+          <StatGrid
+            title={`Awards — ${awards.seasonTitle}, ${STAGE_LABEL[awards.stage as SeasonStage]}`}
+            stats={[
+              { label: 'Categories', value: awards.categories },
+              { label: 'Nominations', value: awards.nominations, href: '/admin/nominations' },
+              { label: 'Eligible', value: awards.eligible },
+              { label: 'Finalists', value: awards.finalists, href: '/admin/selection' },
+              { label: 'Winners', value: awards.winners, href: '/admin/selection' },
+              {
+                label: 'Awaiting finalisation',
+                value: awards.awaitingFinalisation,
+                note: 'Scored, no honour conferred',
+                tone: 'attention',
+                href: '/admin/selection',
+              },
+            ]}
+          />
+        ) : (
+          <Notice tone="warning" title="No current season">
+            No season is marked current. The queues still work; the season figures do not.
+          </Notice>
+        )}
+
+        <StatGrid
+          title="Operations"
+          stats={[
+            {
+              label: 'Open claims',
+              value: operations.openClaims,
+              href: '/admin/claims',
+              tone: 'attention',
+            },
+            {
+              label: 'Escalations',
+              value: operations.escalations,
+              href: '/admin/claims?filter=escalated',
+              tone: 'attention',
+            },
+            {
+              label: 'Verification queue',
+              value: operations.verificationQueue,
+              href: '/admin/verification',
+              tone: 'attention',
+            },
+            {
+              label: 'Reports',
+              value: operations.reports,
+              href: '/admin/moderation',
+              tone: 'attention',
+            },
+            {
+              label: 'Declared conflicts',
+              value: operations.openConflicts,
+              href: '/admin/judging',
+            },
+            {
+              label: 'Assessments outstanding',
+              value: operations.unassignedJudging,
+              href: '/admin/judging',
+            },
+          ]}
+        />
+
+        <StatGrid
+          title="Platform"
+          stats={[
+            { label: 'Accounts', value: platform.accounts, href: '/admin/users' },
+            { label: 'New accounts', value: platform.newAccounts, note: PERIOD_LABEL[period] },
+            { label: 'Active sessions', value: platform.activeSessions },
+            {
+              label: 'Nomination activity',
+              value: platform.nominationActivity,
+              note: PERIOD_LABEL[period],
+            },
+            { label: 'Claim activity', value: platform.claimActivity, note: PERIOD_LABEL[period] },
+            {
+              label: 'Audited events',
+              value: platform.auditEvents,
+              note: PERIOD_LABEL[period],
+              href: '/admin/audit',
+            },
+          ]}
+        />
+      </div>
+
+      {awards && can(session.user.role, 'admin:manage_seasons') ? (
+        <section className="border-stone-deep mt-16 border-t pt-10">
+          <h3 className="palma-label text-taupe-deep mb-6">Advance the season</h3>
+          <div className="max-w-140">
+            <AdvanceSeasonForm stage={awards.stage as SeasonStage} year={awards.seasonYear} />
+          </div>
+        </section>
+      ) : null}
     </>
   );
 }

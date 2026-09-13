@@ -34,7 +34,7 @@ export default async function AdminJudgingPage() {
 
   return (
     <>
-      <h2 className="text-3xl">Panel assignment</h2>
+      <h1 className="text-3xl">Panel assignment</h1>
       <p className="text-taupe-deep mt-3 max-w-160 leading-relaxed">
         Assignment is deterministic and conflict-aware: each eligible candidacy is placed with three
         judges, load is spread evenly, and any judge with a declared conflict is excluded before

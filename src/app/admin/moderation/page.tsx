@@ -19,7 +19,7 @@ export default async function AdminModerationPage() {
 
   return (
     <>
-      <h2 className="text-3xl">Moderation</h2>
+      <h1 className="text-3xl">Moderation</h1>
       <p className="text-taupe-deep mt-3 max-w-160 leading-relaxed">
         Reports of impersonation, fabricated achievements, explicit content and nomination
         manipulation. Every action taken here is recorded against the entity it affects.

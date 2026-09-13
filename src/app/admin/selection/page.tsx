@@ -24,7 +24,7 @@ export default async function AdminSelectionPage() {
 
   return (
     <>
-      <h2 className="text-3xl">{overview.seasonTitle} standings</h2>
+      <h1 className="text-3xl">{overview.seasonTitle} standings</h1>
       <Notice className="mt-5" title="How this ranking is produced">
         Candidacies are ranked by trimmed mean — once four or more judges have scored, the highest
         and lowest are removed. The ranking is a recommendation. Confirming it is the act that

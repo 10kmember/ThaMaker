@@ -20,6 +20,97 @@ the audit log with the actor, the entity and the state before and after.
 Sponsors hold **no role**. Sponsorship is recorded against a season or category
 and grants no access to nominations, judges, scores or outcomes.
 
+## The administration dashboard
+
+Four dashboards, and the distinction between them is the point:
+
+| Surface           | Answers                   |
+| ----------------- | ------------------------- |
+| Creator portal    | "My PALMA record."        |
+| Judging room      | "My decisions."           |
+| Operations queues | "My operational queue."   |
+| Administration    | "The entire institution." |
+
+They are not four systems. All four read the same Creator, User, Verification,
+Nomination, Candidacy, Honour and Achievement rows — one record, one history,
+different permissions. That is also what makes the global search at
+`/admin/search` possible: a creator is the same row wherever you meet them, so
+one query reaches their record, the account that holds it, their claims, their
+cases, their honours and the audit trail of all of it.
+
+### The sidebar is the permission matrix
+
+`src/lib/admin-nav.ts` declares every destination with the permission that
+makes it reachable, and `navFor(role)` filters the sidebar to what the signed-in
+role can actually open. A greyed-out menu item is just a slower 403, so nobody
+is shown a door that will refuse them — and a test asserts that every link any
+role can see is one that role can open.
+
+A moderator's sidebar is six entries. A super administrator's is the whole
+institution.
+
+### Statistics are counted live
+
+Every figure on `/admin` and `/admin/analytics` is counted against PostgreSQL at
+request time. There is no reporting database, no nightly rollup and no second
+copy of the truth, because a statistic that disagrees with the page it
+summarises is worse than no statistic. Period filtering (7/30/90 days, season,
+all time) is applied in the query rather than in JavaScript over a fetched
+array.
+
+### Charts
+
+Inline SVG in PALMA's own palette, not a charting library — a dependency with
+its own visual opinions would fight the typography and lose the point of it.
+
+The chart colours are separate tokens from the category pigments
+(`--palma-chart-*` and `--palma-ramp-*` in `globals.css`), because a chart asks
+a different question of a colour than a card does. Two series are validated as a
+categorical pair in **both** themes, all-pairs, under simulated protanopia and
+deuteranopia; a third exists but is only clean on ivory, so any chart reaching
+for it also carries direct labels. Beyond three series PALMA facets rather than
+inventing a hue. Funnels and stages take the ordinal ramp — one hue, light to
+dark — so the reader sees the order in the colour.
+
+Every chart carries a table view, because a number somebody intends to quote
+should be readable exactly.
+
+### Two administrators for the irreversible
+
+A permanent account ban and the revocation of an honour are the two things PALMA
+cannot take back cleanly, so neither is one person's decision made at speed:
+
+    administrator proposes (with a reason, recorded in full)
+           ↓
+    a DIFFERENT administrator approves
+           ↓
+    executed in one transaction, both names on the record
+
+The proposer cannot approve their own proposal — checked in
+`decideConsequentialAction`, not hidden in the interface. Everything else in
+enforcement (suspension, session revocation, role change) is reversible and
+takes one administrator, with the same audit trail.
+
+Nobody changes their own role or suspends their own account, and only a super
+administrator grants or removes that role.
+
+### System health says what is not wired up
+
+`/admin/health` either measures something real — a PostgreSQL round trip, the
+presence of a signing secret, whether the email and assurance providers are
+configured — or says plainly that a thing is not automated yet. A green tick
+against a service PALMA cannot actually reach is worse than no panel, because it
+gets believed. Retention deletion is listed as _not configured_, because it is.
+
+### Settings says where each setting lives
+
+Three sources, and the distinction is the content of the page: **database** is
+editable in the back office, **env** is a deployment decision, and **code** is a
+rule PALMA has published and cannot change without a release. Judging criteria,
+nomination limits and selection counts are code on purpose — making them
+editable from a dashboard would let a season's rules change after it opened,
+which the rules themselves forbid.
+
 ## The back office
 
 PALMA Operations is organised around queues, not analytics. The home screen

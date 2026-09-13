@@ -51,7 +51,7 @@ export default async function ClaimCasePage({ params }: { params: Promise<{ id: 
 
       <div className="mt-8 flex flex-col gap-3">
         <span className="palma-label text-taupe-deep">Claim review case</span>
-        <h2 className="text-4xl">{claim.record.displayName}</h2>
+        <h1 className="text-4xl">{claim.record.displayName}</h1>
         <div className="flex flex-wrap items-center gap-4">
           <Badge variant={open ? 'olive' : 'muted'}>{titleCase(claim.status)}</Badge>
           <span className="text-taupe text-sm">Received {formatDate(claim.createdAt)}</span>

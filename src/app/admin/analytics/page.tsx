@@ -1,0 +1,392 @@
+import {
+  BarSeries,
+  ChartFrame,
+  Composition,
+  Funnel,
+  TimeSeries,
+} from '@/components/charts/primitives';
+import { PeriodFilter } from '@/components/admin/PeriodFilter';
+import { Notice } from '@/components/ui/feedback';
+import { buildMetadata } from '@/lib/seo';
+import { requirePermission } from '@/lib/auth/guards';
+import {
+  compareSeasons,
+  getAwardsAnalytics,
+  getCreatorAnalytics,
+  getNominationAnalytics,
+  getOperationalAnalytics,
+  isPeriod,
+  PERIOD_LABEL,
+} from '@/server/data/command-centre';
+import { countryName } from '@/lib/format';
+import { titleCase } from '@/lib/utils';
+
+export const dynamic = 'force-dynamic';
+
+export const metadata = buildMetadata({
+  title: 'Analytics',
+  description: 'PALMA analytics.',
+  path: '/admin/analytics',
+  noIndex: true,
+});
+
+export default async function AnalyticsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string }>;
+}) {
+  await requirePermission('admin:view_analytics', '/admin/analytics');
+  const { period: raw } = await searchParams;
+  const period = isPeriod(raw) ? raw : '30d';
+
+  const [seasons, nominations, creators, awards, operations] = await Promise.all([
+    compareSeasons(),
+    getNominationAnalytics(period),
+    getCreatorAnalytics(),
+    getAwardsAnalytics(),
+    getOperationalAnalytics(),
+  ]);
+
+  return (
+    <>
+      <div className="flex flex-col gap-3">
+        <span className="palma-label text-taupe-deep">Command centre</span>
+        <h1 className="text-4xl">Analytics</h1>
+        <p className="text-taupe-deep max-w-160 leading-relaxed">
+          Counted live against PostgreSQL — there is no reporting copy to drift from the pages these
+          figures summarise. Every chart can be read as a table, because a number somebody intends
+          to quote should be readable exactly.
+        </p>
+      </div>
+
+      <div className="border-stone-deep mt-10 border-b pb-5">
+        <PeriodFilter period={period} basePath="/admin/analytics" />
+      </div>
+
+      {/* ── Seasons ─────────────────────────────────────────────────────── */}
+      <section className="mt-14">
+        <h2 className="palma-label text-taupe-deep border-stone-deep border-b pb-3">
+          Season by season
+        </h2>
+
+        <div className="mt-8 grid gap-px sm:grid-cols-2">
+          <ChartFrame
+            title="Nominations per season"
+            note="Counted nominations only. Volume is a measure of reach, not of quality — no part of judging reads it."
+            rows={seasons.map((season) => [String(season.year), season.nominations])}
+            columns={['Season', 'Nominations']}
+          >
+            <BarSeries
+              data={seasons.map((season) => ({
+                label: String(season.year),
+                value: season.nominations,
+              }))}
+            />
+          </ChartFrame>
+
+          <ChartFrame
+            title="Creators considered per season"
+            note="Distinct creators with at least one candidacy."
+            legend={[
+              { label: 'New to PALMA', colour: 'var(--palma-chart-1)' },
+              { label: 'Returning', colour: 'var(--palma-chart-2)' },
+            ]}
+            rows={seasons.map((season) => [
+              String(season.year),
+              season.newCreators,
+              season.returningCreators,
+            ])}
+            columns={['Season', 'New', 'Returning']}
+          >
+            <TimeSeries
+              points={seasons.map((season) => ({
+                label: String(season.year),
+                values: [season.newCreators, season.returningCreators],
+              }))}
+              series={['New', 'Returning']}
+            />
+          </ChartFrame>
+        </div>
+
+        <div className="border-stone-deep mt-6 overflow-x-auto border">
+          <table className="w-full min-w-160 border-collapse text-left text-sm">
+            <thead className="border-stone-deep border-b">
+              <tr>
+                {[
+                  'Season',
+                  'Stage',
+                  'Categories',
+                  'Nominations',
+                  'Candidacies',
+                  'Finalists',
+                  'Winners',
+                ].map((column) => (
+                  <th key={column} scope="col" className="palma-label text-taupe-deep p-3">
+                    {column}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {seasons.map((season) => (
+                <tr key={season.year} className="border-stone-deep/50 border-b last:border-none">
+                  <td className="font-display p-3 text-lg">{season.year}</td>
+                  <td className="text-taupe-deep p-3">{titleCase(season.stage)}</td>
+                  <td className="p-3 tabular-nums">{season.categories}</td>
+                  <td className="p-3 tabular-nums">{season.nominations}</td>
+                  <td className="p-3 tabular-nums">{season.candidacies}</td>
+                  <td className="p-3 tabular-nums">{season.finalists}</td>
+                  <td className="p-3 tabular-nums">{season.winners}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* ── Nominations ─────────────────────────────────────────────────── */}
+      <section className="mt-16">
+        <h2 className="palma-label text-taupe-deep border-stone-deep border-b pb-3">
+          Nominations — {PERIOD_LABEL[period].toLowerCase()}
+        </h2>
+
+        <div className="mt-8 grid gap-px lg:grid-cols-2">
+          <ChartFrame
+            className="lg:col-span-2"
+            title="Nomination activity by day"
+            note="Organic arrivals against those that came through a creator's own referral link. Both are legitimate; PALMA expects creators to ask."
+            legend={[
+              { label: 'Organic', colour: 'var(--palma-chart-1)' },
+              { label: 'Referral', colour: 'var(--palma-chart-2)' },
+            ]}
+            rows={nominations.byDay.map((day) => [
+              day.label,
+              day.values[0] ?? 0,
+              day.values[1] ?? 0,
+            ])}
+            columns={['Day', 'Organic', 'Referral']}
+          >
+            <TimeSeries points={nominations.byDay} series={['Organic', 'Referral']} height={200} />
+          </ChartFrame>
+
+          <ChartFrame
+            title="How nominations arrive"
+            rows={nominations.bySource.map((entry) => [entry.label, entry.value])}
+            columns={['Source', 'Nominations']}
+          >
+            <Composition parts={nominations.bySource} />
+          </ChartFrame>
+
+          <ChartFrame
+            title="What happens to them"
+            note="A nomination counts only once its email address is verified."
+            rows={nominations.byStatus.map((entry) => [entry.label, entry.value])}
+            columns={['Status', 'Nominations']}
+          >
+            <Composition parts={nominations.byStatus} />
+          </ChartFrame>
+
+          <ChartFrame
+            title="Through the nomination flow"
+            note="Ordinal, so the colour carries the order. Percentages are of the stage above."
+            rows={nominations.funnel.map((stage) => [stage.label, stage.value])}
+            columns={['Stage', 'Count']}
+          >
+            <Funnel stages={nominations.funnel} />
+          </ChartFrame>
+
+          <ChartFrame
+            title="Nominations by category"
+            note="Never shown to a judge, and never published as a leaderboard."
+            rows={nominations.byCategory.map((entry) => [entry.label, entry.value])}
+            columns={['Category', 'Nominations']}
+          >
+            <BarSeries data={nominations.byCategory} />
+          </ChartFrame>
+        </div>
+
+        <Notice className="mt-6" title="Integrity">
+          {nominations.integrityFlagged} candidac
+          {nominations.integrityFlagged === 1 ? 'y is' : 'ies are'} flagged for review, and{' '}
+          {nominations.duplicatesRefused} nomination
+          {nominations.duplicatesRefused === 1 ? ' was' : 's were'} rejected in this period. A flag
+          is a prompt for a person to look, never an automatic rejection — and a shared network is
+          never a reason on its own.
+        </Notice>
+      </section>
+
+      {/* ── Creators ────────────────────────────────────────────────────── */}
+      <section className="mt-16">
+        <h2 className="palma-label text-taupe-deep border-stone-deep border-b pb-3">Creators</h2>
+
+        <div className="mt-8 grid gap-px lg:grid-cols-2">
+          <ChartFrame
+            title="Claimed and unclaimed"
+            note="A record exists before its creator has an account. Unclaimed is the normal state of a young archive, not a backlog."
+            rows={creators.claimed.map((entry) => [entry.label, entry.value])}
+            columns={['State', 'Records']}
+          >
+            <Composition parts={creators.claimed} />
+          </ChartFrame>
+
+          <ChartFrame
+            title="Verification status"
+            rows={creators.verification.map((entry) => [titleCase(entry.label), entry.value])}
+            columns={['Status', 'Creators']}
+          >
+            <BarSeries
+              data={creators.verification.map((entry) => ({
+                label: titleCase(entry.label),
+                value: entry.value,
+              }))}
+            />
+          </ChartFrame>
+
+          <ChartFrame
+            title="Where creators are"
+            rows={creators.byCountry.map((entry) => [countryName(entry.label), entry.value])}
+            columns={['Country', 'Creators']}
+          >
+            <BarSeries
+              data={creators.byCountry.map((entry) => ({
+                label: countryName(entry.label),
+                value: entry.value,
+              }))}
+            />
+          </ChartFrame>
+
+          <ChartFrame
+            title="Honours held"
+            rows={creators.honoursHeld.map((entry) => [entry.label, entry.value])}
+            columns={['Record', 'Creators']}
+          >
+            <Composition parts={creators.honoursHeld} />
+          </ChartFrame>
+        </div>
+      </section>
+
+      {/* ── Awards ──────────────────────────────────────────────────────── */}
+      <section className="mt-16">
+        <h2 className="palma-label text-taupe-deep border-stone-deep border-b pb-3">Awards</h2>
+
+        <div className="mt-8 grid gap-px lg:grid-cols-2">
+          <ChartFrame
+            title="Candidacy to honour"
+            note="Across every season PALMA has run."
+            rows={awards.conversion.map((entry) => [entry.label, entry.value])}
+            columns={['Stage', 'Count']}
+          >
+            <Funnel stages={awards.conversion} />
+          </ChartFrame>
+
+          <ChartFrame
+            title="Category participation"
+            rows={awards.participation.map((entry) => [entry.label, entry.value])}
+            columns={['Category', 'Candidacies']}
+          >
+            <BarSeries data={awards.participation} />
+          </ChartFrame>
+
+          <ChartFrame
+            title="Winners by category"
+            rows={awards.winnersByCategory.map((entry) => [entry.label, entry.value])}
+            columns={['Category', 'Winners']}
+          >
+            <BarSeries data={awards.winnersByCategory} />
+          </ChartFrame>
+
+          <ChartFrame
+            title="First-time and repeat winners"
+            note="A creator holding more than one PALMA across any season."
+            rows={[
+              ['First-time', awards.firstTimeWinners],
+              ['Repeat', awards.repeatWinners],
+            ]}
+            columns={['Winner', 'Creators']}
+          >
+            <Composition
+              parts={[
+                { label: 'First-time winners', value: awards.firstTimeWinners },
+                { label: 'Repeat winners', value: awards.repeatWinners },
+              ]}
+            />
+          </ChartFrame>
+        </div>
+      </section>
+
+      {/* ── Operations ──────────────────────────────────────────────────── */}
+      <section className="mt-16">
+        <h2 className="palma-label text-taupe-deep border-stone-deep border-b pb-3">Operations</h2>
+
+        <div className="mt-8 grid gap-px lg:grid-cols-2">
+          <ChartFrame
+            title="Claim outcomes"
+            note={
+              operations.averageClaimReviewHours === null
+                ? 'No claim has been decided yet.'
+                : `Average time to a decision: ${operations.averageClaimReviewHours} hours.`
+            }
+            rows={operations.claimOutcomes.map((entry) => [titleCase(entry.label), entry.value])}
+            columns={['Outcome', 'Claims']}
+          >
+            <BarSeries
+              data={operations.claimOutcomes.map((entry) => ({
+                label: titleCase(entry.label),
+                value: entry.value,
+              }))}
+            />
+          </ChartFrame>
+
+          <ChartFrame
+            title="Verification cases"
+            note={
+              operations.averageVerificationHours === null
+                ? 'No case has been decided yet.'
+                : `Average turnaround: ${operations.averageVerificationHours} hours.`
+            }
+            rows={operations.verificationOutcomes.map((entry) => [
+              titleCase(entry.label),
+              entry.value,
+            ])}
+            columns={['Status', 'Cases']}
+          >
+            <BarSeries
+              data={operations.verificationOutcomes.map((entry) => ({
+                label: titleCase(entry.label),
+                value: entry.value,
+              }))}
+            />
+          </ChartFrame>
+
+          <ChartFrame
+            title="Staff workload"
+            note="Audited actions per account. A measure of who is carrying the queues, not of who is doing well."
+            rows={operations.staffWorkload.map((entry) => [entry.label, entry.value])}
+            columns={['Account', 'Audited actions']}
+          >
+            <BarSeries data={operations.staffWorkload} />
+          </ChartFrame>
+
+          <ChartFrame
+            title="Enforcement actions"
+            rows={operations.enforcement.map((entry) => [titleCase(entry.label), entry.value])}
+            columns={['Action', 'Count']}
+          >
+            {operations.enforcement.length === 0 ? (
+              <p className="text-taupe py-6 text-center text-sm">
+                No enforcement action has been taken.
+              </p>
+            ) : (
+              <BarSeries
+                data={operations.enforcement.map((entry) => ({
+                  label: titleCase(entry.label),
+                  value: entry.value,
+                }))}
+              />
+            )}
+          </ChartFrame>
+        </div>
+      </section>
+    </>
+  );
+}

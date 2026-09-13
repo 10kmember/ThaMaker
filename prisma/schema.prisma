@@ -191,6 +191,11 @@ enum VerificationCaseStatus {
   abandoned
 }
 
+enum ConsequentialActionKind {
+  account_ban
+  honour_revocation
+}
+
 enum NotificationChannel {
   email
   in_app
@@ -226,6 +231,8 @@ model User {
   invitationsIssued        ClaimInvitation[]       @relation("InvitationIssuer")
   creatorNotes             CreatorNote[]           @relation("CreatorNoteAuthor")
   verificationCasesDecided VerificationCase[]      @relation("VerificationCaseReviewer")
+  actionsRequested         ConsequentialAction[]   @relation("ConsequentialRequester")
+  actionsApproved          ConsequentialAction[]   @relation("ConsequentialApprover")
 
   @@index([role])
 }
@@ -859,6 +866,36 @@ model VerificationCase {
 
   @@index([status])
   @@index([creatorId])
+}
+
+/// The gravest actions need two administrators.
+///
+/// A permanent ban and the revocation of an honour are the two things PALMA
+/// cannot take back cleanly, so neither is one person's decision made at
+/// speed. One administrator proposes with a reason; a different one executes.
+/// The proposal, the reason and both names are part of the record.
+model ConsequentialAction {
+  id            String                  @id @default(cuid())
+  kind          ConsequentialActionKind
+  entityType    String
+  entityId      String
+  /// What the reader of the audit log needs to know without a join.
+  subject       String
+  reason        String                  @db.Text
+  requestedById String
+  createdAt     DateTime                @default(now())
+
+  approvedById    String?
+  approvedAt      DateTime?
+  executedAt      DateTime?
+  cancelledAt     DateTime?
+  cancelledReason String?   @db.Text
+
+  requestedBy User  @relation("ConsequentialRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+  approvedBy  User? @relation("ConsequentialApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([executedAt])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

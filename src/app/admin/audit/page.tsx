@@ -25,7 +25,7 @@ export default async function AdminAuditPage({
 
   return (
     <>
-      <h2 className="text-3xl">Audit log</h2>
+      <h1 className="text-3xl">Audit log</h1>
       <p className="text-taupe-deep mt-3 max-w-160 leading-relaxed">
         Append-only. Every action that changes the institutional record is written here with the
         actor, the entity, and the state before and after. Nothing in PALMA can be changed quietly.

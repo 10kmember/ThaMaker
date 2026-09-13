@@ -24,7 +24,7 @@ export default async function NewCreatorPage() {
 
       <div className="mt-8 flex flex-col gap-3">
         <span className="palma-label text-taupe-deep">Content</span>
-        <h2 className="text-4xl">Add a creator record</h2>
+        <h1 className="text-4xl">Add a creator record</h1>
         <p className="text-taupe-deep max-w-160 leading-relaxed">
           The record is created unclaimed. Nobody holds it until a claim is reviewed and approved,
           and creating one grants no account, no role and no access.
