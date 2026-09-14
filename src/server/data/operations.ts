@@ -334,6 +334,9 @@ export type StaffCreatorRecord = {
   /** Who holds it, if anyone. */
   heldBy: { email: string; name: string } | null;
 
+  /** Where the work lives — what the desk writes and checks the record from. */
+  links: { id: string; label: string; url: string }[];
+
   verification: {
     status: string;
     provider: string | null;
@@ -389,6 +392,8 @@ export async function getCreatorRecord(slug: string): Promise<StaffCreatorRecord
     createdAt: creator.createdAt.toISOString(),
 
     heldBy: creator.user ? { email: creator.user.email, name: creator.user.name } : null,
+
+    links: creator.links.map((link) => ({ id: link.id, label: link.label, url: link.url })),
 
     verification: {
       status: creator.verification?.status ?? 'unverified',

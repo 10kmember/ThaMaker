@@ -67,7 +67,7 @@ export default async function ClaimInvitationPage({
               </Notice>
               <p className="text-taupe-deep text-sm leading-relaxed">
                 If you believe a PALMA record is yours, you can still ask for it from your account.{' '}
-                <Link href="/portal/claim" className="palma-link text-ink">
+                <Link href="/creator/claim" className="palma-link text-ink">
                   Claim a profile
                 </Link>
                 , or write to honours@palmaawards.com.

@@ -19,30 +19,42 @@ the audit log with the actor, the entity and the state before and after.
 Sponsors hold **no role**. Sponsorship is recorded against a season or category
 and grants no access to nominations, judges, scores or outcomes.
 
-## Four dashboards
+## Four paths
 
-| Surface        | Path          | Who                    | Door       |
-| -------------- | ------------- | ---------------------- | ---------- |
-| Creator portal | `/portal`     | `creator`              | `/sign-in` |
-| Judging room   | `/judging`    | `judge`                | `/judge`   |
-| Moderation     | `/moderation` | `moderator`            | `/staff`   |
-| Administration | `/admin`      | `admin`, `super_admin` | `/staff`   |
+| Surface        | Path       | Who                    |
+| -------------- | ---------- | ---------------------- |
+| Creators       | `/creator` | `creator`              |
+| Judges         | `/judge`   | `judge`                |
+| Moderation     | `/portal`  | `moderator`            |
+| Administration | `/admin`   | `admin`, `super_admin` |
+
+Four paths, one per role, and **each path is both the door and the dashboard
+behind it**. Signed out you get that role's sign-in; signed in you get its
+dashboard; signed in as somebody else you are sent to your own. Nobody has to
+remember a separate sign-in URL, and there is no way to land on a dashboard
+that is not yours.
 
 Three of those are platform operators — moderator, judge, administrator. The
 creator is not one: a creator holds a record, they do not run the institution.
+
+**Everybody who signs up is a creator.** That is the default and the only role
+registration can produce. A judge, moderator or administrator is an account
+PALMA has _also_ given a role, so they reach their desk by typing its path —
+`palmaawards.com/judge` — and nothing on the creator surface advertises it.
+Roles are never offered at sign-up and never self-selected.
 
 **Editorial and moderation are one role.** They were two until it became clear
 that neither could finish a task on its own: the person who writes a creator's
 record is the person who screens a claim about it. `editor` is gone and
 `moderator` holds the whole of it.
 
-Moderators and administrators share the `/staff` door and _not_ a dashboard.
-`homeForRole` sends each to its own, because a dashboard that is mostly things
-you cannot open is worse than a short one that is entirely yours — a
-moderator's sidebar is six entries, an administrator's is the institution.
+Moderators and administrators do not share a dashboard. `homeForRole` sends
+each to its own, because a dashboard that is mostly things you cannot open is
+worse than a short one that is entirely yours — a moderator's sidebar is six
+entries, an administrator's is the institution.
 
-The queues live at `/moderation/*`, and an administrator reaches **the same
-pages** from their own sidebar rather than a second copy of them.
+The queues live at `/portal/*`, and an administrator reaches **the same pages**
+from their own sidebar rather than a second copy of them.
 
 ## The seed
 
@@ -59,8 +71,8 @@ would drift; one cannot.
 | Creators  | Maya Rivers and Jordan Smith (claimed), Noor Haddad (unclaimed)             |
 
 Every account signs in at its own door with the password from `SEED_PASSWORD`
-(default `Palma-Development-2027`): operators at `/staff`, judges at `/judge`,
-creators at `/sign-in`.
+(default `Palma-Development-2027`), at its own path: administration at
+`/admin`, moderation at `/portal`, judges at `/judge`, creators at `/creator`.
 
 Noor Haddad has no account on purpose. PALMA wrote the record when she was
 first nominated and nobody holds it — which is the ordinary state of a record
@@ -180,12 +192,12 @@ PALMA Operations is organised around queues, not analytics. The home screen
 answers one question — what is waiting on a person — and everything else sits
 behind it.
 
-| Queue                   | Path                  | Held by                                       |
-| ----------------------- | --------------------- | --------------------------------------------- |
-| Creator claims          | `/admin/claims`       | editor (review), moderator and admin (decide) |
-| Manual age verification | `/admin/verification` | moderator, admin                              |
-| Creator records         | `/admin/creators`     | editor and admin edit; moderator reads        |
-| Reports                 | `/admin/moderation`   | moderator, admin                              |
+| Queue                   | Path                   | Held by          |
+| ----------------------- | ---------------------- | ---------------- |
+| Creator claims          | `/portal/claims`       | moderator, admin |
+| Manual age verification | `/portal/verification` | moderator, admin |
+| Creator records         | `/portal/creators`     | moderator, admin |
+| Reports                 | `/portal/reports`      | moderator, admin |
 
 ### The two things that are not the same
 
@@ -222,6 +234,34 @@ was the moment before — `Unclaimed` becomes `Claimed`, and nothing else change
 denormalised convenience written on approval, and nothing reads it: a boolean
 that can drift from the relation it summarises is not a source of truth.
 
+### When there is no record to claim
+
+The archive is younger than the industry, so an account will often find nothing
+to claim. That is not a dead end and it is not a signup form for a profile
+page. From `/creator` there are two routes out of it, and both end in the same
+place — a record held by that account, unpublished, waiting on a moderator:
+
+| Route               | Who writes the copy | What the creator supplies         |
+| ------------------- | ------------------- | --------------------------------- |
+| **I will write it** | The creator         | Name, place, headline, bio, links |
+| **PALMA writes it** | The editorial desk  | Name, place, links                |
+
+On the request route the headline and biography fields are not even read — a
+creator's own words must not be published as PALMA's editorial copy by
+accident. Both routes require **at least one link** (up to six): a record with
+no links is one the desk cannot check, and an unverifiable record is worse than
+none.
+
+Starting a record writes a `CreatorVerification` row at `unverified` and an
+internal note saying which route it came in by and who to chase, and audits as
+`creator.record_requested` or `creator.record_created`. Nothing is public:
+`getCreator` refuses unpublished records, so the public page 404s until a
+moderator publishes it from `/portal/creators`.
+
+Age and identity assurance runs **after** the record exists, not before it —
+there is nothing to attach an assurance to until then, and no honour is
+conferred without it.
+
 ### What a claimed creator may change
 
 Presentation only: display name, pronouns, country, city, headline, biography,
@@ -248,10 +288,31 @@ be read back out of the database.
 A token proves PALMA sent the link. It does not prove the holder is the
 creator, so it is evidence at review and never a substitute for it.
 
-### Manual age verification
+### Age and identity assurance
 
-Most age and identity assurance is settled by PALMA's provider, which PALMA
-never sees the inside of. The cases it cannot settle become cases:
+PALMA creators must be 18 or over, and PALMA holds no identity documents to
+prove it. The creator starts the check from `/creator`; the permanent record is
+a status, a provider reference, a result hash and a timestamp, and the whole of
+who performs the check sits behind one environment variable:
+
+    AGE_VERIFICATION_PROVIDER
+
+| Value      | Who verifies                                                |
+| ---------- | ----------------------------------------------------------- |
+| `stub`     | Nobody. Development only — the check is recorded, not made. |
+| `manual`   | A moderator, in the restricted workspace below.             |
+| A provider | The specialist service, over its own hosted flow.           |
+
+**Today it is moderators.** `startVerification` writes `status: 'pending'` with
+the configured provider, and a moderator settles it at `/portal/verification`.
+When a third-party provider is contracted, the creator-facing flow does not
+change: the same button hands them to the provider's hosted flow, the provider
+reports back, and `provider` on the row records which one decided. Rows
+verified by a moderator keep saying so — the history is not rewritten to claim
+a machine did it.
+
+Manual review never goes away entirely. A provider that cannot settle a case
+refers it, and referrals become cases:
 
     submission
        ↓
@@ -292,34 +353,39 @@ route. A test asserts it rather than trusting the matrix to stay right.
 
 ## Entrances
 
-PALMA has three doors, and an account may only use its own. Which roles a door
-admits is declared once, in `src/lib/auth/entrances.ts`, and everything else
-reads from there — the sign-in action, the page guards, the redirects.
+PALMA has four entrances, and an account may only use its own. Which roles an
+entrance admits is declared once, in `src/lib/auth/entrances.ts`, and
+everything else reads from there — the sign-in action, the page guards, the
+redirects.
 
-| Door           | Path       | Admits                                        | Lands at   |
-| -------------- | ---------- | --------------------------------------------- | ---------- |
-| Creator        | `/sign-in` | `creator`                                     | `/portal`  |
-| Judges         | `/judge`   | `judge`                                       | `/judging` |
-| Administration | `/staff`   | `editor`, `moderator`, `admin`, `super_admin` | `/admin`   |
+| Entrance       | Path       | Admits                 |
+| -------------- | ---------- | ---------------------- |
+| Creators       | `/creator` | `creator`              |
+| Judges         | `/judge`   | `judge`                |
+| Moderation     | `/portal`  | `moderator`            |
+| Administration | `/admin`   | `admin`, `super_admin` |
+
+There is no separate sign-in URL. `roleSurface()` is what makes one path serve
+twice: no session renders that entrance's panel, a session it admits renders
+the dashboard, and a session it does not admit is redirected to its own
+entrance. This also settles the performance question behind the design — no
+page consults a role to work out _where_ an account belongs, because the path
+already says.
 
 The rules that follow from that:
 
-- A correct password at the wrong door creates **no session**. The form says
-  which door the account belongs at, and the attempt is written to the audit
-  log as `user.wrong_entrance`.
-- An unauthenticated visitor is sent to the door that guards _the surface they
-  asked for_, resolved from the path — so `/judging/*` sends them to `/judge`,
-  never to the creator form. No role lookup is involved, because there is no
+- A correct password at the wrong entrance creates **no session**. The form
+  says which entrance the account belongs at, and the attempt is written to the
+  audit log as `user.wrong_entrance`.
+- An unauthenticated visitor is shown the panel for _the surface they asked
+  for_, resolved from the path — so `/judge/history` shows the judges' panel,
+  never the creator one. No role lookup is involved, because there is no
   session to look one up from.
-- A signed-in account on a surface its own door does not lead to is redirected
-  to its own home rather than shown the refusal page: it is in the wrong
-  building, not merely under-permissioned.
+- A signed-in account on a surface it is not admitted to is redirected to its
+  own rather than shown the refusal page: it is in the wrong building, not
+  merely under-permissioned.
 - A `next=` parameter cannot carry an account across buildings. A judge signing
-  in with `next=/portal/claim` lands in the judging room.
-
-The staff door sits at `/staff` rather than `/admin/sign-in` deliberately: the
-`/admin` segment's layout guards every page beneath it, so a door placed inside
-it would redirect to itself.
+  in with `next=/portal/claims` lands in the judging room.
 
 RBAC is unchanged and still decides what a signed-in account may _do_. The
 entrances decide only where it may come in.
@@ -375,7 +441,7 @@ lowering the bar.
 
 ## 4. Judging
 
-Judges score independently at `/judging`. Scores are immutable once submitted.
+Judges score independently at `/judge`. Scores are immutable once submitted.
 
 A judge sees the creator, the category, the evidence PALMA gathered, and a
 sample of what nominators said — never how many nominated, and never who. The
@@ -436,7 +502,7 @@ it as the most sensitive value in the deployment.
 
 ## Integrity queue
 
-`/admin/moderation` carries reports of impersonation, fabricated achievements,
+`/portal/reports` carries reports of impersonation, fabricated achievements,
 explicit content, ineligible creators and nomination manipulation.
 
 Reports come from anyone, signed in or not — a person being impersonated may
@@ -460,3 +526,24 @@ ineligible with a written reason, and the audit log records who did so and why.
 - Never stored: identity documents, raw IP addresses.
 - Nominators hold no account and no profile — an address, a verification
   timestamp, and the nominations made from it.
+
+## What is not built yet
+
+Written down rather than discovered later. `/admin/health` says the same thing
+about the parts a deployment can check for itself; this is the rest.
+
+| Gap                              | What it means today                                                                                                                                                                    |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Password reset**               | There is no forgot-password route. An account that loses its password has no way back in without a person.                                                                             |
+| **Transactional email**          | Two messages exist — the nomination code and the nomination receipt. Nothing is sent on claim decisions, publication, verification outcomes, honours, panel assignment or enforcement. |
+| **Notification preferences**     | Stored on `/creator` and read by nothing, because there is nothing yet to suppress.                                                                                                    |
+| **Communications**               | Section 12 of the administration spec. No sent-mail record, no delivery state, no template register.                                                                                   |
+| **Bulk creator import**          | Records are written one at a time at `/portal/creators/new`. Presetting an archive of hundreds is not practical yet.                                                                   |
+| **Two-factor authentication**    | Not available, on any role — including the accounts that can revoke an honour.                                                                                                         |
+| **Scheduled retention deletion** | Retention periods are published and applied by hand.                                                                                                                                   |
+| **Third-party age assurance**    | `AGE_VERIFICATION_PROVIDER` is `stub` by default. A real deployment must set `manual` until a provider is contracted, or it records assurance nobody performed.                        |
+| **Account self-service**         | A creator cannot change their email address or close their account without asking PALMA.                                                                                               |
+
+None of these are silent. The stub provider and the retention job are reported
+on `/admin/health`; the rest are listed here because a gap nobody wrote down is
+a gap somebody will assume is finished.

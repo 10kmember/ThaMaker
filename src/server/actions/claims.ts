@@ -6,10 +6,11 @@ import { can } from '@/lib/auth/rbac';
 import { assertSameOrigin } from '@/lib/auth/session';
 import { randomToken, sha256 } from '@/lib/crypto';
 import { approvalIsBlocked, isOpenClaim } from '@/domain/claim';
-import { claimDecisionSchema, claimRequestSchema } from '@/lib/validation/claims';
+import { claimDecisionSchema, claimRequestSchema, newRecordSchema } from '@/lib/validation/claims';
 import { fieldErrors } from '@/lib/validation/nomination';
 import { recordAudit } from '@/server/audit';
 import { requireDb } from '@/server/db';
+import { slugify } from '@/lib/utils';
 
 export type ClaimState = {
   status: 'idle' | 'error' | 'success';
@@ -148,7 +149,7 @@ export async function requestProfileClaim(
     summary: `Claim ${claim.reference} opened on ${creator.displayName}`,
   });
 
-  revalidatePath('/portal');
+  revalidatePath('/creator');
   return {
     status: 'success',
     message: `Claim ${claim.reference} submitted. PALMA reviews claims by hand; you will hear from us by email.`,
@@ -230,7 +231,7 @@ export async function decideClaim(_previous: ClaimState, formData: FormData): Pr
       summary: `More information requested on ${claim.reference}`,
     });
 
-    revalidatePath('/moderation/claims');
+    revalidatePath('/portal/claims');
     return { status: 'success', message: 'Information requested. The claim stays open.' };
   }
 
@@ -248,7 +249,7 @@ export async function decideClaim(_previous: ClaimState, formData: FormData): Pr
       summary: `${claim.reference} escalated`,
     });
 
-    revalidatePath('/moderation/claims');
+    revalidatePath('/portal/claims');
     return { status: 'success', message: 'Escalated. An administrator will take it from here.' };
   }
 
@@ -276,7 +277,7 @@ export async function decideClaim(_previous: ClaimState, formData: FormData): Pr
       after: { reason: parsed.data.note },
     });
 
-    revalidatePath('/moderation/claims');
+    revalidatePath('/portal/claims');
     return { status: 'success', message: 'Claim rejected, with the reason recorded.' };
   }
 
@@ -345,8 +346,8 @@ export async function decideClaim(_previous: ClaimState, formData: FormData): Pr
     after: { userId: claim.userId, isClaimed: true },
   });
 
-  revalidatePath('/moderation/claims');
-  revalidatePath('/portal');
+  revalidatePath('/portal/claims');
+  revalidatePath('/creator');
   // The public record says whether it is claimed, so it goes stale the moment
   // this succeeds.
   revalidatePath(`/creators/${claim.creator.slug}`);
@@ -406,9 +407,150 @@ export async function issueClaimInvitation(
     summary: `Claim invitation issued for ${creator.displayName}`,
   });
 
-  revalidatePath(`/moderation/creators/${creator.slug}`);
+  revalidatePath(`/portal/creators/${creator.slug}`);
   return {
     status: 'success',
     message: `/claim/${token}`,
+  };
+}
+
+/**
+ * Start a record that does not exist yet.
+ *
+ * PALMA writes most records itself, the first time a creator is nominated —
+ * but the industry is larger than the archive, and a creator who finds nothing
+ * of themselves here should not hit a dead end.
+ *
+ * Two routes, one outcome. `create` means the creator writes their own copy;
+ * `request` means they supply the links and PALMA's desk writes from them.
+ * Either way what appears is an *unpublished* creator record held by that
+ * account, waiting on a moderator — because a record anyone could publish
+ * about themselves is not an archive, it is a directory.
+ *
+ * Age and identity assurance is a separate step and happens once the record
+ * exists; no honour is conferred without it.
+ */
+export async function startCreatorRecord(
+  _previous: ClaimState,
+  formData: FormData,
+): Promise<ClaimState> {
+  await assertSameOrigin();
+
+  let session;
+  try {
+    session = await authorise('creator:claim_profile');
+  } catch {
+    return { status: 'error', message: 'Sign in to start a record.' };
+  }
+
+  const linkCount = Number(formData.get('linkCount') ?? 0);
+  const links = Array.from({ length: Math.min(6, Math.max(0, linkCount)) }, (_, index) => ({
+    label: String(formData.get(`linkLabel${index}`) ?? '').trim(),
+    url: String(formData.get(`linkUrl${index}`) ?? '').trim(),
+  })).filter((link) => link.label && link.url);
+
+  const parsed = newRecordSchema.safeParse({
+    route: formData.get('route'),
+    displayName: formData.get('displayName'),
+    countryCode: formData.get('countryCode'),
+    city: formData.get('city') ?? '',
+    pronouns: formData.get('pronouns') ?? '',
+    headline: formData.get('headline') ?? '',
+    biography: formData.get('biography') ?? '',
+    links,
+    note: formData.get('note') ?? '',
+  });
+
+  if (!parsed.success) {
+    return {
+      status: 'error',
+      message: 'Check the details you have supplied.',
+      errors: fieldErrors(parsed.error),
+    };
+  }
+
+  const db = requireDb();
+
+  // One record per account. An account already holding one is editing, not
+  // starting — and an account with a request open is waiting, not stuck.
+  const held = await db.creator.findFirst({
+    where: { userId: session.user.id },
+    select: { slug: true, displayName: true },
+  });
+
+  if (held) {
+    return {
+      status: 'error',
+      message: `You already hold the record for ${held.displayName}. Edit it from your portal.`,
+    };
+  }
+
+  const base = slugify(parsed.data.displayName);
+  let slug = base;
+  for (let attempt = 2; await db.creator.findUnique({ where: { slug } }); attempt += 1) {
+    slug = `${base}-${attempt}`;
+  }
+
+  const requested = parsed.data.route === 'request';
+
+  const creator = await db.$transaction(async (tx) => {
+    const created = await tx.creator.create({
+      data: {
+        slug,
+        displayName: parsed.data.displayName,
+        countryCode: parsed.data.countryCode,
+        city: parsed.data.city || null,
+        pronouns: parsed.data.pronouns || null,
+        // On the request route PALMA writes the copy, so nothing the creator
+        // typed about themselves is published as editorial.
+        headline: requested ? null : parsed.data.headline || null,
+        biography: requested ? null : parsed.data.biography || null,
+        // Held immediately, published only by a moderator.
+        userId: session.user.id,
+        isClaimed: true,
+        isPublished: false,
+        links: {
+          create: parsed.data.links.map((link, position) => ({ ...link, position })),
+        },
+      },
+    });
+
+    await tx.creatorVerification.create({
+      data: { creatorId: created.id, status: 'unverified' },
+    });
+
+    await tx.creatorNote.create({
+      data: {
+        creatorId: created.id,
+        authorId: session.user.id,
+        body: requested
+          ? `Record requested by ${session.user.email}. PALMA to write from the supplied links.${
+              parsed.data.note ? ` They add: ${parsed.data.note}` : ''
+            }`
+          : `Record written by ${session.user.email} about themselves.${
+              parsed.data.note ? ` They add: ${parsed.data.note}` : ''
+            } Review the copy before publishing.`,
+      },
+    });
+
+    return created;
+  });
+
+  await recordAudit({
+    action: requested ? 'creator.record_requested' : 'creator.record_created',
+    entityType: 'Creator',
+    entityId: creator.id,
+    actor: { id: session.user.id, role: session.user.role, label: session.user.email },
+    summary: `${creator.displayName} started by ${session.user.email} (${parsed.data.route})`,
+  });
+
+  revalidatePath('/creator');
+  revalidatePath('/portal/creators');
+
+  return {
+    status: 'success',
+    message: requested
+      ? 'Requested. PALMA will write your record from the links you gave and publish it once checked.'
+      : 'Started. PALMA reviews every record before it is published; yours is held by your account in the meantime.',
   };
 }

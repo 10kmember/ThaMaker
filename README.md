@@ -31,24 +31,31 @@ code silently dropped.
 ### The seeded cast
 
 Nine people, declared once in `prisma/seed-data.ts`. Each account signs in at
-its own door with the password in `SEED_PASSWORD` (default
-`Palma-Development-2027`) — a correct password at the wrong door creates no
+its own path with the password in `SEED_PASSWORD` (default
+`Palma-Development-2027`) — a correct password at the wrong one creates no
 session.
 
-| Account                   | Role          | Door       | Lands at      |
-| ------------------------- | ------------- | ---------- | ------------- |
-| `sarah@palmaawards.com`   | `super_admin` | `/staff`   | `/admin`      |
-| `tom@palmaawards.com`     | `moderator`   | `/staff`   | `/moderation` |
-| `nadia@palmaawards.com`   | `moderator`   | `/staff`   | `/moderation` |
-| `adaeze@palmaawards.com`  | `judge`       | `/judge`   | `/judging`    |
-| `frances@palmaawards.com` | `judge`       | `/judge`   | `/judging`    |
-| `marcus@palmaawards.com`  | `judge`       | `/judge`   | `/judging`    |
-| `maya@example.com`        | `creator`     | `/sign-in` | `/portal`     |
-| `jordan@example.com`      | `creator`     | `/sign-in` | `/portal`     |
+Four paths, one per role, and each is both the sign-in and the dashboard behind
+it: signed out you get that role's panel, signed in you get its desk, signed in
+as somebody else you are sent to your own.
+
+| Account                   | Role          | Path       |
+| ------------------------- | ------------- | ---------- |
+| `sarah@palmaawards.com`   | `super_admin` | `/admin`   |
+| `tom@palmaawards.com`     | `moderator`   | `/portal`  |
+| `nadia@palmaawards.com`   | `moderator`   | `/portal`  |
+| `adaeze@palmaawards.com`  | `judge`       | `/judge`   |
+| `frances@palmaawards.com` | `judge`       | `/judge`   |
+| `marcus@palmaawards.com`  | `judge`       | `/judge`   |
+| `maya@example.com`        | `creator`     | `/creator` |
+| `jordan@example.com`      | `creator`     | `/creator` |
+
+Everybody who registers is a `creator`; a role beyond that is granted by PALMA
+and reached by typing its path.
 
 The ninth is **Noor Haddad**, a creator record with no account: PALMA wrote it
-when she was first nominated and nobody holds it. That is what `/portal/claim`
-and the editorial claim queue exist to resolve.
+when she was first nominated and nobody holds it. That is what `/creator/claim`
+and the moderation claim queue exist to resolve.
 
 The seed is authoritative rather than additive — it clears what it owns before
 writing, so running it twice leaves exactly the dataset its file describes.
@@ -81,8 +88,9 @@ behaviour for an institution whose whole value is the accuracy of its record.
 
 ```
 src/
-  app/            Routes. Public record, portals (/portal, /judging, /admin),
-                  verification, share cards, sitemap and robots.
+  app/            Routes. Public record, the four role surfaces (/creator,
+                  /judge, /portal, /admin), verification, share cards,
+                  sitemap and robots.
   components/
     brand/        Wordmark, palm mark, institutional seal
     ui/           Design-system primitives

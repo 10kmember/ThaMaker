@@ -2,10 +2,10 @@ import type { PortalNavItem } from '@/components/palma/PortalShell';
 
 /** Four places, because a judge has four things to do. */
 export const JUDGING_NAV: PortalNavItem[] = [
-  { href: '/judging', label: 'Overview' },
-  { href: '/judging/assignments', label: 'My judging' },
-  { href: '/judging/history', label: 'History' },
-  { href: '/judging/account', label: 'Account' },
+  { href: '/judge', label: 'Overview' },
+  { href: '/judge/assignments', label: 'My judging' },
+  { href: '/judge/history', label: 'History' },
+  { href: '/judge/account', label: 'Account' },
 ];
 
 /** "Good afternoon" is warmer than "Dashboard", and costs nothing. */

@@ -73,8 +73,8 @@ export async function confirmNoConflict(
     });
   }
 
-  revalidatePath('/judging');
-  revalidatePath(`/judging/${assignment.id}`);
+  revalidatePath('/judge');
+  revalidatePath(`/judge/${assignment.id}`);
   return { status: 'success', message: 'No conflict declared. The assessment is open.' };
 }
 
@@ -187,8 +187,8 @@ export async function submitScore(
     after: { total, criteria: card.card },
   });
 
-  revalidatePath('/judging');
-  revalidatePath(`/judging/${assignment.id}`);
+  revalidatePath('/judge');
+  revalidatePath(`/judge/${assignment.id}`);
   return { status: 'success', message: 'Assessment recorded. It cannot be changed.' };
 }
 
@@ -272,7 +272,7 @@ async function declareConflictInternal(input: {
     after: { kind: input.kind },
   });
 
-  revalidatePath('/judging');
+  revalidatePath('/judge');
   return {
     status: 'success',
     message: 'Conflict declared. You have been removed from this candidacy.',

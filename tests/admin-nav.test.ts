@@ -42,17 +42,17 @@ describe('the administration sidebar', () => {
     const hrefs = navFor('moderator', MODERATION_NAV).flatMap((group) =>
       group.items.map((item) => item.href),
     );
-    expect(hrefs).toContain('/moderation');
-    expect(hrefs).toContain('/moderation/claims');
-    expect(hrefs).toContain('/moderation/verification');
-    expect(hrefs).toContain('/moderation/reports');
-    expect(hrefs).toContain('/moderation/creators');
+    expect(hrefs).toContain('/portal');
+    expect(hrefs).toContain('/portal/claims');
+    expect(hrefs).toContain('/portal/verification');
+    expect(hrefs).toContain('/portal/reports');
+    expect(hrefs).toContain('/portal/creators');
   });
 
   it('lets an administrator reach the same queues, not a second copy of them', () => {
     const hrefs = navFor('admin').flatMap((group) => group.items.map((item) => item.href));
-    expect(hrefs).toContain('/moderation/claims');
-    expect(hrefs).toContain('/moderation/creators');
+    expect(hrefs).toContain('/portal/claims');
+    expect(hrefs).toContain('/portal/creators');
   });
 
   it('shows nothing at all to a creator, a judge or a visitor', () => {

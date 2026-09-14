@@ -250,7 +250,7 @@ export default async function CreatorPage({ params }: Params) {
                     record is treated as yours.
                   </p>
                   <Button asChild size="sm" variant="outline" className="mt-1 self-start">
-                    <Link href={`/portal/claim?creator=${creator.slug}`}>Claim this profile</Link>
+                    <Link href={`/creator/claim?creator=${creator.slug}`}>Claim this profile</Link>
                   </Button>
                 </div>
               )}

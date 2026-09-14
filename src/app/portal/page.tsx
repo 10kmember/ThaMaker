@@ -1,263 +1,154 @@
 import Link from 'next/link';
-import { PortalShell } from '@/components/palma/PortalShell';
-import { Stat } from '@/components/ui/stat';
-import { Badge } from '@/components/ui/badge';
-import { Table, TBody, THead } from '@/components/ui/table';
-import { EmptyState, Notice } from '@/components/ui/feedback';
-import { Button } from '@/components/ui/button';
-import { CopyLink } from '@/components/palma/CopyLink';
-import { PreferencesForm, ProfileForm, VerificationForm } from '@/components/account/PortalForms';
-import { buildMetadata, absoluteUrl } from '@/lib/seo';
-import { requireSession } from '@/lib/auth/guards';
-import { getCreatorPortal } from '@/server/data/portal';
-import { getCreator } from '@/server/data/queries';
+import { Notice } from '@/components/ui/feedback';
+import { buildMetadata } from '@/lib/seo';
+import { requirePermission } from '@/lib/auth/guards';
+import { can } from '@/lib/auth/rbac';
+import { getQueueCounts } from '@/server/data/operations';
+import { recentActivity } from '@/server/data/people';
+import { greeting } from '@/lib/judging-nav';
 import { formatShortDate } from '@/lib/format';
-import { titleCase } from '@/lib/utils';
-import { isStaff } from '@/lib/auth/rbac';
+import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata = buildMetadata({
-  title: 'Creator portal',
-  description: 'Manage your PALMA creator record.',
+  title: 'Moderation',
+  description: 'The PALMA moderation queues.',
   path: '/portal',
   noIndex: true,
 });
 
-export default async function PortalPage() {
-  const session = await requireSession('/portal');
-  const portal = await getCreatorPortal(session.user.id);
-  const creator = session.user.creatorSlug ? await getCreator(session.user.creatorSlug) : null;
+export default async function ModerationOverviewPage() {
+  const session = await requirePermission('operations:view_dashboard', '/portal');
+  const [queues, activity] = await Promise.all([getQueueCounts(), recentActivity(8)]);
 
-  if (!portal) {
-    return (
-      <PortalShell title="PALMA Portal" userName={session.user.name}>
-        <Notice tone="warning" title="Account not found">
-          This account could not be loaded. Sign out and in again, or contact PALMA.
-        </Notice>
-      </PortalShell>
-    );
-  }
+  const firstName = session.user.name.split(' ')[0] ?? session.user.name;
 
-  const verified = portal.verification.status === 'verified';
+  const work = [
+    {
+      href: '/portal/claims',
+      label: 'Creator claim requests',
+      count: queues.claims,
+      note: 'People asking to control a PALMA record.',
+      visible: can(session.user.role, 'claims:review'),
+    },
+    {
+      href: '/portal/verification',
+      label: 'Manual age verification',
+      count: queues.verification,
+      note: 'Cases the provider could not settle.',
+      visible: can(session.user.role, 'verification:review_manual'),
+    },
+    {
+      href: '/portal/reports',
+      label: 'Reports',
+      count: queues.reports,
+      note: 'Open and under investigation.',
+      visible: can(session.user.role, 'moderation:view_reports'),
+    },
+    {
+      href: '/portal/claims?filter=escalated',
+      label: 'Escalations',
+      count: queues.escalations,
+      note: 'Handed up for an administrator.',
+      visible: can(session.user.role, 'claims:review'),
+    },
+    {
+      href: '/portal/creators?filter=unpublished',
+      label: 'Records awaiting publication',
+      count: queues.unpublishedRecords,
+      note: 'Written by PALMA, not yet public.',
+      visible: can(session.user.role, 'editorial:edit_creator'),
+    },
+  ].filter((item) => item.visible);
+
+  const outstanding = work.reduce((sum, item) => sum + item.count, 0);
 
   return (
-    <PortalShell
-      title="PALMA Portal"
-      subtitle={portal.displayName ?? session.user.name}
-      userName={session.user.email}
-    >
-      <div className="border-stone-deep grid gap-10 border-b pb-10 sm:grid-cols-4">
-        <Stat label="PALMA honours" value={portal.achievements.length} />
-        <Stat label="Candidacies" value={portal.candidacies.length} />
-        <Stat label="Verification" value={titleCase(portal.verification.status)} />
-        <Stat label="Profile" value={portal.isPublished ? 'Published' : 'Unpublished'} />
+    <>
+      <div className="flex flex-col gap-3">
+        <span className="palma-label text-taupe-deep">Moderation</span>
+        <h1 className="text-4xl">
+          {greeting()}, {firstName}.
+        </h1>
+        <p className="text-taupe-deep max-w-160 leading-relaxed">
+          {outstanding === 0
+            ? 'Your queues are clear. Nothing is waiting on a person.'
+            : `${outstanding} item${outstanding === 1 ? '' : 's'} need a decision.`}
+        </p>
       </div>
 
-      {!portal.hasProfile ? (
-        <Notice className="mt-10" tone="ceremonial" title="No creator profile yet">
-          If a PALMA profile already exists for you, claim it — otherwise one is created the first
-          time you are nominated.{' '}
-          <Link href="/portal/claim" className="palma-link">
-            Claim a profile
-          </Link>
-          .
-        </Notice>
-      ) : null}
+      <section className="mt-12">
+        <h2 className="palma-label text-taupe-deep border-stone-deep border-b pb-4">
+          Needs attention
+        </h2>
 
-      <div className="mt-14 grid gap-14 lg:grid-cols-12">
-        <div className="flex flex-col gap-14 lg:col-span-7">
-          <section>
-            <h2 className="palma-label text-taupe-deep mb-6">Your PALMA record</h2>
-            {portal.achievements.length === 0 ? (
-              <EmptyState
-                title="No honours yet"
-                description="Honours appear here the moment they are conferred, each with its permanent verification link."
-              />
-            ) : (
-              <ul className="flex flex-col">
-                {portal.achievements.map((achievement) => (
-                  <li
-                    key={achievement.code}
-                    className="border-stone-deep flex flex-wrap items-center justify-between gap-4 border-b py-5"
-                  >
-                    <span className="flex flex-col gap-1">
-                      <span className="font-display text-lg">{achievement.categoryName}</span>
-                      <span className="palma-label text-taupe-deep">
-                        {titleCase(achievement.kind)} · {achievement.year}
-                      </span>
-                    </span>
-                    <span className="flex items-center gap-3">
-                      {achievement.state === 'revoked' ? (
-                        <Badge variant="muted">Revoked</Badge>
-                      ) : (
-                        <CopyLink
-                          value={absoluteUrl(`/verify/${achievement.code}`)}
-                          label="Copy verification link"
-                        />
-                      )}
-                      <Link
-                        href={`/verify/${achievement.code}`}
-                        className="palma-label text-olive hover:text-ink"
-                      >
-                        View
-                      </Link>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+        <ul className="flex flex-col">
+          {work.map((item) => (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                className="palma-row border-stone-deep flex flex-wrap items-baseline gap-x-6 gap-y-2 border-b py-5"
+              >
+                <span
+                  className={cn(
+                    'font-display w-14 shrink-0 text-4xl tabular-nums',
+                    item.count > 0 ? 'text-ink' : 'text-stone-deep',
+                  )}
+                >
+                  {item.count}
+                </span>
+                <span className="flex min-w-0 flex-col gap-1">
+                  <span className="palma-row-lead font-display text-xl">{item.label}</span>
+                  <span className="text-taupe text-sm">{item.note}</span>
+                </span>
+                <span aria-hidden="true" className="text-taupe ml-auto shrink-0">
+                  →
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
 
-          <section>
-            <h2 className="palma-label text-taupe-deep mb-6">Where you are in contention</h2>
-            {portal.candidacies.length === 0 ? (
-              <EmptyState
-                title="No candidacies yet"
-                description="A candidacy is created the first time someone nominates you in a category. Share your nomination link to let your audience put you forward."
-              />
-            ) : (
-              <Table>
-                <THead>
-                  <tr>
-                    <th scope="col">Reference</th>
-                    <th scope="col">Category</th>
-                    <th scope="col">Season</th>
-                    <th scope="col">Status</th>
-                  </tr>
-                </THead>
-                <TBody>
-                  {portal.candidacies.map((candidacy) => (
-                    <tr key={candidacy.id}>
-                      <td className="font-mono text-xs tracking-wider">{candidacy.reference}</td>
-                      <td className="font-display text-lg">{candidacy.categoryName}</td>
-                      <td className="text-taupe-deep">{candidacy.year}</td>
-                      <td>
-                        <Badge variant={candidacy.status === 'winner' ? 'champagne' : 'default'}>
-                          {titleCase(candidacy.status)}
-                        </Badge>
-                      </td>
-                    </tr>
-                  ))}
-                </TBody>
-              </Table>
-            )}
-            <p className="text-taupe-deep mt-5 text-sm leading-relaxed">
-              PALMA does not show you how many nominations you have received. Nomination numbers do
-              not decide outcomes, and a running total would only invite you to campaign for one.
-            </p>
-          </section>
+      <div className="mt-16 grid gap-14 lg:grid-cols-12 lg:gap-16">
+        <section className="min-w-0 lg:col-span-7">
+          <h2 className="palma-label text-taupe-deep border-stone-deep border-b pb-3">
+            Recently recorded
+          </h2>
+          <ul className="flex flex-col">
+            {activity.map((entry) => (
+              <li
+                key={entry.id}
+                className="border-stone-deep/60 flex flex-wrap gap-x-5 gap-y-1 border-b py-3.5 last:border-none"
+              >
+                <span className="palma-label text-taupe w-24 shrink-0">
+                  {formatShortDate(entry.createdAt)}
+                </span>
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="text-sm">{entry.action.replace(/[._]/g, ' ')}</span>
+                  <span className="text-taupe text-xs leading-relaxed">
+                    {entry.summary ?? `${entry.entityType} ${entry.entityId}`}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
 
-          {portal.hasProfile && creator ? (
-            <section>
-              <h2 className="palma-label text-taupe-deep mb-6">Profile details</h2>
-              <ProfileForm
-                defaults={{
-                  displayName: creator.displayName,
-                  pronouns: creator.pronouns ?? '',
-                  countryCode: creator.countryCode,
-                  city: creator.city ?? '',
-                  headline: creator.headline ?? '',
-                  biography: creator.biography ?? '',
-                  websiteUrl: creator.websiteUrl ?? '',
-                }}
-              />
-            </section>
-          ) : null}
-        </div>
+        <aside className="flex min-w-0 flex-col gap-8 lg:col-span-5">
+          <Notice title="What this desk decides">
+            Whether a person should control a PALMA record, whether a creator has been verified as
+            an adult, and whether something reported breaches the content policy. Each decision is
+            recorded against the thing it concerns, with your name on it.
+          </Notice>
 
-        <aside className="flex flex-col gap-10 lg:col-span-5">
-          <section className="border-stone-deep border p-7">
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="palma-label text-taupe-deep">Verification</h2>
-              <Badge variant={verified ? 'olive' : 'default'}>
-                {titleCase(portal.verification.status)}
-              </Badge>
-            </div>
-            <div className="mt-5">
-              <VerificationForm status={portal.verification.status} />
-            </div>
-            {portal.verification.verifiedAt ? (
-              <p className="text-taupe-deep mt-4 text-xs">
-                Verified {formatShortDate(portal.verification.verifiedAt)}
-                {portal.verification.expiresAt
-                  ? ` · renews ${formatShortDate(portal.verification.expiresAt)}`
-                  : ''}
-              </p>
-            ) : null}
-          </section>
-
-          <section className="border-stone-deep border p-7">
-            <h2 className="palma-label text-taupe-deep mb-5">Your nomination link</h2>
-            {portal.referralPath ? (
-              <>
-                <p className="text-taupe-deep mb-4 text-sm leading-relaxed">
-                  Share this with your audience. It opens a nomination page with you already chosen
-                  — nothing more. It carries no extra weight with the panel, and the number of
-                  nominations it brings in does not decide anything.
-                </p>
-                <p className="border-stone-deep bg-stone/25 mb-4 border px-4 py-3 font-mono text-sm break-all">
-                  {absoluteUrl(portal.referralPath)}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <CopyLink value={absoluteUrl(portal.referralPath)} label="Copy nomination link" />
-                  <Button asChild size="sm" variant="ghost">
-                    <Link href={portal.referralPath}>Preview it</Link>
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <p className="text-taupe-deep text-sm leading-relaxed">
-                Your nomination link is issued once your profile is claimed and verified. Complete
-                verification above to receive it.
-              </p>
-            )}
-          </section>
-
-          <section className="border-stone-deep border p-7">
-            <h2 className="palma-label text-taupe-deep mb-5">PALMA assets</h2>
-            <p className="text-taupe-deep mb-5 text-sm leading-relaxed">
-              Winners and finalists may use the PALMA mark to state the honour they hold. Share
-              cards are generated from the record, so they cannot misstate it.
-            </p>
-            {portal.achievements.length > 0 ? (
-              <Button asChild variant="outline" size="sm">
-                <a href={`/verify/${portal.achievements[0]!.code}/opengraph-image`} download>
-                  Download share card
-                </a>
-              </Button>
-            ) : (
-              <p className="text-taupe text-sm">Available once you hold an honour.</p>
-            )}
-          </section>
-
-          <section className="border-stone-deep border p-7">
-            <h2 className="palma-label text-taupe-deep mb-5">Notifications</h2>
-            <PreferencesForm defaults={portal.preferences} />
-          </section>
-
-          {session.user.judgeId ? (
-            <section className="border-stone-deep border p-7">
-              <h2 className="palma-label text-taupe-deep mb-3">Judging</h2>
-              <p className="text-taupe-deep mb-4 text-sm">
-                You are seated on a PALMA panel this season.
-              </p>
-              <Button asChild variant="outline" size="sm">
-                <Link href="/judging">Open the judge portal</Link>
-              </Button>
-            </section>
-          ) : null}
-
-          {isStaff(session.user.role) ? (
-            <section className="border-stone-deep border p-7">
-              <h2 className="palma-label text-taupe-deep mb-3">Administration</h2>
-              <Button asChild variant="outline" size="sm">
-                <Link href="/admin">Open the admin portal</Link>
-              </Button>
-            </section>
-          ) : null}
+          <Notice tone="warning" title="What it never decides">
+            An outcome. Selection, revocation and score correction are administrator actions —
+            moderation maintains the accuracy of the record and never its results.
+          </Notice>
         </aside>
       </div>
-    </PortalShell>
+    </>
   );
 }

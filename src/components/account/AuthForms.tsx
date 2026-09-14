@@ -17,7 +17,7 @@ export function SignInForm({
 }: {
   next?: string;
   /** Which door this form belongs to. The server refuses the wrong role here. */
-  entrance?: 'creator' | 'judge' | 'staff';
+  entrance?: 'creator' | 'judge' | 'moderator' | 'admin';
   submitLabel?: string;
   showRegister?: boolean;
 }) {
@@ -123,7 +123,7 @@ export function RegisterForm() {
 
       <p className="text-taupe-deep text-sm">
         Already have an account?{' '}
-        <Link href="/sign-in" className="palma-link hover:text-ink">
+        <Link href="/creator" className="palma-link hover:text-ink">
           Sign in
         </Link>
         .

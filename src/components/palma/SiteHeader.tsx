@@ -25,7 +25,7 @@ import { DURATION, EASE, STAGGER } from '@/lib/motion';
  * column of display type arriving in sequence, which is the same editorial
  * gesture used everywhere else on the site, at menu scale.
  */
-export function SiteHeader({ accountHref = '/portal' }: { accountHref?: string }) {
+export function SiteHeader({ accountHref = '/creator' }: { accountHref?: string }) {
   const pathname = usePathname();
   const [open, setOpen] = React.useState(false);
   const [condensed, setCondensed] = React.useState(false);

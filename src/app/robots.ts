@@ -8,17 +8,7 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: '*',
         allow: '/',
         // Operational surfaces carry no public record and are never indexed.
-        disallow: [
-          '/admin',
-          '/judging',
-          '/judge',
-          '/staff',
-          '/portal',
-          '/claim',
-          '/sign-in',
-          '/register',
-          '/api/',
-        ],
+        disallow: ['/admin', '/portal', '/judge', '/creator', '/claim', '/register', '/api/'],
       },
     ],
     sitemap: `${siteUrl}/sitemap.xml`,

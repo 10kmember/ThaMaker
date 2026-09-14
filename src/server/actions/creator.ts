@@ -3,7 +3,11 @@
 import { revalidatePath } from 'next/cache';
 import { authorise } from '@/lib/auth/guards';
 import { assertSameOrigin } from '@/lib/auth/session';
-import { creatorProfileSchema, notificationPreferenceSchema } from '@/lib/validation/account';
+import {
+  creatorLinksSchema,
+  creatorProfileSchema,
+  notificationPreferenceSchema,
+} from '@/lib/validation/account';
 import { containsExplicitLanguage } from '@/domain/content-policy';
 import { isValidCountryCode } from '@/lib/countries';
 import { recordAudit } from '@/server/audit';
@@ -85,10 +89,82 @@ export async function updateCreatorProfile(
     after: parsed.data,
   });
 
-  revalidatePath('/portal');
+  revalidatePath('/creator');
   if (session.user.creatorSlug) revalidatePath(`/creators/${session.user.creatorSlug}`);
 
   return { status: 'success', message: 'Profile updated.' };
+}
+
+/**
+ * Replace the creator's links.
+ *
+ * The whole set is sent and the whole set is rewritten, because the order is
+ * meaningful and a per-row edit API would need identifiers the form has no
+ * reason to carry. Links are the one part of a record a creator can change
+ * that the editorial desk actually acts on, so the change is audited.
+ */
+export async function updateCreatorLinks(
+  _previous: CreatorState,
+  formData: FormData,
+): Promise<CreatorState> {
+  await assertSameOrigin();
+
+  let session;
+  try {
+    session = await authorise('creator:update_own_profile');
+  } catch {
+    return { status: 'error', message: 'You are not authorised to edit this profile.' };
+  }
+
+  if (!session.user.creatorId) {
+    return { status: 'error', message: 'Start or claim a creator record before adding links.' };
+  }
+
+  const count = Math.min(Number(formData.get('linkCount') ?? 0) || 0, 6);
+  const links: { label: string; url: string }[] = [];
+  for (let index = 0; index < count; index += 1) {
+    const url = String(formData.get(`linkUrl${index}`) ?? '').trim();
+    if (!url) continue;
+    links.push({
+      label: String(formData.get(`linkLabel${index}`) ?? '').trim(),
+      url,
+    });
+  }
+
+  const parsed = creatorLinksSchema.safeParse({ links });
+  if (!parsed.success) {
+    return { status: 'error', message: parsed.error.issues[0]?.message ?? 'Check the links.' };
+  }
+
+  const db = requireDb();
+  const creatorId = session.user.creatorId;
+  const before = await db.creatorLink.findMany({
+    where: { creatorId },
+    orderBy: { position: 'asc' },
+    select: { label: true, url: true },
+  });
+
+  await db.$transaction(async (tx) => {
+    await tx.creatorLink.deleteMany({ where: { creatorId } });
+    await tx.creatorLink.createMany({
+      data: parsed.data.links.map((link, position) => ({ ...link, creatorId, position })),
+    });
+  });
+
+  await recordAudit({
+    action: 'creator.profile_updated',
+    entityType: 'Creator',
+    entityId: creatorId,
+    actor: { id: session.user.id, role: session.user.role, label: session.user.email },
+    summary: `Links updated (${before.length} → ${parsed.data.links.length})`,
+    before: { links: before },
+    after: { links: parsed.data.links },
+  });
+
+  revalidatePath('/creator');
+  if (session.user.creatorSlug) revalidatePath(`/creators/${session.user.creatorSlug}`);
+
+  return { status: 'success', message: 'Links saved.' };
 }
 
 export async function updateNotificationPreferences(
@@ -120,7 +196,7 @@ export async function updateNotificationPreferences(
     update: parsed.data,
   });
 
-  revalidatePath('/portal');
+  revalidatePath('/creator');
   return { status: 'success', message: 'Preferences saved.' };
 }
 
@@ -172,7 +248,7 @@ export async function startVerification(_previous: CreatorState): Promise<Creato
     after: { status: 'pending', provider: env.AGE_VERIFICATION_PROVIDER },
   });
 
-  revalidatePath('/portal');
+  revalidatePath('/creator');
   return {
     status: 'success',
     message:

@@ -14,7 +14,7 @@ export const metadata = buildMetadata({
 
 export default async function RegisterPage() {
   const session = await getSession();
-  if (session) redirect('/portal');
+  if (session) redirect('/creator');
 
   return (
     <Section className="py-20">

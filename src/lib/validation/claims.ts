@@ -64,3 +64,31 @@ export const verificationDecisionSchema = z.object({
   /** The operator confirms the workspace copy has been destroyed. */
   mediaDeleted: z.boolean().default(false),
 });
+
+/**
+ * A creator PALMA has never written a record for.
+ *
+ * Two routes, and the difference is who writes the words: `create` means the
+ * creator supplies them, `request` means they supply the links and PALMA's
+ * editorial desk writes from those. Both produce the same thing — an
+ * unpublished creator record held by that account — because two shapes of the
+ * same object is how an archive starts disagreeing with itself.
+ */
+export const newRecordSchema = z.object({
+  route: z.enum(['create', 'request']),
+  displayName: z.string().trim().min(2, 'Enter the name you work under.').max(120),
+  countryCode: z
+    .string()
+    .trim()
+    .length(2, 'Select a country.')
+    .transform((value) => value.toUpperCase()),
+  city: z.string().trim().max(80).optional().or(z.literal('')),
+  pronouns: z.string().trim().max(40).optional().or(z.literal('')),
+  headline: z.string().trim().max(160).optional().or(z.literal('')),
+  biography: z.string().trim().max(2000).optional().or(z.literal('')),
+  /** Where PALMA should look. Required on both routes: a record with no links
+   *  behind it cannot be checked, and an unverifiable record is worse than
+   *  none. */
+  links: z.array(link).min(1, 'Give PALMA at least one link to the work.').max(6),
+  note: z.string().trim().max(1000).optional().or(z.literal('')),
+});

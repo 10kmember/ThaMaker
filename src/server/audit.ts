@@ -31,6 +31,7 @@ export const AUDIT_ACTIONS = [
   'honour.revoked',
   'achievement.issued',
   'creator.record_created',
+  'creator.record_requested',
   'creator.record_updated',
   'creator.internal_note_added',
   'creator.profile_claimed',

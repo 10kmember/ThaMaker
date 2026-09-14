@@ -74,7 +74,7 @@ export const viewport: Viewport = {
  * footer's full sitemap under an audit log is worse. These surfaces bring
  * their own shell, so the root layout stands back.
  */
-const SELF_CONTAINED = ['/admin', '/moderation', '/judging', '/portal'];
+const SELF_CONTAINED = ['/admin', '/portal', '/judge', '/creator'];
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const pathname = (await headers()).get('x-palma-pathname') ?? '/';

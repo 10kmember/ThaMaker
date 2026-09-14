@@ -18,11 +18,34 @@ export type PortalAchievement = {
   state: string;
 };
 
+/** The fields a creator writes about themselves, editable whether or not the
+ *  record is published. The public query refuses unpublished records, which is
+ *  right for the public and wrong for the person waiting on a moderator. */
+export type PortalProfile = {
+  displayName: string;
+  pronouns: string;
+  countryCode: string;
+  city: string;
+  headline: string;
+  biography: string;
+  websiteUrl: string;
+};
+
+export type PortalLink = {
+  id: string;
+  label: string;
+  url: string;
+};
+
 export type CreatorPortal = {
   hasProfile: boolean;
   creatorSlug: string | null;
   displayName: string | null;
   isPublished: boolean;
+  /** Null only when the account holds no record at all. */
+  profile: PortalProfile | null;
+  /** Where the work lives. The editorial desk reads these. */
+  links: PortalLink[];
   verification: {
     status: string;
     provider: string | null;
@@ -52,6 +75,7 @@ export async function getCreatorPortal(userId: string): Promise<CreatorPortal | 
       creator: {
         include: {
           verification: true,
+          links: { orderBy: { position: 'asc' } },
           achievements: { include: { honour: true }, orderBy: { issuedAt: 'desc' } },
           candidacies: {
             include: { category: true, awardYear: true },
@@ -70,6 +94,22 @@ export async function getCreatorPortal(userId: string): Promise<CreatorPortal | 
     creatorSlug: user.creator?.slug ?? null,
     displayName: user.creator?.displayName ?? null,
     isPublished: user.creator?.isPublished ?? false,
+    profile: user.creator
+      ? {
+          displayName: user.creator.displayName,
+          pronouns: user.creator.pronouns ?? '',
+          countryCode: user.creator.countryCode,
+          city: user.creator.city ?? '',
+          headline: user.creator.headline ?? '',
+          biography: user.creator.biography ?? '',
+          websiteUrl: user.creator.websiteUrl ?? '',
+        }
+      : null,
+    links: (user.creator?.links ?? []).map((link) => ({
+      id: link.id,
+      label: link.label,
+      url: link.url,
+    })),
     verification: {
       status: user.creator?.verification?.status ?? 'unverified',
       provider: user.creator?.verification?.provider ?? null,

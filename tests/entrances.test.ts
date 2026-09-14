@@ -10,73 +10,83 @@ import {
 } from '@/lib/auth/entrances';
 import { ROLES, type Role } from '@/lib/auth/rbac';
 
-describe('entrances', () => {
-  it('gives the judges their own door at /judge', () => {
-    expect(ENTRANCES.judge.path).toBe('/judge');
-    expect(ENTRANCES.judge.home).toBe('/judging');
-    expect(admits(ENTRANCES.judge, 'judge')).toBe(true);
-  });
-
-  it('admits each role at exactly one door', () => {
+/**
+ * Four paths, one per role. Each is both the door and the dashboard, so these
+ * assertions are about one thing rather than two that can drift apart.
+ */
+describe('the four surfaces', () => {
+  it('gives every role exactly one path', () => {
     for (const role of ROLES) {
       if (role === 'visitor') continue;
       const doors = ENTRANCE_LIST.filter((entrance) => admits(entrance, role));
-      expect(doors, `${role} is admitted at ${doors.length} doors`).toHaveLength(1);
+      expect(doors, `${role} is admitted at ${doors.length} paths`).toHaveLength(1);
     }
   });
 
-  it('never admits a creator or staff account at the judges’ entrance', () => {
-    for (const role of ['creator', 'moderator', 'admin', 'super_admin'] as Role[]) {
-      expect(admits(ENTRANCES.judge, role)).toBe(false);
-    }
-  });
-
-  it('never admits a judge at the creator or staff entrance', () => {
-    expect(admits(ENTRANCES.creator, 'judge')).toBe(false);
-    expect(admits(ENTRANCES.staff, 'judge')).toBe(false);
-  });
-
-  it('sends every role to its own dashboard', () => {
-    expect(homeForRole('judge')).toBe('/judging');
-    expect(homeForRole('creator')).toBe('/portal');
+  it('puts each role where you said it goes', () => {
+    expect(homeForRole('creator')).toBe('/creator');
+    expect(homeForRole('judge')).toBe('/judge');
+    expect(homeForRole('moderator')).toBe('/portal');
     expect(homeForRole('admin')).toBe('/admin');
     expect(homeForRole('super_admin')).toBe('/admin');
-    // A moderator shares the staff door and not the administrator's dashboard.
-    expect(homeForRole('moderator')).toBe('/moderation');
-    expect(entranceForRole('moderator').path).toBe('/staff');
   });
 
-  it('guards the moderation surface behind the staff door', () => {
-    expect(entranceForPath('/moderation').key).toBe('staff');
-    expect(entranceForPath('/moderation/claims').key).toBe('staff');
+  it('makes the door and the dashboard the same path', () => {
+    for (const entrance of ENTRANCE_LIST) {
+      for (const role of entrance.roles) {
+        expect(homeForRole(role)).toBe(entrance.path);
+      }
+    }
   });
 
-  it('falls back to the creator door for a visitor', () => {
+  it('gives the four paths four distinct URLs', () => {
+    const paths = ENTRANCE_LIST.map((entrance) => entrance.path);
+    expect(new Set(paths).size).toBe(paths.length);
+    expect(paths).toEqual(['/creator', '/judge', '/portal', '/admin']);
+  });
+
+  it('never admits one role at another role’s path', () => {
+    const matrix: [Role, string][] = [
+      ['creator', '/creator'],
+      ['judge', '/judge'],
+      ['moderator', '/portal'],
+      ['admin', '/admin'],
+      ['super_admin', '/admin'],
+    ];
+
+    for (const [role, path] of matrix) {
+      for (const entrance of ENTRANCE_LIST) {
+        expect(admits(entrance, role), `${role} at ${entrance.path}`).toBe(entrance.path === path);
+      }
+    }
+  });
+
+  it('falls back to the creator surface for a visitor', () => {
     expect(entranceForRole('visitor').key).toBe('creator');
   });
 
-  it('resolves the door from the surface, without needing a role', () => {
-    expect(entranceForPath('/judging').key).toBe('judge');
-    expect(entranceForPath('/judging/abc123').key).toBe('judge');
-    expect(entranceForPath('/admin').key).toBe('staff');
-    expect(entranceForPath('/admin/audit').key).toBe('staff');
-    expect(entranceForPath('/portal').key).toBe('creator');
+  it('resolves the surface from the path, without needing a role', () => {
+    expect(entranceForPath('/judge').key).toBe('judge');
+    expect(entranceForPath('/judge/abc123').key).toBe('judge');
+    expect(entranceForPath('/portal').key).toBe('moderator');
+    expect(entranceForPath('/portal/claims').key).toBe('moderator');
+    expect(entranceForPath('/admin').key).toBe('admin');
+    expect(entranceForPath('/admin/audit').key).toBe('admin');
+    expect(entranceForPath('/creator').key).toBe('creator');
+    expect(entranceForPath('/creator/start').key).toBe('creator');
+  });
+
+  it('does not mistake a lookalike public path for a surface', () => {
+    // /about/judging and /judges are public pages, not the judging room.
+    expect(entranceForPath('/about/judging').key).toBe('creator');
+    expect(entranceForPath('/about/judges').key).toBe('creator');
+    expect(entranceForPath('/administration').key).toBe('creator');
     expect(entranceForPath(undefined).key).toBe('creator');
   });
 
-  it('does not mistake a lookalike path for a guarded surface', () => {
-    // /about/judging and /judge are public and must not resolve to the
-    // judging room's door as though they were the portal.
-    expect(entranceForPath('/about/judging').key).toBe('creator');
-    expect(entranceForPath('/administration').key).toBe('creator');
-  });
-
-  it('keeps the staff door outside the guarded admin segment', () => {
-    expect(ENTRANCES.staff.path.startsWith('/admin')).toBe(false);
-  });
-
-  it('resolves a door by key and refuses an unknown one', () => {
+  it('resolves a surface by key and refuses an unknown one', () => {
     expect(entranceByKey('judge')).toBe(ENTRANCES.judge);
+    expect(entranceByKey('staff')).toBeUndefined();
     expect(entranceByKey('nonsense')).toBeUndefined();
   });
 });

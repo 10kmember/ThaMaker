@@ -8,6 +8,7 @@ import {
   ENTRANCES,
   admits,
   entranceByKey,
+  entranceForPath,
   entranceForRole,
   homeForRole,
 } from '@/lib/auth/entrances';
@@ -39,14 +40,9 @@ function safeNext(value: string | undefined | null, role: Role): string {
 
   // The judging room and the admin surface are reachable only from their own
   // doors; anything else resolves to the home of the role that signed in.
-  const judgeOnly = value === '/judging' || value.startsWith('/judging/');
-  const staffOnly =
-    value === '/admin' ||
-    value.startsWith('/admin/') ||
-    value === '/moderation' ||
-    value.startsWith('/moderation/');
-  if (judgeOnly && entrance.key !== 'judge') return home;
-  if (staffOnly && entrance.key !== 'staff') return home;
+  // A `next` cannot carry an account into somebody else's building.
+  const target = entranceForPath(value);
+  if (target.key !== entrance.key) return home;
 
   return value;
 }
@@ -167,7 +163,7 @@ export async function register(_previous: AuthState, formData: FormData): Promis
     actor: { id: user.id, role: user.role, label: user.email },
   });
 
-  redirect('/portal');
+  redirect('/creator');
 }
 
 export async function signOut(): Promise<void> {

@@ -1,17 +1,15 @@
 import { headers } from 'next/headers';
-import { requirePermission } from '@/lib/auth/guards';
 import { AdminShell } from '@/components/admin/AdminShell';
+import { roleSurface } from '@/components/account/RoleSurface';
+import { ENTRANCES } from '@/lib/auth/entrances';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  // Every /admin route is gated here, server-side, before any of it renders.
-  const session = await requirePermission('admin:view_dashboard', '/admin');
+  const { session, panel } = await roleSurface(ENTRANCES.admin);
+  if (!session) return panel;
 
-  // Next does not hand a layout its own pathname, and the sidebar needs it to
-  // mark where the reader is. The middleware header carries it.
-  const headerList = await headers();
-  const activeHref = headerList.get('x-palma-pathname') ?? '/admin';
+  const activeHref = (await headers()).get('x-palma-pathname') ?? '/admin';
 
   return (
     <AdminShell role={session.user.role} userName={session.user.email} activeHref={activeHref}>

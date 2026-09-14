@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from 'react';
 import { useActionState } from 'react';
 import { Button } from '@/components/ui/button';
 import { CheckboxField, Field, Input, Select, Textarea } from '@/components/ui/form';
@@ -7,6 +8,7 @@ import { Notice } from '@/components/ui/feedback';
 import { COUNTRIES } from '@/lib/countries';
 import {
   startVerification,
+  updateCreatorLinks,
   updateCreatorProfile,
   updateNotificationPreferences,
   type CreatorState,
@@ -85,6 +87,96 @@ export function ProfileForm({
       <Button type="submit" size="md" disabled={pending} className="self-start">
         {pending ? 'Saving…' : 'Save profile'}
       </Button>
+    </form>
+  );
+}
+
+/**
+ * Where the work lives.
+ *
+ * The whole set posts every time, so removing a row is deleting it — no
+ * separate destructive action, and nothing to confirm twice.
+ */
+export function LinksForm({ defaults }: { defaults: { label: string; url: string }[] }) {
+  const [state, action, pending] = useActionState(updateCreatorLinks, initial);
+  const [rows, setRows] = React.useState(() =>
+    (defaults.length > 0 ? defaults : [{ label: '', url: '' }]).map((row, index) => ({
+      ...row,
+      key: `${index}`,
+    })),
+  );
+  const nextKey = React.useRef(rows.length);
+
+  // Controlled, because removing a row from an uncontrolled list leaves the
+  // browser's values behind and everything below shifts up by one.
+  const set = (key: string, field: 'label' | 'url', value: string) =>
+    setRows((current) => current.map((row) => (row.key === key ? { ...row, [field]: value } : row)));
+
+  return (
+    <form action={action} className="flex flex-col gap-6">
+      <Feedback state={state} />
+      <input type="hidden" name="linkCount" value={rows.length} />
+
+      {rows.map((row, index) => (
+        <div key={row.key} className="border-stone-deep flex flex-col gap-4 border-b pb-6">
+          <div className="grid gap-4 sm:grid-cols-[1fr_2fr]">
+            <Field htmlFor={`linkLabel${index}`} label="Platform" required>
+              <Input
+                id={`linkLabel${index}`}
+                name={`linkLabel${index}`}
+                value={row.label}
+                onChange={(event) => set(row.key, 'label', event.target.value)}
+                placeholder="YouTube"
+                required
+              />
+            </Field>
+            <Field htmlFor={`linkUrl${index}`} label="Link" required>
+              <Input
+                id={`linkUrl${index}`}
+                name={`linkUrl${index}`}
+                type="url"
+                value={row.url}
+                onChange={(event) => set(row.key, 'url', event.target.value)}
+                placeholder="https://"
+                required
+              />
+            </Field>
+          </div>
+          {rows.length > 1 ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="self-start"
+              onClick={() => setRows((current) => current.filter((item) => item.key !== row.key))}
+            >
+              Remove
+            </Button>
+          ) : null}
+        </div>
+      ))}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="submit" size="md" disabled={pending}>
+          {pending ? 'Saving…' : 'Save links'}
+        </Button>
+        {rows.length < 6 ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="md"
+            onClick={() => {
+              nextKey.current += 1;
+              setRows((current) => [
+                ...current,
+                { label: '', url: '', key: `new-${nextKey.current}` },
+              ]);
+            }}
+          >
+            Add another
+          </Button>
+        ) : null}
+      </div>
     </form>
   );
 }

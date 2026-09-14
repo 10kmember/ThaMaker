@@ -56,9 +56,10 @@ export const FOOTER_NAV: { title: string; items: NavItem[] }[] = [
   {
     title: 'Account',
     items: [
-      { href: '/sign-in', label: 'Creator sign in' },
+      { href: '/creator', label: 'Creators' },
       { href: '/judge', label: 'Judges' },
-      { href: '/portal', label: 'Creator portal' },
+      { href: '/portal', label: 'Moderation' },
+      { href: '/admin', label: 'Administration' },
       { href: '/humans.txt', label: 'humans.txt' },
     ],
   },

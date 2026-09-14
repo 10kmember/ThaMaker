@@ -40,7 +40,7 @@ export default async function ForbiddenPage({
         </div>
         <div className="flex flex-wrap justify-center gap-3">
           <Button asChild size="sm">
-            <Link href="/portal">Your portal</Link>
+            <Link href="/creator">Your portal</Link>
           </Button>
           <Button asChild size="sm" variant="outline">
             <Link href="/">Back to PALMA</Link>

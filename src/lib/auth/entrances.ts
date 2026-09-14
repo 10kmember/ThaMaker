@@ -1,44 +1,48 @@
 import type { Role } from './rbac';
 
 /**
- * Separate entrances.
+ * Four paths, one per role.
  *
- * PALMA has three kinds of account and three doors, and an account may only
- * use its own. A creator signing in at the judges' entrance is refused there
- * and told where to go, even when the password is correct — no session is
- * created at the wrong door.
+ *   /creator   creators — the default account on PALMA
+ *   /judge     judges
+ *   /portal    moderators
+ *   /admin     administrators
  *
- * RBAC still decides what a signed-in account may *do*; this decides where it
- * may come in. The two are independent on purpose: the door is a property of
- * the surface, and is settled before any session exists, so no page has to ask
- * "what is this person?" to work out where to send them.
+ * Each path is both the door and the dashboard behind it. Signed out you get
+ * that role's sign-in; signed in you get its dashboard; signed in as somebody
+ * else you are sent to your own. Nobody has to remember a separate sign-in
+ * URL, and there is no way to land on a dashboard that is not yours.
+ *
+ * Anyone who signs up is a creator. A judge, moderator or administrator is a
+ * creator whose account PALMA has *also* given a role — so they reach their
+ * desk by typing its path, and their creator record still lives at /creator.
+ *
+ * RBAC decides what a signed-in account may do. This decides only where it
+ * lives.
  */
 
-export type EntranceKey = 'creator' | 'judge' | 'staff';
+export type EntranceKey = 'creator' | 'judge' | 'moderator' | 'admin';
 
 export type Entrance = {
   key: EntranceKey;
-  /** The public path of the door. */
+  /** The role's whole surface: its door and its dashboard, one path. */
   path: string;
   title: string;
   eyebrow: string;
   standfirst: string;
   /** Roles admitted here. Nothing else gets a session at this door. */
   roles: readonly Role[];
-  /** Where a successful sign-in lands. */
-  home: string;
 };
 
 export const ENTRANCES = {
   creator: {
     key: 'creator',
-    path: '/sign-in',
-    title: 'Creator sign in',
+    path: '/creator',
+    title: 'Creators',
     eyebrow: 'Creator portal',
     standfirst:
-      'For creators with a PALMA record: claim your profile, complete verification, and manage your nomination link.',
+      'Your PALMA record: claim or create a profile, complete verification, and manage your nomination link.',
     roles: ['creator'],
-    home: '/portal',
   },
   judge: {
     key: 'judge',
@@ -48,21 +52,23 @@ export const ENTRANCES = {
     standfirst:
       'The judging room is open only to judges seated on a PALMA panel. Everything inside it is confidential.',
     roles: ['judge'],
-    home: '/judging',
   },
-  staff: {
-    key: 'staff',
-    // Deliberately outside /admin: that segment's layout guards every page
-    // under it, and a door inside a guarded segment redirects to itself.
-    path: '/staff',
+  moderator: {
+    key: 'moderator',
+    path: '/portal',
+    title: 'Moderation',
+    eyebrow: 'PALMA operations',
+    standfirst: 'The moderation desk: creator records, claims, age verification and reports.',
+    roles: ['moderator'],
+  },
+  admin: {
+    key: 'admin',
+    path: '/admin',
     title: 'Administration',
-    eyebrow: 'PALMA staff',
-    standfirst: 'For PALMA staff: screening, selection, moderation and the audit log.',
-    roles: ['moderator', 'admin', 'super_admin'],
-    // Resolved per role rather than fixed: a moderator's dashboard is not the
-    // administrator's, and sending them to a page that refuses them would make
-    // the door a worse experience than no door.
-    home: '/admin',
+    eyebrow: 'PALMA administration',
+    standfirst:
+      'The institution: seasons, judging, selection, people, enforcement and the system itself.',
+    roles: ['admin', 'super_admin'],
   },
 } as const satisfies Record<EntranceKey, Entrance>;
 
@@ -72,34 +78,25 @@ export function admits(entrance: Entrance, role: Role): boolean {
   return (entrance.roles as readonly Role[]).includes(role);
 }
 
-/** The door this role belongs at. Every role has exactly one. */
+/** The path this role belongs at. Every role has exactly one. */
 export function entranceForRole(role: Role): Entrance {
   return ENTRANCE_LIST.find((entrance) => admits(entrance, role)) ?? ENTRANCES.creator;
 }
 
-/**
- * Where a role lands once it is through its door.
- *
- * PALMA has four dashboards and they are not interchangeable: creators hold a
- * record, judges make decisions, moderators clear queues, administrators run
- * the institution.
- */
+/** Where a role lands. The same thing as its door — that is the point. */
 export function homeForRole(role: Role): string {
-  if (role === 'moderator') return '/moderation';
-  return entranceForRole(role).home;
+  return entranceForRole(role).path;
 }
 
 /**
- * The door that guards a given path.
- *
- * Resolved from the surface rather than from the visitor, because a visitor
- * being sent to sign in does not yet have a role to consult.
+ * Which surface a path belongs to, resolved from the path rather than from the
+ * visitor — somebody being asked to sign in has no role to consult yet.
  */
 export function entranceForPath(path: string | undefined | null): Entrance {
   if (!path) return ENTRANCES.creator;
-  if (path === '/judging' || path.startsWith('/judging/')) return ENTRANCES.judge;
-  if (path === '/admin' || path.startsWith('/admin/')) return ENTRANCES.staff;
-  if (path === '/moderation' || path.startsWith('/moderation/')) return ENTRANCES.staff;
+  for (const entrance of ENTRANCE_LIST) {
+    if (path === entrance.path || path.startsWith(`${entrance.path}/`)) return entrance;
+  }
   return ENTRANCES.creator;
 }
 

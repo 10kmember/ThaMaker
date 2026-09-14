@@ -33,20 +33,20 @@ export const MODERATION_NAV: AdminGroup[] = [
   {
     title: 'Queues',
     items: [
-      { href: '/moderation', label: 'Overview', permission: 'operations:view_dashboard' },
-      { href: '/moderation/claims', label: 'Creator claims', permission: 'claims:review' },
+      { href: '/portal', label: 'Overview', permission: 'operations:view_dashboard' },
+      { href: '/portal/claims', label: 'Creator claims', permission: 'claims:review' },
       {
-        href: '/moderation/verification',
+        href: '/portal/verification',
         label: 'Age verification',
         permission: 'verification:review_manual',
       },
-      { href: '/moderation/reports', label: 'Reports', permission: 'moderation:view_reports' },
+      { href: '/portal/reports', label: 'Reports', permission: 'moderation:view_reports' },
     ],
   },
   {
     title: 'The record',
     items: [
-      { href: '/moderation/creators', label: 'Creators', permission: 'creators:view_records' },
+      { href: '/portal/creators', label: 'Creators', permission: 'creators:view_records' },
       { href: '/paroh', label: 'PaROH', permission: 'operations:view_dashboard' },
     ],
   },
@@ -78,7 +78,7 @@ export const ADMIN_NAV: AdminGroup[] = [
   {
     title: 'People',
     items: [
-      { href: '/moderation/creators', label: 'Creators', permission: 'creators:view_records' },
+      { href: '/portal/creators', label: 'Creators', permission: 'creators:view_records' },
       { href: '/admin/users', label: 'Users & roles', permission: 'admin:manage_users' },
     ],
   },
@@ -87,13 +87,13 @@ export const ADMIN_NAV: AdminGroup[] = [
     // holds every moderator permission — the same pages, not a second copy.
     title: 'Queues',
     items: [
-      { href: '/moderation/claims', label: 'Creator claims', permission: 'claims:review' },
+      { href: '/portal/claims', label: 'Creator claims', permission: 'claims:review' },
       {
-        href: '/moderation/verification',
+        href: '/portal/verification',
         label: 'Age verification',
         permission: 'verification:review_manual',
       },
-      { href: '/moderation/reports', label: 'Reports', permission: 'moderation:view_reports' },
+      { href: '/portal/reports', label: 'Reports', permission: 'moderation:view_reports' },
     ],
   },
   {
