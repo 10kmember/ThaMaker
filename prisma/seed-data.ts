@@ -1,199 +1,173 @@
 /**
- * The PALMA seed dataset.
+ * The PALMA seed cast.
  *
- * The institution's shape expressed as data: three seasons, a full category
- * set, a populated Roll of Honour and the editorial voice of the Journal.
+ * Nine people, and every one of them declares here what they are: an operator,
+ * a judge, a creator, or more than one of those. There is no second list of
+ * names anywhere — the accounts, the panel, the archive and the claim states
+ * are all derived from this array, so the cast cannot drift out of step with
+ * itself the way three parallel lists would.
  *
- * This file is read by `prisma/seed.ts` and by nothing else. It is not part of
- * the application: PostgreSQL is the single source of truth, and a name that
- * appears on the site appears there because it is in the database, never
- * because it is in a TypeScript file.
+ * Read by `prisma/seed.ts` and by nothing else. It is not part of the
+ * application: PostgreSQL is the single source of truth, and a name appears on
+ * the site because it is in the database, never because it is in this file.
+ *
+ * Deliberately small. A demonstration dataset is easier to trust when a person
+ * can hold all of it in their head — and a thin archive is an honest picture of
+ * a young institution rather than a fake picture of a busy one.
  */
 
-type Seed = {
+export type PersonRole = 'super_admin' | 'editor' | 'moderator' | 'judge' | 'creator';
+
+export type CreatorFacet = {
   slug: string;
-  displayName: string;
   countryCode: string;
   city: string | null;
   pronouns: string | null;
   headline: string;
   biography: string;
   websiteUrl: string | null;
+  /** Age and identity assurance completed with the provider. */
   verified: boolean;
+  links: { label: string; url: string }[];
 };
 
-const CREATOR_SEEDS: Seed[] = [
+export type JudgeFacet = {
+  title: string;
+  organisation: string;
+  countryCode: string;
+  biography: string;
+  isChair: boolean;
+};
+
+export type Person = {
+  name: string;
+  /** `null` for a creator PALMA wrote a record for who has never signed in. */
+  email: string | null;
+  role: PersonRole;
+  judge?: JudgeFacet;
+  creator?: CreatorFacet;
+};
+
+export const people: Person[] = [
+  // ── Operators ─────────────────────────────────────────────────────────────
   {
-    slug: 'maya-rivers',
-    displayName: 'Maya Rivers',
-    countryCode: 'GB',
-    city: 'London',
-    pronouns: 'she/her',
-    headline: 'Long-form video essayist working on labour and the internet.',
-    biography:
-      'Maya Rivers makes long-form video about how people actually earn a living online. Her work is researched like journalism and cut like film, and she has published to the same schedule for six years without an agency behind her.',
-    websiteUrl: 'https://example.com/maya-rivers',
-    verified: true,
+    name: 'Sarah Okonkwo',
+    email: 'sarah@palmaawards.com',
+    role: 'super_admin',
   },
   {
-    slug: 'jordan-smith',
-    displayName: 'Jordan Smith',
-    countryCode: 'GB',
-    city: 'Manchester',
-    pronouns: 'they/them',
-    headline: 'Audio documentarian turning local archives into serialised work.',
-    biography:
-      'Jordan Smith builds serialised audio from municipal archives, court records and the people still living in the streets those records describe. Their first season was made on a borrowed interface in a spare room.',
-    websiteUrl: null,
-    verified: true,
+    name: 'Tom Ashworth',
+    email: 'tom@palmaawards.com',
+    role: 'editor',
   },
   {
-    slug: 'alex-taylor',
-    displayName: 'Alex Taylor',
-    countryCode: 'IE',
-    city: 'Dublin',
-    pronouns: 'he/him',
-    headline: 'Independent games critic and preservationist.',
-    biography:
-      'Alex Taylor writes and films about games that publishers no longer sell. His preservation work has been cited by two national archives, and he funds it entirely through direct support from readers.',
-    websiteUrl: 'https://example.com/alex-taylor',
-    verified: true,
+    name: 'Nadia Bello',
+    email: 'nadia@palmaawards.com',
+    role: 'moderator',
+  },
+
+  // ── The panel ─────────────────────────────────────────────────────────────
+  {
+    name: 'Adaeze Mbeki',
+    email: 'adaeze@palmaawards.com',
+    role: 'judge',
+    judge: {
+      title: 'Chair of the PALMA panel',
+      organisation: 'Formerly Channel 4',
+      countryCode: 'GB',
+      biography:
+        'Twenty years commissioning factual and documentary work, latterly as head of digital commissioning. Chairs the panel, sees every score spread before a list is confirmed, and scores nothing.',
+      isChair: true,
+    },
   },
   {
-    slug: 'noor-haddad',
-    displayName: 'Noor Haddad',
-    countryCode: 'GB',
-    city: 'Birmingham',
-    pronouns: 'she/her',
-    headline: 'Food writer and cook documenting diaspora kitchens.',
-    biography:
-      'Noor Haddad records the recipes of Birmingham kitchens before the people who hold them stop cooking. Her newsletter runs to 40,000 readers and has never carried a paid placement.',
-    websiteUrl: null,
-    verified: true,
+    name: 'Frances Okonjo',
+    email: 'frances@palmaawards.com',
+    role: 'judge',
+    judge: {
+      title: 'Commissioning editor',
+      organisation: 'Independent',
+      countryCode: 'GB',
+      biography:
+        'Commissions long-form video and audio for independent publishers. Writes and teaches about editorial standards in creator-made journalism.',
+      isChair: false,
+    },
   },
   {
-    slug: 'elliot-quaye',
-    displayName: 'Elliot Quaye',
-    countryCode: 'GB',
-    city: 'London',
-    pronouns: 'he/him',
-    headline: 'Creative director building identity systems for independent studios.',
-    biography:
-      'Elliot Quaye designs the visual language of small studios and then publishes the reasoning behind it. His open case studies have become a de facto curriculum for designers entering the industry without a degree.',
-    websiteUrl: 'https://example.com/elliot-quaye',
-    verified: true,
+    name: 'Marcus Hale',
+    email: 'marcus@palmaawards.com',
+    role: 'judge',
+    judge: {
+      title: 'Head of audio',
+      organisation: 'Northbank Audio',
+      countryCode: 'GB',
+      biography:
+        'Producer and studio head. Twelve years in podcasting, from three-person shows to network commissions, and a persistent sceptic of download numbers as a measure of anything.',
+      isChair: false,
+    },
+  },
+
+  // ── Creators ──────────────────────────────────────────────────────────────
+  {
+    name: 'Maya Rivers',
+    email: 'maya@example.com',
+    role: 'creator',
+    creator: {
+      slug: 'maya-rivers',
+      countryCode: 'GB',
+      city: 'London',
+      pronouns: 'she/her',
+      headline: 'Long-form video essayist working on labour and the internet.',
+      biography:
+        'Maya Rivers makes long-form video about how people actually earn a living online. Her work is researched like journalism and cut like film, and she has published to the same schedule for six years without an agency behind her. She writes her own scripts, does her own archival research, and credits every contributor on screen.',
+      websiteUrl: 'https://example.com/maya-rivers',
+      verified: true,
+      links: [
+        { label: 'Channel', url: 'https://example.com/maya-rivers/video' },
+        { label: 'Written work', url: 'https://example.com/maya-rivers/writing' },
+      ],
+    },
   },
   {
-    slug: 'sofia-marchetti',
-    displayName: 'Sofia Marchetti',
-    countryCode: 'IT',
-    city: 'Milan',
-    pronouns: 'she/her',
-    headline: 'Fashion historian publishing serialised research to camera.',
-    biography:
-      'Sofia Marchetti reads couture archives on camera with the patience of a lecture and the pacing of a series. She has turned primary-source research into one of the most cited independent fashion channels in Europe.',
-    websiteUrl: null,
-    verified: true,
+    name: 'Jordan Smith',
+    email: 'jordan@example.com',
+    role: 'creator',
+    creator: {
+      slug: 'jordan-smith',
+      countryCode: 'GB',
+      city: 'Manchester',
+      pronouns: 'they/them',
+      headline: 'Audio documentarian turning local archives into serialised work.',
+      biography:
+        'Jordan Smith builds serialised audio from municipal archives, court records and the people still living in the streets those records describe. Their first season was made on a borrowed interface in a spare room, and the fourth was licensed by a national broadcaster without changing a line of it.',
+      websiteUrl: null,
+      verified: true,
+      links: [{ label: 'The series', url: 'https://example.com/jordan-smith/audio' }],
+    },
   },
   {
-    slug: 'theo-lindqvist',
-    displayName: 'Theo Lindqvist',
-    countryCode: 'SE',
-    city: 'Gothenburg',
-    pronouns: 'he/him',
-    headline: 'Documentary photographer and slow-publishing newsletter writer.',
-    biography:
-      'Theo Lindqvist publishes four photo essays a year and nothing else. Each is reported over months, printed before it is posted, and sold as a limited edition to fund the next.',
-    websiteUrl: 'https://example.com/theo-lindqvist',
-    verified: true,
-  },
-  {
-    slug: 'priya-raman',
-    displayName: 'Priya Raman',
-    countryCode: 'GB',
-    city: 'Leeds',
-    pronouns: 'she/her',
-    headline: 'Science communicator working with research institutions.',
-    biography:
-      'Priya Raman translates published research into work that specialists still recognise. She writes with named researchers rather than about them, and credits every collaborator on the face of the work.',
-    websiteUrl: null,
-    verified: true,
-  },
-  {
-    slug: 'callum-beattie',
-    displayName: 'Callum Beattie',
-    countryCode: 'GB',
-    city: 'Glasgow',
-    pronouns: 'he/him',
-    headline: 'Music producer documenting the making of records in public.',
-    biography:
-      'Callum Beattie records the process of making records — the failures included — and releases it alongside the finished work. Three of the artists he has documented have since signed to independent labels.',
-    websiteUrl: null,
-    verified: true,
-  },
-  {
-    slug: 'imani-okafor',
-    displayName: 'Imani Okafor',
-    countryCode: 'NG',
-    city: 'Lagos',
-    pronouns: 'she/her',
-    headline: 'Business journalist covering the African creator economy.',
-    biography:
-      'Imani Okafor reports on how creators across West Africa are paid, taxed and contracted. Her rate-card survey is now used as a reference by agencies she has never worked with.',
-    websiteUrl: 'https://example.com/imani-okafor',
-    verified: true,
-  },
-  {
-    slug: 'rosa-delgado',
-    displayName: 'Rosa Delgado',
-    countryCode: 'ES',
-    city: 'Valencia',
-    pronouns: 'she/her',
-    headline: 'Illustrator and process-teacher working in public.',
-    biography:
-      'Rosa Delgado teaches illustration by finishing commissions on camera, unedited. Her students have gone on to publish in three national newspapers.',
-    websiteUrl: null,
-    verified: true,
-  },
-  {
-    slug: 'wren-ashby',
-    displayName: 'Wren Ashby',
-    countryCode: 'GB',
-    city: 'Bristol',
-    pronouns: 'they/them',
-    headline: 'Community organiser building tooling for independent creators.',
-    biography:
-      'Wren Ashby builds and gives away the administrative tooling independent creators need — invoices, contracts, rate benchmarks — and runs the clinic that teaches people to use it.',
-    websiteUrl: 'https://example.com/wren-ashby',
-    verified: true,
-  },
-  {
-    slug: 'kai-tanaka',
-    displayName: 'Kai Tanaka',
-    countryCode: 'JP',
-    city: 'Kyoto',
-    pronouns: 'he/him',
-    headline: 'Craft documentarian filming workshops that are closing.',
-    biography:
-      'Kai Tanaka films the last working days of craft workshops across Japan, and publishes each film with a full transcript in two languages so the record survives the platform.',
-    websiteUrl: null,
-    verified: true,
-  },
-  {
-    slug: 'dara-ellison',
-    displayName: 'Dara Ellison',
-    countryCode: 'GB',
-    city: 'Cardiff',
-    pronouns: 'she/her',
-    headline: 'Newsletter writer covering the economics of independent media.',
-    biography:
-      'Dara Ellison publishes the numbers behind independent media — hers included. Her annual disclosure of her own accounts has been copied by dozens of writers since.',
-    websiteUrl: null,
-    verified: true,
+    name: 'Noor Haddad',
+    // No account. PALMA wrote this record when Noor was first nominated, and it
+    // sits unclaimed — which is the ordinary state of a record in a young
+    // archive, and what the claim flow exists to resolve.
+    email: null,
+    role: 'creator',
+    creator: {
+      slug: 'noor-haddad',
+      countryCode: 'JO',
+      city: 'Amman',
+      pronouns: 'she/her',
+      headline: 'Documentary photographer publishing serialised photo essays.',
+      biography:
+        'Noor Haddad publishes photo essays in instalments, each one reported over months and captioned at the length of an article. She works almost entirely in daylight and almost entirely alone, and has refused every offer that came with editorial conditions.',
+      websiteUrl: 'https://example.com/noor-haddad',
+      verified: false,
+      links: [{ label: 'Portfolio', url: 'https://example.com/noor-haddad/work' }],
+    },
   },
 ];
 
-type CategorySeed = {
+export type CategorySeed = {
   slug: string;
   name: string;
   strapline: string;
@@ -202,7 +176,7 @@ type CategorySeed = {
   judgingCriteria: string;
 };
 
-const CATEGORY_SEEDS: CategorySeed[] = [
+export const categorySeeds: CategorySeed[] = [
   {
     slug: 'creator-of-the-year',
     name: 'Creator of the Year',
@@ -230,70 +204,26 @@ const CATEGORY_SEEDS: CategorySeed[] = [
     name: 'Best New Creator',
     strapline: 'The first two years, done properly.',
     description:
-      'For creators who began publishing within two years of the qualifying season and have already established a recognisable standard.',
+      'For a creator whose first published work appeared within two years of the qualifying period, and who arrived with a point of view already formed.',
     eligibility:
-      'First public work must have been published no earlier than 1 January two years before the qualifying year. A creator may win this PALMA once.',
+      'First public work must have been published no earlier than two years before the start of the qualifying year. A creator may win this PALMA once.',
     judgingCriteria:
-      'Judges look for a defined point of view arriving early, and for professionalism that exceeds the creator’s time in the industry.',
-  },
-  {
-    slug: 'creative-direction',
-    name: 'Creative Direction',
-    strapline: 'The eye behind the work.',
-    description:
-      'For sustained excellence in the visual and editorial direction of a body of work — the identity, the craft decisions, and the discipline to hold both.',
-    eligibility:
-      'Open to creators and to creative directors whose direction of another creator’s work is publicly credited.',
-    judgingCriteria:
-      'Brand coherence and originality dominate. Judges assess a full body of work, never a single piece.',
+      'Originality carries the greatest weight. Judges are asked to assess the work on its own terms rather than against creators with a decade of practice behind them.',
   },
   {
     slug: 'community-impact',
     name: 'Community Impact',
-    strapline: 'Work that left people better off.',
+    strapline: 'Work whose consequence outlived its audience.',
     description:
-      'For creators whose work has produced a demonstrable benefit to a community — professional, local or otherwise — beyond their own audience.',
+      'For work that changed something outside itself — a practice other creators adopted, a subject taken seriously, a standard raised for everyone working in the same field.',
     eligibility:
-      'Nominations must include evidence of outcome, not intent. Fundraising totals alone are not sufficient.',
+      'Open to any creator aged 18 or over. The impact claimed must be evidenced and must have occurred during the qualifying year.',
     judgingCriteria:
-      'Impact is the dominant criterion, evidenced and specific. Judges discount reach entirely.',
-  },
-  {
-    slug: 'business-of-creating',
-    name: 'Business of Creating',
-    strapline: 'Building something that lasts.',
-    description:
-      'For creators who have built a durable business around their work, and who have been candid enough about how to make the industry more navigable for others.',
-    eligibility:
-      'Open to creators operating as sole traders, partnerships or limited companies. Financial evidence is reviewed by judges in confidence and never published.',
-    judgingCriteria:
-      'Professionalism and impact lead. Judges consider transparency and treatment of collaborators.',
-  },
-  {
-    slug: 'craft-in-video',
-    name: 'Craft in Video',
-    strapline: 'Shot, cut, and finished with intent.',
-    description:
-      'For excellence in the making of video work — direction, cinematography, edit, sound and the discipline of finishing.',
-    eligibility:
-      'At least three published video works during the qualifying year. Collaborative work is eligible where the nominee’s role is publicly credited.',
-    judgingCriteria:
-      'Originality and consistency lead, assessed on the work as delivered rather than on production budget.',
-  },
-  {
-    slug: 'industry-contribution',
-    name: 'Contribution to the Industry',
-    strapline: 'For the people who made the road.',
-    description:
-      'For sustained service to the creator industry: the standards, tooling, teaching, advocacy and plain generosity that make the work of others possible.',
-    eligibility:
-      'No minimum publishing requirement. Open to creators, organisers, educators and advocates aged 18 or over.',
-    judgingCriteria:
-      'Impact over time is the only dominant criterion. Judges consider a body of service, not a single season.',
+      'Impact is weighed most heavily, and reach is explicitly not impact. Judges are asked what changed because this work exists.',
   },
 ];
 
-type SeasonSeed = {
+export type SeasonSeed = {
   year: number;
   title: string;
   stage:
@@ -314,18 +244,24 @@ type SeasonSeed = {
   shortlistAt: string | null;
   finalistsAt: string | null;
   ceremonyAt: string | null;
-  /** category slug → [winner, ...finalists] creator slugs */
+  /**
+   * category slug → [winner, ...finalists] creator slugs.
+   *
+   * A category absent from this map, or present with an empty list, was
+   * contested but not conferred — which is a published rule rather than a gap
+   * in the data: PALMA declines a category rather than lower the standard.
+   */
   results: Record<string, string[]>;
 };
 
-const SEASON_SEEDS: SeasonSeed[] = [
+export const seasonSeeds: SeasonSeed[] = [
   {
     year: 2025,
     title: 'PALMA 2025',
     stage: 'archived',
     tagline: 'The first record.',
     summary:
-      'The inaugural PALMA season. Eight categories, a panel of nineteen judges, and the first names entered into the Roll of Honour.',
+      'The inaugural PALMA season. Four categories, an independent panel, and the first names entered into the Roll of Honour.',
     isCurrent: false,
     nominationsOpenAt: '2025-01-14T09:00:00.000Z',
     nominationsCloseAt: '2025-03-31T23:00:00.000Z',
@@ -333,14 +269,12 @@ const SEASON_SEEDS: SeasonSeed[] = [
     finalistsAt: '2025-06-17T09:00:00.000Z',
     ceremonyAt: '2025-09-25T18:00:00.000Z',
     results: {
-      'creator-of-the-year': ['maya-rivers', 'theo-lindqvist', 'imani-okafor', 'kai-tanaka'],
-      'best-independent-creator': ['alex-taylor', 'noor-haddad', 'dara-ellison', 'callum-beattie'],
-      'best-new-creator': ['rosa-delgado', 'priya-raman', 'wren-ashby', 'jordan-smith'],
-      'creative-direction': ['elliot-quaye', 'sofia-marchetti', 'theo-lindqvist', 'rosa-delgado'],
-      'community-impact': ['wren-ashby', 'noor-haddad', 'priya-raman', 'imani-okafor'],
-      'business-of-creating': ['dara-ellison', 'imani-okafor', 'elliot-quaye', 'maya-rivers'],
-      'craft-in-video': ['kai-tanaka', 'maya-rivers', 'sofia-marchetti', 'callum-beattie'],
-      'industry-contribution': ['imani-okafor', 'wren-ashby', 'dara-ellison', 'alex-taylor'],
+      'creator-of-the-year': ['maya-rivers', 'jordan-smith', 'noor-haddad'],
+      'best-independent-creator': ['noor-haddad', 'maya-rivers', 'jordan-smith'],
+      'best-new-creator': ['jordan-smith', 'noor-haddad'],
+      // Contested, judged, and not conferred: the panel found no candidacy that
+      // met the standard. The public record says so.
+      'community-impact': [],
     },
   },
   {
@@ -349,7 +283,7 @@ const SEASON_SEEDS: SeasonSeed[] = [
     stage: 'archived',
     tagline: 'The record holds.',
     summary:
-      'A second season, a panel of twenty-eight judges, and the first repeat honours in the Roll of Honour.',
+      'A second season, and the first repeat honour in the Roll of Honour — the point at which an archive starts being worth checking.',
     isCurrent: false,
     nominationsOpenAt: '2026-01-13T09:00:00.000Z',
     nominationsCloseAt: '2026-03-30T23:00:00.000Z',
@@ -357,14 +291,10 @@ const SEASON_SEEDS: SeasonSeed[] = [
     finalistsAt: '2026-06-16T09:00:00.000Z',
     ceremonyAt: '2026-09-24T18:00:00.000Z',
     results: {
-      'creator-of-the-year': ['jordan-smith', 'maya-rivers', 'sofia-marchetti', 'noor-haddad'],
-      'best-independent-creator': ['maya-rivers', 'alex-taylor', 'theo-lindqvist', 'rosa-delgado'],
-      'best-new-creator': ['callum-beattie', 'kai-tanaka', 'priya-raman', 'dara-ellison'],
-      'creative-direction': ['sofia-marchetti', 'elliot-quaye', 'theo-lindqvist', 'kai-tanaka'],
-      'community-impact': ['priya-raman', 'wren-ashby', 'noor-haddad', 'jordan-smith'],
-      'business-of-creating': ['imani-okafor', 'dara-ellison', 'wren-ashby', 'elliot-quaye'],
-      'craft-in-video': ['sofia-marchetti', 'kai-tanaka', 'maya-rivers', 'rosa-delgado'],
-      'industry-contribution': ['dara-ellison', 'imani-okafor', 'alex-taylor', 'priya-raman'],
+      'creator-of-the-year': ['jordan-smith', 'maya-rivers', 'noor-haddad'],
+      'best-independent-creator': ['maya-rivers', 'noor-haddad', 'jordan-smith'],
+      'best-new-creator': ['noor-haddad', 'jordan-smith'],
+      'community-impact': ['maya-rivers', 'jordan-smith', 'noor-haddad'],
     },
   },
   {
@@ -373,7 +303,7 @@ const SEASON_SEEDS: SeasonSeed[] = [
     stage: 'nominations_open',
     tagline: 'Recognising the people shaping creator culture.',
     summary:
-      'The third PALMA season. Nominations are open across eight categories, judged by an independent panel and announced in four stages.',
+      'The third PALMA season. Nominations are open across four categories, judged by an independent panel and announced in four stages.',
     isCurrent: true,
     nominationsOpenAt: '2026-09-01T09:00:00.000Z',
     nominationsCloseAt: '2027-01-31T23:00:00.000Z',
@@ -384,166 +314,100 @@ const SEASON_SEEDS: SeasonSeed[] = [
   },
 ];
 
-const CITATIONS: Record<string, string> = {
+export const citations: Record<string, string> = {
   'creator-of-the-year': 'For a body of work that set the standard of the season.',
   'best-independent-creator': 'For sustained, independent work held to an uncommon standard.',
   'best-new-creator': 'For arriving with a point of view already fully formed.',
-  'creative-direction': 'For direction of rare coherence across a full body of work.',
   'community-impact': 'For work whose consequence was felt well beyond its audience.',
-  'business-of-creating': 'For building something durable, and saying plainly how.',
-  'craft-in-video': 'For craft sustained across every frame of the qualifying year.',
-  'industry-contribution': 'For service to the industry, given freely and over years.',
 };
 
 export const sponsors = [
   {
     slug: 'holloway-finch',
     name: 'Holloway & Finch',
-    summary: 'A London production house supporting the Best New Creator PALMA.',
-    websiteUrl: null,
-    tier: 'category_partner',
-    categoryName: 'Best New Creator',
+    summary:
+      'A London accountancy practice working almost entirely with self-employed creative people.',
+    websiteUrl: 'https://example.com/holloway-finch',
+    tier: 'headline' as const,
+    categorySlug: null,
   },
   {
-    slug: 'meridian-union',
-    name: 'Meridian Union',
-    summary: 'Business banking for independent creators. Category partner, Business of Creating.',
-    websiteUrl: null,
-    tier: 'category_partner',
-    categoryName: 'Business of Creating',
-  },
-  {
-    slug: 'the-standing-press',
-    name: 'The Standing Press',
-    summary: 'Media partner to the PALMA Journal.',
-    websiteUrl: null,
-    tier: 'media',
-    categoryName: null,
-  },
-];
-
-export const articles = [
-  {
-    slug: 'what-a-palma-is-for',
-    title: 'What a PALMA is for',
-    standfirst:
-      'Recognition is not marketing. An honour is only worth holding if the record behind it can be checked.',
-    category: 'PALMA Essays',
-    categorySlug: 'essays',
-    authorName: 'The PALMA Editorial Board',
-    publishedAt: '2026-09-02T08:00:00.000Z',
-    readingMinutes: 6,
-    heroImageUrl: null,
-    heroImageAlt: null,
-    body: [
-      'An award is a claim about the past made durable enough to be useful in the future. That is the whole of it. Everything else — the ceremony, the seal, the photograph at the end of the night — is presentation. The substance is the record, and whether anyone can check it.',
-      "PALMA was built backwards from that sentence. Before the first category was written, we built the Roll of Honour and the verification page, because those are the parts that have to survive the institution's own enthusiasm. A winner should be able to put a PALMA on a profile in ten years and have it still resolve to a page that says who judged it, in what category, and in which season.",
-      'That is also why judging is separated from everything commercial by more than a policy. Sponsors are recorded against a season and a category. They do not see nominations, they do not meet judges through us, and they cannot change an outcome. The permission model in the software enforces this, not the goodwill of whoever is running the season.',
-      'The industry PALMA recognises has been poorly served by recognition. Its awards have tended to measure audience, which is a measure of distribution, not of work. We are not interested in who was seen most. We are interested in who did the work, and whether the record of it can be trusted a decade from now.',
-    ].join('\n\n'),
-  },
-  {
-    slug: 'how-judging-works',
-    title: 'How PALMA judging actually works',
-    standfirst:
-      'Five criteria, a trimmed mean, and a conflict rule that removes a judge the moment they declare.',
-    category: 'Category Explainers',
-    categorySlug: 'explainers',
-    authorName: 'The PALMA Editorial Board',
-    publishedAt: '2026-09-08T08:00:00.000Z',
-    readingMinutes: 5,
-    heroImageUrl: null,
-    heroImageAlt: null,
-    body: [
-      'Every eligible nomination is scored by at least three judges against five criteria: originality, consistency, professionalism, impact and brand. Each is scored out of ten. Nothing is weighted by audience size, and judges are told so explicitly in their briefing.',
-      'Once four or more judges have scored a nomination, the highest and lowest scores are removed before ranking. Panels disagree, and a single outlier — enthusiastic or hostile — should not decide a PALMA. Where judges disagree sharply, the chair is shown the spread before any finalist list is confirmed.',
-      'Conflicts are declared, not adjudicated after the fact. The moment a judge declares a relationship with a creator or a nomination, they are removed from it. Only an explicit dismissal by an administrator restores them, and both the declaration and the dismissal are written to the audit log.',
-      'Scores are immutable once submitted. If a genuine error is found, an administrator performs a controlled correction which records the original score, the corrected score, the person who made the change and their reason. Nothing in PALMA can be quietly edited.',
-    ].join('\n\n'),
-  },
-  {
-    slug: 'the-record-not-the-event',
-    title: 'PALMA is the record, not the event',
-    standfirst: 'Why the archive was built before the ceremony.',
-    category: 'PALMA Essays',
-    categorySlug: 'essays',
-    authorName: 'The PALMA Editorial Board',
-    publishedAt: '2026-06-19T08:00:00.000Z',
-    readingMinutes: 4,
-    heroImageUrl: null,
-    heroImageAlt: null,
-    body: [
-      'Most awards are an evening. The institution behind them exists to produce that evening, and the record of who won is a by-product, kept about as carefully as a guest list.',
-      "We inverted it. The PALMA Roll of Honour is the product. A season is one year's worth of additions to it. The ceremony is the moment those additions are read aloud.",
-      'This has a practical consequence: the archive has to be good on the day it is empty. Its filters, its permanence, its citation format and its verification had to be designed as though they already held twenty years of honours, because the only way to eventually hold twenty years is to behave that way from the first.',
-    ].join('\n\n'),
-  },
-  {
-    slug: 'interview-maya-rivers',
-    title: 'Maya Rivers on making six years of work look effortless',
-    standfirst:
-      'The 2025 Creator of the Year on research, schedules, and refusing to grow faster than she can film.',
-    category: 'Interviews',
-    categorySlug: 'interviews',
-    authorName: 'The PALMA Journal',
-    publishedAt: '2026-02-11T08:00:00.000Z',
-    readingMinutes: 8,
-    heroImageUrl: null,
-    heroImageAlt: null,
-    body: [
-      '“People assume the research is the hard part,” Maya Rivers says. “The research is the pleasure. The hard part is publishing on the day you said you would, for six years, when nobody is checking.”',
-      'Rivers won the first Creator of the Year PALMA in 2025 and took Best Independent Creator the following season — the first creator to hold PALMAs from consecutive years. She works with one editor, no agency, and a publishing schedule she describes as “deliberately slightly too slow”.',
-      'On independence: “I have turned down the kind of deal that would have doubled the budget, because it came with a note about tone. Independence is not a brand. It is a set of specific things you say no to, usually in writing, usually on a Tuesday.”',
-      'On recognition: “An award does not change the work. What it changes is the conversation before the work — whether you have to explain yourself first. That is not nothing.”',
-    ].join('\n\n'),
-  },
-  {
-    slug: 'palma-2027-nominations-open',
-    title: 'Nominations open for PALMA 2027',
-    standfirst: 'Eight categories. Four stages. Nominations close on 31 January 2027.',
-    category: 'Announcements',
-    categorySlug: 'announcements',
-    authorName: 'PALMA',
-    publishedAt: '2026-09-01T09:00:00.000Z',
-    readingMinutes: 3,
-    heroImageUrl: null,
-    heroImageAlt: null,
-    body: [
-      'Nominations for the third PALMA season are open. Eight categories are contested, including Creator of the Year, Best Independent Creator and Contribution to the Industry.',
-      'Creators may nominate themselves or be nominated by anyone who can evidence the work. Nominations close on 31 January 2027; the shortlist is published on 10 March, the finalists on 12 May, and the winners at the ceremony on 23 September.',
-      'A nomination costs nothing and cannot be bought. Volume of nominations does not advance a creator: the shortlist is produced by judges, from evidence.',
-    ].join('\n\n'),
-  },
-  {
-    slug: 'evidence-not-exposure',
-    title: 'Evidence, not exposure',
-    standfirst:
-      'Why PALMA points at a creator’s work instead of publishing it, and what that means for nominators.',
-    category: 'Category Explainers',
-    categorySlug: 'explainers',
-    authorName: 'The PALMA Editorial Board',
-    publishedAt: '2026-04-22T08:00:00.000Z',
-    readingMinutes: 5,
-    heroImageUrl: null,
-    heroImageAlt: null,
-    body: [
-      "PALMA does not host a creator's work. A nomination carries references — links, credits, published outcomes — which authorised judges review on the platform where the work already lives.",
-      'This is partly a legal position and mostly an editorial one. An institution that recognises work does not need to republish it, and the moment it starts to, it takes on the obligations of a platform and loses the detachment that makes its judgement worth anything.',
-      'For nominators, the practical rule is short: point, do not publish. The strongest nominations we see are three or four precise references and a statement that explains why those particular pieces matter.',
-    ].join('\n\n'),
+    slug: 'northbank-audio',
+    name: 'Northbank Audio',
+    summary: 'An independent audio studio and post house.',
+    websiteUrl: 'https://example.com/northbank-audio',
+    tier: 'category_partner' as const,
+    categorySlug: 'best-new-creator',
   },
 ];
 
 export const articleCategories = [
-  { slug: 'essays', name: 'PALMA Essays' },
-  { slug: 'interviews', name: 'Interviews' },
-  { slug: 'explainers', name: 'Category Explainers' },
-  { slug: 'announcements', name: 'Announcements' },
+  { slug: 'announcements', name: 'Announcements', position: 0 },
+  { slug: 'the-institution', name: 'The institution', position: 1 },
+  { slug: 'craft', name: 'Craft', position: 2 },
 ];
 
-export const categorySeeds = CATEGORY_SEEDS;
-export const seasonSeeds = SEASON_SEEDS;
-export const creatorSeeds = CREATOR_SEEDS;
+export const articles = [
+  {
+    slug: 'palma-2027-nominations-open',
+    title: 'Nominations for PALMA 2027 are open',
+    standfirst: 'Four categories, one nomination each, and a closing date that will not move.',
+    categorySlug: 'announcements',
+    status: 'published' as const,
+    publishedAt: '2026-09-01T09:00:00.000Z',
+    body: `Nominations for the 2027 season open today and close at 23:00 on 31 January 2027. That date is published now, before a single nomination has been made, and it will not move to accommodate a campaign.
 
-/** Winner citations, keyed by category slug. */
-export const citations = CITATIONS;
+Nominating takes under a minute. You need a creator, a category, a sentence about why, and an email address you can receive a code at. There is no account to create and nothing to upload.
+
+One nomination per person, per creator, per category. That is enforced in the database rather than discouraged in the interface, so a second attempt is refused rather than quietly discarded.
+
+We publish no nomination counts. Not during the season, not after it, and not to the panel — who are shown the argument the audience made and never how many people made it. The audience identifies. PALMA judges.`,
+  },
+  {
+    slug: 'what-a-palma-is-for',
+    title: 'What a PALMA is for',
+    standfirst: 'The archive came before the ceremony, and that order is the whole argument.',
+    categorySlug: 'the-institution',
+    status: 'published' as const,
+    publishedAt: '2026-08-12T09:00:00.000Z',
+    body: `Most awards in this industry measure distribution and call it merit. They hand out something shaped like a trophy, publish a list, and let the list rot quietly into a dead page two years later.
+
+PALMA was built the other way round. The Roll of Honour existed before the first ceremony did, because the record is the product and the evening is an expression of it. Every honour carries a signed verification record that anyone can check, without an account and without asking us.
+
+That has a consequence we accept: an honour conferred today has to still be defensible in ten years. It is why the panel is published, why the criteria are published before nominations open, and why a revoked honour stays on the record marked revoked rather than vanishing.
+
+An archive you can quietly edit is not an archive. It is a marketing page with a date on it.`,
+  },
+  {
+    slug: 'why-we-declined-a-category',
+    title: 'Why we declined a category in 2025',
+    standfirst: 'Community Impact was contested, judged, and not conferred. Here is the reasoning.',
+    categorySlug: 'the-institution',
+    status: 'published' as const,
+    publishedAt: '2025-09-26T09:00:00.000Z',
+    body: `In the inaugural season, the panel judged Community Impact and recommended that no PALMA be conferred in it.
+
+The rule permitting that is published: where a category receives too few eligible candidacies to judge credibly, PALMA may decline to confer an honour, and will say so publicly rather than lower the standard.
+
+It is an uncomfortable thing to do in a first season, when the institution has every incentive to look busy. It is also the single clearest signal we could send about what the other honours mean. A PALMA that is conferred every year regardless is a participation medal with better typography.
+
+The category returned in 2026 and was conferred.`,
+  },
+  {
+    slug: 'how-judging-works',
+    title: 'How judging actually works',
+    standfirst: 'Five criteria, ten points each, and audience size explicitly excluded.',
+    categorySlug: 'craft',
+    status: 'published' as const,
+    publishedAt: '2026-06-03T09:00:00.000Z',
+    body: `Every eligible candidacy is scored independently by at least three judges against five published criteria, each out of ten.
+
+Judges are briefed in writing to discount audience size. It is not a criterion, it is not shown to them, and it never will be. What they are shown is a prepared case: the eligibility checks PALMA has already completed, a sample of what the audience said, the evidence our team gathered, and the category's own criteria.
+
+A judge cannot reach the scale without declaring whether they have a conflict, and declaring removes the candidate from their assignments immediately. The chair decides whether it mattered, not the judge.
+
+Where four or more judges have scored a candidacy, the highest and lowest scores are dropped before ranking. Panels disagree, and one outlier — enthusiastic or hostile — should not decide a PALMA.
+
+A submitted assessment cannot be edited. If PALMA needs a correction it goes through an administrator, and the state before and after is written to the audit log.`,
+  },
+];

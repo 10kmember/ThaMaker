@@ -1,3 +1,5 @@
+import { Suspense } from 'react';
+import { ChartSkeleton } from '@/components/admin/Skeletons';
 import {
   BarSeries,
   ChartFrame,
@@ -17,6 +19,7 @@ import {
   getOperationalAnalytics,
   isPeriod,
   PERIOD_LABEL,
+  type Period,
 } from '@/server/data/command-centre';
 import { countryName } from '@/lib/format';
 import { titleCase } from '@/lib/utils';
@@ -30,6 +33,11 @@ export const metadata = buildMetadata({
   noIndex: true,
 });
 
+/**
+ * Each section counts its own figures and streams in when they land, rather
+ * than the page waiting on the slowest query in it. The skeletons are shaped
+ * like the charts, so nothing reflows when the data arrives.
+ */
 export default async function AnalyticsPage({
   searchParams,
 }: {
@@ -38,14 +46,6 @@ export default async function AnalyticsPage({
   await requirePermission('admin:view_analytics', '/admin/analytics');
   const { period: raw } = await searchParams;
   const period = isPeriod(raw) ? raw : '30d';
-
-  const [seasons, nominations, creators, awards, operations] = await Promise.all([
-    compareSeasons(),
-    getNominationAnalytics(period),
-    getCreatorAnalytics(),
-    getAwardsAnalytics(),
-    getOperationalAnalytics(),
-  ]);
 
   return (
     <>
@@ -63,6 +63,33 @@ export default async function AnalyticsPage({
         <PeriodFilter period={period} basePath="/admin/analytics" />
       </div>
 
+      <Suspense fallback={<ChartSkeleton title="Season by season" />}>
+        <SeasonSection />
+      </Suspense>
+
+      <Suspense fallback={<ChartSkeleton title="Nominations" />}>
+        <NominationSection period={period} />
+      </Suspense>
+
+      <Suspense fallback={<ChartSkeleton title="Creators" />}>
+        <CreatorSection />
+      </Suspense>
+
+      <Suspense fallback={<ChartSkeleton title="Awards" />}>
+        <AwardsSection />
+      </Suspense>
+
+      <Suspense fallback={<ChartSkeleton title="Operations" />}>
+        <OperationsSection />
+      </Suspense>
+    </>
+  );
+}
+
+async function SeasonSection() {
+  const seasons = await compareSeasons();
+  return (
+    <>
       {/* ── Seasons ─────────────────────────────────────────────────────── */}
       <section className="mt-14">
         <h2 className="palma-label text-taupe-deep border-stone-deep border-b pb-3">
@@ -143,7 +170,14 @@ export default async function AnalyticsPage({
           </table>
         </div>
       </section>
+    </>
+  );
+}
 
+async function NominationSection({ period }: { period: Period }) {
+  const nominations = await getNominationAnalytics(period);
+  return (
+    <>
       {/* ── Nominations ─────────────────────────────────────────────────── */}
       <section className="mt-16">
         <h2 className="palma-label text-taupe-deep border-stone-deep border-b pb-3">
@@ -214,7 +248,14 @@ export default async function AnalyticsPage({
           never a reason on its own.
         </Notice>
       </section>
+    </>
+  );
+}
 
+async function CreatorSection() {
+  const creators = await getCreatorAnalytics();
+  return (
+    <>
       {/* ── Creators ────────────────────────────────────────────────────── */}
       <section className="mt-16">
         <h2 className="palma-label text-taupe-deep border-stone-deep border-b pb-3">Creators</h2>
@@ -264,7 +305,14 @@ export default async function AnalyticsPage({
           </ChartFrame>
         </div>
       </section>
+    </>
+  );
+}
 
+async function AwardsSection() {
+  const awards = await getAwardsAnalytics();
+  return (
+    <>
       {/* ── Awards ──────────────────────────────────────────────────────── */}
       <section className="mt-16">
         <h2 className="palma-label text-taupe-deep border-stone-deep border-b pb-3">Awards</h2>
@@ -313,7 +361,14 @@ export default async function AnalyticsPage({
           </ChartFrame>
         </div>
       </section>
+    </>
+  );
+}
 
+async function OperationsSection() {
+  const operations = await getOperationalAnalytics();
+  return (
+    <>
       {/* ── Operations ──────────────────────────────────────────────────── */}
       <section className="mt-16">
         <h2 className="palma-label text-taupe-deep border-stone-deep border-b pb-3">Operations</h2>

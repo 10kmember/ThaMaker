@@ -38,7 +38,7 @@ export default async function AboutPage() {
             <dl className="grid grid-cols-2 gap-5">
               <PlateFact term="Seasons">{seasons.length}</PlateFact>
               <PlateFact term="Categories">{categories.length}</PlateFact>
-              <PlateFact term="Honours held">{honours}</PlateFact>
+              <PlateFact term="PALMAs conferred">{honours}</PlateFact>
               <PlateFact term="Scores published">Never</PlateFact>
             </dl>
           </MastheadPlate>
@@ -50,7 +50,7 @@ export default async function AboutPage() {
           <div className="border-stone-deep grid gap-8 border-b pb-14 sm:grid-cols-3">
             <Stat label="Seasons" value={seasons.length} />
             <Stat label="Categories" value={categories.length} />
-            <Stat label="Honours in the PaROH" value={honours} />
+            <Stat label="PALMAs conferred" value={honours} />
           </div>
 
           <div className="mt-16 grid gap-16 lg:grid-cols-12">

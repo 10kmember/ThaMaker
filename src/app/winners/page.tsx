@@ -35,6 +35,10 @@ export default async function WinnersPage({ searchParams }: Props) {
 
   const outcomes = winnersArePublic(season.stage) ? await listSeasonOutcomes(season.year) : [];
   const winners = outcomes.filter((outcome) => outcome.winner);
+  // A category that was contested and judged but not conferred. PALMA's rules
+  // permit declining rather than lowering the standard, and a record that
+  // silently omitted the category would hide the most telling thing about it.
+  const declined = outcomes.filter((outcome) => !outcome.winner);
 
   return (
     <>
@@ -54,7 +58,9 @@ export default async function WinnersPage({ searchParams }: Props) {
         }
         meta={[
           winners.length > 0 ? `${winners.length} PALMAs conferred` : 'Not yet announced',
-          'Each with a signed verification record',
+          ...(declined.length > 0
+            ? [`${declined.length} not conferred`]
+            : ['Each with a signed verification record']),
         ]}
         plate={
           seasons.length > 1 ? (
@@ -139,6 +145,35 @@ export default async function WinnersPage({ searchParams }: Props) {
               })}
             </div>
           )}
+
+          {declined.length > 0 ? (
+            <section className="border-stone-deep mt-20 border-t pt-12">
+              <h2 className="palma-label text-taupe-deep">Contested, not conferred</h2>
+              <p className="text-taupe-deep mt-4 max-w-160 leading-relaxed">
+                The panel judged {declined.length === 1 ? 'this category' : 'these categories'} and
+                recommended that no PALMA be conferred. Where a category receives too few
+                candidacies that meet the standard, PALMA declines it rather than lower the standard
+                — and says so, because an award conferred every year regardless means less every
+                year.
+              </p>
+
+              <ul className="mt-10 grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+                {declined.map((outcome) => (
+                  <li key={outcome.category.slug}>
+                    <Link
+                      href={`/categories/${outcome.category.slug}?year=${season.year}`}
+                      className="palma-row group/card border-stone-deep flex flex-col gap-2 border-t pt-4"
+                    >
+                      <span className="palma-row-lead font-display text-xl leading-tight">
+                        {outcome.category.name}
+                      </span>
+                      <span className="palma-label text-taupe">No PALMA conferred</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
         </Container>
       </Section>
     </>

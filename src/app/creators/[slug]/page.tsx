@@ -201,8 +201,11 @@ export default async function CreatorPage({ params }: Params) {
                     centre="Winner"
                     className="text-olive h-40 w-40"
                   />
+                  {/* The seal counts wins. Calling them "honours" here while the
+                      record beside it counts finalist places too made the same
+                      page say two different numbers for one word. */}
                   <p className="font-display text-xl leading-snug">
-                    {wins.length} PALMA {pluralise(wins.length, 'honour')}
+                    {wins.length} PALMA {pluralise(wins.length, 'win')}
                   </p>
                   <p className="text-taupe-deep text-sm leading-relaxed">
                     {wins.map((entry) => `${entry.categoryName} — ${entry.year}`).join(' · ')}

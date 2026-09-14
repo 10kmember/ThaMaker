@@ -20,6 +20,45 @@ the audit log with the actor, the entity and the state before and after.
 Sponsors hold **no role**. Sponsorship is recorded against a season or category
 and grants no access to nominations, judges, scores or outcomes.
 
+## The seed
+
+Nine people, and one list declares all of them. `prisma/seed-data.ts` holds a
+single `people` array where each entry says what that person _is_ — an
+operator, a judge, a creator, or more than one — and the accounts, the panel,
+the archive and the claim states are all derived from it. Three parallel lists
+would drift; one cannot.
+
+|           |                                                                             |
+| --------- | --------------------------------------------------------------------------- |
+| Operators | Sarah Okonkwo (super admin), Tom Ashworth (editor), Nadia Bello (moderator) |
+| Panel     | Adaeze Mbeki (chair), Frances Okonjo, Marcus Hale                           |
+| Creators  | Maya Rivers and Jordan Smith (claimed), Noor Haddad (unclaimed)             |
+
+Every account signs in at its own door with the password from `SEED_PASSWORD`
+(default `Palma-Development-2027`): operators at `/staff`, judges at `/judge`,
+creators at `/sign-in`.
+
+Noor Haddad has no account on purpose. PALMA wrote the record when she was
+first nominated and nobody holds it — which is the ordinary state of a record
+in a young archive, and what the claim flow exists to resolve.
+
+**The seed is authoritative, not additive.** It clears the entities it owns
+before writing them, so running it twice leaves exactly the dataset described
+in `seed-data.ts`. A seed that only ever adds drifts away from its own
+description on the second run, which is how a demonstration database ends up
+with fourteen creators nobody chose. Staff and panel accounts on
+palmaawards.com are seed-owned and reconciled to the cast; accounts on any
+other domain, and rows a person created while testing — a claim, an internal
+note, an enforcement proposal — are left alone.
+
+The archive is deliberately thin: three creators, four categories, three
+seasons. It is an honest picture of a young institution rather than a fake
+picture of a busy one — and it exercises every state, including the one that
+matters most. **In 2025 the panel declined Community Impact**: contested,
+judged, and no PALMA conferred. The winners page says so under _Contested, not
+conferred_ rather than quietly omitting the category, because a rule PALMA
+published is worth more when the record shows it being used.
+
 ## The administration dashboard
 
 Four dashboards, and the distinction between them is the point:

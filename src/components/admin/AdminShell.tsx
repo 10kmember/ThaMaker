@@ -3,6 +3,7 @@ import { Container } from '@/components/palma/layout';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { Button } from '@/components/ui/button';
 import { signOut } from '@/server/actions/auth';
+import { CommandPalette } from './CommandPalette';
 import { navFor } from '@/lib/admin-nav';
 import type { Role } from '@/lib/auth/rbac';
 import { cn } from '@/lib/utils';
@@ -40,6 +41,7 @@ export function AdminShell({
             <span className="palma-label text-champagne shrink-0">Administration</span>
           </div>
           <div className="flex min-w-0 items-center gap-3">
+            <CommandPalette groups={groups} />
             <span className="palma-label text-ivory/50 min-w-0 truncate">{userName}</span>
             <form action={signOut}>
               <Button type="submit" variant="quiet" size="sm">

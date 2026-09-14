@@ -22,7 +22,10 @@ export function StatGrid({ title, stats }: { title: string; stats: StatEntry[] }
     <section>
       <h3 className="palma-label text-taupe-deep border-stone-deep border-b pb-3">{title}</h3>
 
-      <dl className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+      {/* The trailing column's rule is clipped rather than conditionally
+          removed: which cell ends a row depends on the breakpoint, and CSS
+          cannot ask "is this last in its row". */}
+      <dl className="-mr-px grid grid-cols-2 overflow-hidden sm:grid-cols-3 lg:grid-cols-4">
         {stats.map((stat) => {
           const body = (
             <>
@@ -47,14 +50,14 @@ export function StatGrid({ title, stats }: { title: string; stats: StatEntry[] }
             <Link
               key={stat.label}
               href={stat.href}
-              className="palma-row border-stone-deep/60 -mb-px flex min-w-0 flex-col border-r border-b py-5 pr-4 last:border-r-0"
+              className="palma-row border-stone-deep/60 -mb-px flex min-w-0 flex-col border-r border-b py-5 pr-5 pl-5 first:pl-0"
             >
               {body}
             </Link>
           ) : (
             <div
               key={stat.label}
-              className="border-stone-deep/60 -mb-px flex min-w-0 flex-col border-r border-b py-5 pr-4 last:border-r-0"
+              className="border-stone-deep/60 -mb-px flex min-w-0 flex-col border-r border-b py-5 pr-5 pl-5 first:pl-0"
             >
               {body}
             </div>

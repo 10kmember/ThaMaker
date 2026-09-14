@@ -1,22 +1,30 @@
 /**
  * PALMA seed.
  *
- * Loads the bundled reference dataset into PostgreSQL: three seasons, the full
- * category set, creators, the Roll of Honour with signed verification records,
- * the Journal, sponsors, and one account per role for local development.
+ * Loads the bundled cast into PostgreSQL: nine people, four categories, three
+ * seasons, the Roll of Honour with signed verification records, the Journal and
+ * two sponsors.
  *
  *   npm run db:push && npm run db:seed
+ *
+ * The seed is authoritative rather than additive. It clears the entities it
+ * owns before writing them, so running it twice leaves exactly the dataset
+ * described in `seed-data.ts` — a seed that only ever adds drifts away from its
+ * own description on the second run, which is how a demonstration database ends
+ * up with fourteen creators nobody chose.
  */
-import { PrismaClient, type Prisma } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { randomBytes, createHmac, scrypt as scryptCallback } from 'node:crypto';
 import { promisify } from 'node:util';
 import {
   articleCategories,
   articles,
   categorySeeds,
-  creatorSeeds,
+  citations,
+  people,
   seasonSeeds,
   sponsors as sponsorSeeds,
+  type Person,
 } from './seed-data';
 
 const prisma = new PrismaClient();
@@ -72,58 +80,71 @@ function signAchievement(payload: {
   return { signature: hmac(canonical), canonical };
 }
 
-const CITATIONS: Record<string, string> = {
-  'creator-of-the-year': 'For a body of work that set the standard of the season.',
-  'best-independent-creator': 'For sustained, independent work held to an uncommon standard.',
-  'best-new-creator': 'For arriving with a point of view already fully formed.',
-  'creative-direction': 'For direction of rare coherence across a full body of work.',
-  'community-impact': 'For work whose consequence was felt well beyond its audience.',
-  'business-of-creating': 'For building something durable, and saying plainly how.',
-  'craft-in-video': 'For craft sustained across every frame of the qualifying year.',
-  'industry-contribution': 'For service to the industry, given freely and over years.',
-};
+function clamp(value: number): number {
+  return Math.max(0, Math.min(10, Math.round(value)));
+}
+
+/** Rough, and honest about it: 220 words a minute, never less than one. */
+function readingMinutes(body: string): number {
+  return Math.max(1, Math.round(body.trim().split(/\s+/).length / 220));
+}
+
+/**
+ * Clear what the seed owns, in dependency order.
+ *
+ * Deliberately not a `TRUNCATE ... CASCADE` of the whole database: rows a
+ * person created while testing — a claim, an internal note, an enforcement
+ * proposal — are theirs, and a seed that silently destroyed them would make
+ * the local database untrustworthy in exactly the way PALMA is built not to be.
+ */
+async function reset() {
+  await prisma.verificationRecord.deleteMany();
+  await prisma.achievement.deleteMany();
+  await prisma.honour.deleteMany();
+  await prisma.judgingScore.deleteMany();
+  await prisma.judgingAssignment.deleteMany();
+  await prisma.judgeConflict.deleteMany();
+  await prisma.nomination.deleteMany();
+  await prisma.nominator.deleteMany();
+  await prisma.candidacyEvidence.deleteMany();
+  await prisma.candidacy.deleteMany();
+  await prisma.judgePanelMembership.deleteMany();
+  await prisma.sponsorship.deleteMany();
+  await prisma.sponsor.deleteMany();
+  await prisma.article.deleteMany();
+  await prisma.articleCategory.deleteMany();
+  await prisma.category.deleteMany();
+  await prisma.awardYear.deleteMany();
+
+  // Creators the cast no longer names, and everything hanging off them.
+  const keep = people.flatMap((person) => (person.creator ? [person.creator.slug] : []));
+  await prisma.creatorLink.deleteMany({ where: { creator: { slug: { notIn: keep } } } });
+  await prisma.creatorVerification.deleteMany({ where: { creator: { slug: { notIn: keep } } } });
+  await prisma.creator.deleteMany({ where: { slug: { notIn: keep } } });
+
+  // Judge profiles are rebuilt from the cast each run.
+  await prisma.judge.deleteMany();
+
+  // Staff and panel accounts are seed-owned: they live on palmaawards.com, and
+  // the cast is the whole list of them. An account on any other domain belongs
+  // to whoever made it and is left alone.
+  const castEmails = people.flatMap((person) => (person.email ? [person.email] : []));
+  await prisma.user.deleteMany({
+    where: { email: { endsWith: '@palmaawards.com' }, AND: { email: { notIn: castEmails } } },
+  });
+}
 
 async function main() {
   console.log('· Seeding PALMA');
+  await reset();
 
-  // ── Accounts ──────────────────────────────────────────────────────────────
   const passwordHash = await hashPassword(DEMO_PASSWORD);
 
-  const admin = await prisma.user.upsert({
-    where: { email: 'admin@palmaawards.com' },
-    update: {},
-    create: {
-      email: 'admin@palmaawards.com',
-      name: 'Sarah Okonkwo',
-      role: 'super_admin',
-      passwordHash,
-      emailVerifiedAt: new Date(),
-      notificationPrefs: { create: {} },
-    },
-  });
-
-  const editor = await prisma.user.upsert({
-    where: { email: 'editor@palmaawards.com' },
-    update: {},
-    create: {
-      email: 'editor@palmaawards.com',
-      name: 'Tom Ashworth',
-      role: 'editor',
-      passwordHash,
-      emailVerifiedAt: new Date(),
-      notificationPrefs: { create: {} },
-    },
-  });
-
-  // ── Seasons and categories ────────────────────────────────────────────────
+  // ── Seasons ───────────────────────────────────────────────────────────────
   const seasonIds = new Map<number, string>();
-  const categoryIds = new Map<string, string>();
-
   for (const season of seasonSeeds) {
-    const record = await prisma.awardYear.upsert({
-      where: { year: season.year },
-      update: { stage: season.stage, isCurrent: season.isCurrent },
-      create: {
+    const record = await prisma.awardYear.create({
+      data: {
         year: season.year,
         title: season.title,
         stage: season.stage,
@@ -138,13 +159,16 @@ async function main() {
       },
     });
     seasonIds.set(season.year, record.id);
+  }
+  console.log(`  seasons: ${seasonIds.size}`);
 
+  // ── Categories, one set per season ────────────────────────────────────────
+  const categoryIds = new Map<string, string>();
+  for (const season of seasonSeeds) {
+    const awardYearId = seasonIds.get(season.year)!;
     for (const [position, category] of categorySeeds.entries()) {
-      const created = await prisma.category.upsert({
-        where: { awardYearId_slug: { awardYearId: record.id, slug: category.slug } },
-        update: { isOpen: season.stage === 'nominations_open' },
-        create: {
-          awardYearId: record.id,
+      const record = await prisma.category.create({
+        data: {
           slug: category.slug,
           name: category.name,
           strapline: category.strapline,
@@ -152,170 +176,132 @@ async function main() {
           eligibility: category.eligibility,
           judgingCriteria: category.judgingCriteria,
           position,
+          awardYearId,
           isOpen: season.stage === 'nominations_open',
         },
       });
-      categoryIds.set(`${season.year}:${category.slug}`, created.id);
+      categoryIds.set(`${season.year}:${category.slug}`, record.id);
     }
   }
-  console.log(`  seasons: ${seasonSeeds.length}, categories: ${categoryIds.size}`);
+  console.log(`  categories: ${categorySeeds.length} × ${seasonIds.size} seasons`);
 
-  // ── Creators ──────────────────────────────────────────────────────────────
-  const creatorIds = new Map<string, string>();
-
-  for (const seed of creatorSeeds) {
-    const creator = await prisma.creator.upsert({
-      where: { slug: seed.slug },
-      update: {},
-      create: {
-        slug: seed.slug,
-        displayName: seed.displayName,
-        pronouns: seed.pronouns,
-        countryCode: seed.countryCode,
-        city: seed.city,
-        headline: seed.headline,
-        biography: seed.biography,
-        websiteUrl: seed.websiteUrl,
-        isPublished: true,
-        // Seeded records are unclaimed, because nobody holds them. A record is
-        // claimed when a User is linked to it and not a moment before.
-        isClaimed: false,
-        referralEnabled: seed.verified,
-        verification: {
-          create: {
-            status: seed.verified ? 'verified' : 'pending',
-            provider: 'stub',
-            providerReference: seed.verified ? `stub_${seed.slug}` : null,
-            method: 'document_and_liveness',
-            verifiedAt: seed.verified ? new Date('2025-01-10T00:00:00.000Z') : null,
-          },
-        },
-        ...(seed.websiteUrl
-          ? { links: { create: [{ label: 'Website', url: seed.websiteUrl, position: 0 }] } }
-          : {}),
-      },
-    });
-    creatorIds.set(seed.slug, creator.id);
-  }
-  console.log(`  creators: ${creatorIds.size}`);
-
-  // ── Judges ────────────────────────────────────────────────────────────────
-  const judgeSeeds = [
-    {
-      email: 'chair@palmaawards.com',
-      name: 'Adaeze Mbeki',
-      title: 'Chair of the PALMA panel',
-      organisation: 'Formerly Channel 4',
-      countryCode: 'GB',
-      biography:
-        'Twenty years commissioning factual and documentary work, latterly as head of digital commissioning. Chairs the panel, sees every score spread before a list is confirmed, and votes on nothing.',
-    },
-    {
-      email: 'judge.one@palmaawards.com',
-      name: 'Frances Okonjo',
-      title: 'Commissioning editor',
-      organisation: 'Independent',
-      countryCode: 'GB',
-      biography:
-        'Commissions long-form video and audio for independent publishers. Writes and teaches about editorial standards in creator-made journalism.',
-    },
-    {
-      email: 'judge.two@palmaawards.com',
-      name: 'Daniel Whitlock',
-      title: 'Studio founder',
-      organisation: 'Halfmoon Studio',
-      countryCode: 'GB',
-      biography:
-        'Founded a post-production studio working almost entirely with independent creators. Sits on the panel for the craft categories and recuses himself from anything the studio has touched.',
-    },
-    {
-      email: 'judge.three@palmaawards.com',
-      name: 'Ines Barros',
-      title: 'Creative director',
-      organisation: 'Estudio Vela, Lisbon',
-      countryCode: 'PT',
-      biography:
-        'Designs brand and title systems for broadcasters and independent studios across Europe. Brought on to the panel specifically to argue about craft.',
-    },
-    {
-      email: 'judge.four@palmaawards.com',
-      name: 'Marcus Hale',
-      title: 'Head of audio',
-      organisation: 'Northbank Audio',
-      countryCode: 'GB',
-      biography:
-        'Producer and studio head. Twelve years in podcasting, from three-person shows to network commissions, and a persistent sceptic of download numbers as a measure of anything.',
-    },
-    {
-      email: 'judge.five@palmaawards.com',
-      name: 'Priya Raghunathan',
-      title: 'Researcher',
-      organisation: 'Creator Economy Institute',
-      countryCode: 'GB',
-      biography:
-        'Researches the working conditions and economics of independent creative work. Publishes on platform dependency, and reads every nomination reason twice.',
-    },
-  ];
-
-  const judgeIds: string[] = [];
-  for (const [index, seed] of judgeSeeds.entries()) {
-    const user = await prisma.user.upsert({
-      where: { email: seed.email },
-      update: { name: seed.name },
-      create: {
-        email: seed.email,
-        name: seed.name,
-        role: 'judge',
-        passwordHash,
-        emailVerifiedAt: new Date(),
-        notificationPrefs: { create: {} },
-      },
-    });
-
-    // The panel is published, so its profile fields converge on re-seed rather
-    // than keeping whatever an earlier run wrote.
-    const judgeProfile = {
-      displayName: seed.name,
-      title: seed.title,
-      organisation: seed.organisation,
-      countryCode: seed.countryCode,
-      biography: seed.biography,
-    };
-
-    const judge = await prisma.judge.upsert({
-      where: { userId: user.id },
-      update: judgeProfile,
-      create: { userId: user.id, ...judgeProfile },
-    });
-    judgeIds.push(judge.id);
-
-    for (const [year, awardYearId] of seasonIds) {
-      await prisma.judgePanelMembership.upsert({
-        where: { judgeId_awardYearId: { judgeId: judge.id, awardYearId } },
-        update: {},
-        create: { judgeId: judge.id, awardYearId, isChair: index === 0 },
-      });
-      void year;
-    }
-  }
-  console.log(`  judges: ${judgeIds.length}`);
-
-  // ── Historic seasons: candidacies, audience nominations, scores, honours ──
+  // ── The cast ──────────────────────────────────────────────────────────────
   //
-  // Seeds both halves of the model: a body of audience nominations from
-  // synthetic nominators, and the candidacies the panel actually judged.
-  let candidacyCount = 0;
-  let nominationCount = 0;
-  let honourCount = 0;
+  // One pass over one list. An operator, a judge and a creator are made the
+  // same way here because they are the same kind of thing to the database: a
+  // person, and the facets PALMA knows them by.
+  const accounts = new Map<string, string>();
+  const creatorIds = new Map<string, string>();
+  const judgeIds: string[] = [];
+  let chairId: string | null = null;
 
-  // A pool of nominators, reused across seasons the way real people are.
+  const roleFor = (person: Person) => (person.role === 'judge' ? 'judge' : person.role);
+
+  for (const person of people) {
+    let userId: string | null = null;
+
+    if (person.email) {
+      const user = await prisma.user.upsert({
+        where: { email: person.email },
+        update: { name: person.name, role: roleFor(person) },
+        create: {
+          email: person.email,
+          name: person.name,
+          role: roleFor(person),
+          passwordHash,
+          emailVerifiedAt: new Date(),
+          notificationPrefs: { create: {} },
+        },
+      });
+      userId = user.id;
+      accounts.set(person.email, user.id);
+    }
+
+    if (person.creator) {
+      const facet = person.creator;
+      const profile = {
+        displayName: person.name,
+        countryCode: facet.countryCode,
+        city: facet.city,
+        pronouns: facet.pronouns,
+        headline: facet.headline,
+        biography: facet.biography,
+        websiteUrl: facet.websiteUrl,
+        isPublished: true,
+        // A record is claimed when a User holds it, and not a moment before.
+        isClaimed: Boolean(userId),
+        userId,
+        referralEnabled: facet.verified && Boolean(userId),
+      };
+
+      const creator = await prisma.creator.upsert({
+        where: { slug: facet.slug },
+        update: profile,
+        create: { slug: facet.slug, ...profile },
+      });
+      creatorIds.set(facet.slug, creator.id);
+
+      await prisma.creatorVerification.upsert({
+        where: { creatorId: creator.id },
+        update: {
+          status: facet.verified ? 'verified' : 'pending',
+          verifiedAt: facet.verified ? new Date('2026-02-10T10:00:00.000Z') : null,
+        },
+        create: {
+          creatorId: creator.id,
+          status: facet.verified ? 'verified' : 'pending',
+          provider: 'stub',
+          providerReference: `stub_${facet.slug}`,
+          method: 'document_and_liveness',
+          verifiedAt: facet.verified ? new Date('2026-02-10T10:00:00.000Z') : null,
+          lastCheckedAt: new Date('2026-02-10T10:00:00.000Z'),
+        },
+      });
+
+      await prisma.creatorLink.deleteMany({ where: { creatorId: creator.id } });
+      for (const [position, link] of facet.links.entries()) {
+        await prisma.creatorLink.create({
+          data: { creatorId: creator.id, label: link.label, url: link.url, position },
+        });
+      }
+    }
+
+    if (person.judge && userId) {
+      const facet = person.judge;
+      const judge = await prisma.judge.create({
+        data: {
+          userId,
+          displayName: person.name,
+          title: facet.title,
+          organisation: facet.organisation,
+          countryCode: facet.countryCode,
+          biography: facet.biography,
+        },
+      });
+      judgeIds.push(judge.id);
+      if (facet.isChair) chairId = judge.id;
+
+      for (const awardYearId of seasonIds.values()) {
+        await prisma.judgePanelMembership.create({
+          data: { judgeId: judge.id, awardYearId, isChair: facet.isChair },
+        });
+      }
+    }
+  }
+
+  const operators = people.filter((person) => !person.judge && !person.creator).length;
+  console.log(
+    `  people: ${people.length} — ${operators} operators, ${judgeIds.length} judges, ${creatorIds.size} creators`,
+  );
+
+  // ── The audience ──────────────────────────────────────────────────────────
+  // Nominators are not cast: they are anonymous members of the public, and
+  // PALMA holds nothing about them but an address it can verify once.
   const nominatorIds: string[] = [];
-  for (let index = 1; index <= 60; index += 1) {
+  for (let index = 1; index <= 18; index += 1) {
     const email = `nominator${index}@example.com`;
-    const nominator = await prisma.nominator.upsert({
-      where: { emailKey: email },
-      update: {},
-      create: { email, emailKey: email, verifiedAt: new Date('2025-02-01T00:00:00.000Z') },
+    const nominator = await prisma.nominator.create({
+      data: { email, emailKey: email, verifiedAt: new Date('2025-02-01T00:00:00.000Z') },
     });
     nominatorIds.push(nominator.id);
   }
@@ -329,31 +315,39 @@ async function main() {
     'Quietly brilliant, and completely uninterested in gaming anyone.',
   ];
 
+  // ── Seasons judged ────────────────────────────────────────────────────────
+  let candidacyCount = 0;
+  let nominationCount = 0;
+  let honourCount = 0;
+  let declined = 0;
+
+  const creatorName = (slug: string) =>
+    people.find((person) => person.creator?.slug === slug)?.name ?? slug;
+
   for (const season of seasonSeeds) {
     const awardYearId = seasonIds.get(season.year)!;
 
-    for (const [categorySlug, creatorSlugs] of Object.entries(season.results)) {
-      const categoryId = categoryIds.get(`${season.year}:${categorySlug}`)!;
-      const category = categorySeeds.find((entry) => entry.slug === categorySlug)!;
+    for (const category of categorySeeds) {
+      const creatorSlugs = season.results[category.slug] ?? [];
+      const categoryId = categoryIds.get(`${season.year}:${category.slug}`)!;
+
+      // A contested category with no result was judged and not conferred.
+      if (season.stage === 'archived' && creatorSlugs.length === 0) declined += 1;
 
       for (const [index, creatorSlug] of creatorSlugs.entries()) {
         const creatorId = creatorIds.get(creatorSlug)!;
-        const creator = creatorSeeds.find((entry) => entry.slug === creatorSlug)!;
         const kind = index === 0 ? 'winner' : 'finalist';
         const issuedAt = new Date(kind === 'winner' ? season.ceremonyAt! : season.finalistsAt!);
 
-        const candidacy = await prisma.candidacy.upsert({
-          where: {
-            awardYearId_categoryId_creatorId: { awardYearId, categoryId, creatorId },
-          },
-          update: {},
-          create: {
+        const candidacy = await prisma.candidacy.create({
+          data: {
             reference: `PC-${season.year}-${String(++candidacyCount).padStart(4, '0')}`,
             awardYearId,
             categoryId,
             creatorId,
             status: kind,
             reviewedAt: new Date(season.shortlistAt!),
+            reviewNote: 'Eligibility confirmed by the screening team.',
             firstNominatedAt: new Date(season.nominationsOpenAt!),
             lastNominatedAt: new Date(season.nominationsCloseAt!),
             evidence: {
@@ -362,60 +356,61 @@ async function main() {
                   kind: 'external_link',
                   label: `${season.year} body of work`,
                   url: `https://example.com/${creatorSlug}/${season.year}`,
-                  note: 'Gathered by PALMA and reviewed by the panel where it is published.',
+                  note: 'Gathered by PALMA and reviewed where it is published.',
+                },
+                {
+                  kind: 'press_mention',
+                  label: 'Independent coverage',
+                  url: `https://example.com/press/${creatorSlug}-${season.year}`,
+                  note: 'Third-party write-up from the qualifying year.',
                 },
               ],
             },
           },
         });
 
-        // Audience nominations: more for the winner, but the count never
-        // reaches the judging path — it exists so the admin screens are real.
-        const volume = kind === 'winner' ? 9 : 5 - index;
-        const existingNominations = await prisma.nomination.count({
-          where: { candidacyId: candidacy.id },
-        });
+        // Audience nominations. More for the winner — and the count never
+        // reaches the judging path, which is the point of storing it at all.
+        const volume = kind === 'winner' ? 7 : 4 - index;
+        for (let n = 0; n < volume; n += 1) {
+          const nominatorId = nominatorIds[(candidacyCount * 5 + n * 3) % nominatorIds.length]!;
+          const already = await prisma.nomination.findUnique({
+            where: { nominatorId_candidacyId: { nominatorId, candidacyId: candidacy.id } },
+          });
+          if (already) continue;
 
-        if (existingNominations === 0) {
-          for (let n = 0; n < volume; n += 1) {
-            const nominatorId = nominatorIds[(candidacyCount * 7 + n * 3) % nominatorIds.length]!;
-            const already = await prisma.nomination.findUnique({
-              where: { nominatorId_candidacyId: { nominatorId, candidacyId: candidacy.id } },
-            });
-            if (already) continue;
-
-            await prisma.nomination.create({
-              data: {
-                reference: `PN-${season.year}-${String(++nominationCount).padStart(6, '0')}`,
-                candidacyId: candidacy.id,
-                nominatorId,
-                source: n % 3 === 0 ? 'referral' : 'organic',
-                referralSlug: n % 3 === 0 ? creatorSlug : null,
-                status: 'counted',
-                reason: REASONS[(candidacyCount + n) % REASONS.length]!,
-                verifiedAt: new Date(season.nominationsOpenAt!),
-                countedAt: new Date(season.nominationsOpenAt!),
-              },
-            });
-          }
-
-          await prisma.candidacy.update({
-            where: { id: candidacy.id },
+          await prisma.nomination.create({
             data: {
-              nominationCount: await prisma.nomination.count({
-                where: { candidacyId: candidacy.id },
-              }),
+              reference: `PN-${season.year}-${String(++nominationCount).padStart(6, '0')}`,
+              candidacyId: candidacy.id,
+              nominatorId,
+              source: n % 3 === 0 ? 'referral' : 'organic',
+              referralSlug: n % 3 === 0 ? creatorSlug : null,
+              status: 'counted',
+              reason: REASONS[(candidacyCount + n) % REASONS.length]!,
+              verifiedAt: new Date(season.nominationsOpenAt!),
+              countedAt: new Date(season.nominationsOpenAt!),
             },
           });
         }
 
-        // Panel scores, deterministic so the standings are reproducible.
+        await prisma.candidacy.update({
+          where: { id: candidacy.id },
+          data: {
+            nominationCount: await prisma.nomination.count({
+              where: { candidacyId: candidacy.id },
+            }),
+          },
+        });
+
+        // Panel scores. The chair sees the spread and scores nothing, so the
+        // scoring judges are the panel minus the chair.
+        const scoring = judgeIds.filter((id) => id !== chairId);
         const basis = kind === 'winner' ? 9 : 8 - index;
-        for (const [position, judgeId] of judgeIds.slice(0, 3).entries()) {
-          const assignment = await prisma.judgingAssignment.upsert({
-            where: { judgeId_candidacyId: { judgeId, candidacyId: candidacy.id } },
-            update: {},
-            create: {
+
+        for (const [position, judgeId] of scoring.entries()) {
+          const assignment = await prisma.judgingAssignment.create({
+            data: {
               judgeId,
               candidacyId: candidacy.id,
               categoryId,
@@ -433,33 +428,29 @@ async function main() {
             brand: clamp(basis),
           };
 
-          await prisma.judgingScore.upsert({
-            where: { assignmentId: assignment.id },
-            update: {},
-            create: {
+          await prisma.judgingScore.create({
+            data: {
               assignmentId: assignment.id,
               judgeId,
               candidacyId: candidacy.id,
               ...card,
               total: Object.values(card).reduce((sum, value) => sum + value, 0),
+              remarks:
+                'Assessed against the published criteria. Audience size discounted, as briefed.',
               submittedAt: issuedAt,
             },
           });
         }
 
-        const honour = await prisma.honour.upsert({
-          where: {
-            awardYearId_categoryId_creatorId_kind: { awardYearId, categoryId, creatorId, kind },
-          },
-          update: {},
-          create: {
+        const honour = await prisma.honour.create({
+          data: {
             awardYearId,
             categoryId,
             creatorId,
             candidacyId: candidacy.id,
             kind,
             position: index === 0 ? 1 : index,
-            citation: kind === 'winner' ? (CITATIONS[categorySlug] ?? null) : null,
+            citation: kind === 'winner' ? (citations[category.slug] ?? null) : null,
             announcedAt: issuedAt,
           },
         });
@@ -469,32 +460,28 @@ async function main() {
         const { signature, canonical } = signAchievement({
           code,
           creatorSlug,
-          creatorName: creator.displayName,
+          creatorName: creatorName(creatorSlug),
           categoryName: category.name,
           year: season.year,
           kind,
           issuedAt: issuedAt.toISOString(),
         });
 
-        const achievement = await prisma.achievement.upsert({
-          where: { honourId: honour.id },
-          update: {},
-          create: {
+        const achievement = await prisma.achievement.create({
+          data: {
             honourId: honour.id,
             creatorId,
             code,
             kind,
             year: season.year,
             categoryName: category.name,
-            creatorName: creator.displayName,
+            creatorName: creatorName(creatorSlug),
             issuedAt,
           },
         });
 
-        await prisma.verificationRecord.upsert({
-          where: { code },
-          update: {},
-          create: {
+        await prisma.verificationRecord.create({
+          data: {
             achievementId: achievement.id,
             code,
             signature,
@@ -505,38 +492,38 @@ async function main() {
       }
     }
   }
+
   console.log(
-    `  candidacies: ${candidacyCount}, nominations: ${nominationCount}, honours: ${honourCount}`,
+    `  judged: ${candidacyCount} candidacies, ${nominationCount} nominations, ${honourCount} honours, ${declined} category declined`,
   );
 
   // ── Journal ───────────────────────────────────────────────────────────────
+  const editorId = accounts.get('tom@palmaawards.com')!;
+  const editorName = people.find((person) => person.email === 'tom@palmaawards.com')!.name;
+
   for (const [position, category] of articleCategories.entries()) {
-    await prisma.articleCategory.upsert({
-      where: { slug: category.slug },
-      update: {},
-      create: { slug: category.slug, name: category.name, position },
+    await prisma.articleCategory.create({
+      data: { slug: category.slug, name: category.name, position },
     });
   }
 
   for (const article of articles) {
-    const category = article.categorySlug
-      ? await prisma.articleCategory.findUnique({ where: { slug: article.categorySlug } })
-      : null;
+    const category = await prisma.articleCategory.findUnique({
+      where: { slug: article.categorySlug },
+    });
 
-    await prisma.article.upsert({
-      where: { slug: article.slug },
-      update: {},
-      create: {
+    await prisma.article.create({
+      data: {
         slug: article.slug,
         title: article.title,
         standfirst: article.standfirst,
         body: article.body,
         status: 'published',
         categoryId: category?.id ?? null,
-        authorId: editor.id,
-        authorName: article.authorName,
-        readingMinutes: article.readingMinutes,
-        publishedAt: article.publishedAt ? new Date(article.publishedAt) : new Date(),
+        authorId: editorId,
+        authorName: editorName,
+        readingMinutes: readingMinutes(article.body),
+        publishedAt: new Date(article.publishedAt),
       },
     });
   }
@@ -547,10 +534,8 @@ async function main() {
   const currentSeasonId = seasonIds.get(currentSeason.year)!;
 
   for (const sponsor of sponsorSeeds) {
-    const record = await prisma.sponsor.upsert({
-      where: { slug: sponsor.slug },
-      update: {},
-      create: {
+    const record = await prisma.sponsor.create({
+      data: {
         slug: sponsor.slug,
         name: sponsor.name,
         summary: sponsor.summary,
@@ -558,57 +543,45 @@ async function main() {
       },
     });
 
-    const categorySlug =
-      sponsor.slug === 'holloway-finch'
-        ? 'best-new-creator'
-        : sponsor.slug === 'meridian-union'
-          ? 'business-of-creating'
-          : null;
-
-    const categoryId = categorySlug
-      ? (categoryIds.get(`${currentSeason.year}:${categorySlug}`) ?? null)
-      : null;
-
-    // A compound unique cannot be matched on a null member, so a sponsorship
-    // with no category is looked up rather than upserted.
-    const existing = await prisma.sponsorship.findFirst({
-      where: { sponsorId: record.id, awardYearId: currentSeasonId, categoryId },
+    await prisma.sponsorship.create({
+      data: {
+        sponsorId: record.id,
+        awardYearId: currentSeasonId,
+        categoryId: sponsor.categorySlug
+          ? (categoryIds.get(`${currentSeason.year}:${sponsor.categorySlug}`) ?? null)
+          : null,
+        tier: sponsor.tier,
+      },
     });
-
-    if (!existing) {
-      await prisma.sponsorship.create({
-        data: {
-          sponsorId: record.id,
-          awardYearId: currentSeasonId,
-          categoryId,
-          tier: sponsor.tier as Prisma.SponsorshipCreateInput['tier'],
-        },
-      });
-    }
   }
   console.log(`  sponsors: ${sponsorSeeds.length}`);
 
+  const adminId = accounts.get('sarah@palmaawards.com')!;
   await prisma.auditLog.create({
     data: {
       action: 'season.stage_changed',
       entityType: 'AwardYear',
       entityId: currentSeasonId,
-      actorId: admin.id,
+      actorId: adminId,
       actorRole: 'super_admin',
-      actorLabel: admin.email,
+      actorLabel: 'sarah@palmaawards.com',
       summary: `${currentSeason.title} seeded and opened for nominations`,
     },
   });
 
-  console.log('\n  Accounts (password from SEED_PASSWORD, default shown):');
-  console.log(`    admin@palmaawards.com   super_admin   ${DEMO_PASSWORD}`);
-  console.log(`    editor@palmaawards.com  editor        ${DEMO_PASSWORD}`);
-  console.log(`    chair@palmaawards.com   judge         ${DEMO_PASSWORD}`);
+  console.log(`\n  Accounts — password ${DEMO_PASSWORD}`);
+  for (const person of people) {
+    if (!person.email) {
+      console.log(`    ${'—'.padEnd(26)} ${person.name} (creator record, unclaimed)`);
+      continue;
+    }
+    const door =
+      person.role === 'judge' ? '/judge' : person.role === 'creator' ? '/sign-in' : '/staff';
+    console.log(
+      `    ${person.email.padEnd(26)} ${roleFor(person).padEnd(12)} ${door.padEnd(9)} ${person.name}`,
+    );
+  }
   console.log('\n· Done');
-}
-
-function clamp(value: number): number {
-  return Math.max(0, Math.min(10, Math.round(value)));
 }
 
 main()

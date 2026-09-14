@@ -28,14 +28,30 @@ development server writes the verification code to its own log so the flow can
 be exercised offline; in production the nomination is refused rather than the
 code silently dropped.
 
-Seeded accounts use the password in `SEED_PASSWORD` (default
-`Palma-Development-2027`):
+### The seeded cast
 
-| Account                  | Role          | Portal     |
-| ------------------------ | ------------- | ---------- |
-| `admin@palmaawards.com`  | `super_admin` | `/admin`   |
-| `editor@palmaawards.com` | `editor`      | `/portal`  |
-| `chair@palmaawards.com`  | `judge`       | `/judging` |
+Nine people, declared once in `prisma/seed-data.ts`. Each account signs in at
+its own door with the password in `SEED_PASSWORD` (default
+`Palma-Development-2027`) — a correct password at the wrong door creates no
+session.
+
+| Account                   | Role          | Door       | Lands at   |
+| ------------------------- | ------------- | ---------- | ---------- |
+| `sarah@palmaawards.com`   | `super_admin` | `/staff`   | `/admin`   |
+| `tom@palmaawards.com`     | `editor`      | `/staff`   | `/admin`   |
+| `nadia@palmaawards.com`   | `moderator`   | `/staff`   | `/admin`   |
+| `adaeze@palmaawards.com`  | `judge`       | `/judge`   | `/judging` |
+| `frances@palmaawards.com` | `judge`       | `/judge`   | `/judging` |
+| `marcus@palmaawards.com`  | `judge`       | `/judge`   | `/judging` |
+| `maya@example.com`        | `creator`     | `/sign-in` | `/portal`  |
+| `jordan@example.com`      | `creator`     | `/sign-in` | `/portal`  |
+
+The ninth is **Noor Haddad**, a creator record with no account: PALMA wrote it
+when she was first nominated and nobody holds it. That is what `/portal/claim`
+and the editorial claim queue exist to resolve.
+
+The seed is authoritative rather than additive — it clears what it owns before
+writing, so running it twice leaves exactly the dataset its file describes.
 
 ## Scripts
 

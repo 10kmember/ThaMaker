@@ -53,10 +53,13 @@ export function InkFill({
 
   return (
     <div ref={scope} className={cn('relative', className)}>
-      {/* The outline sits underneath, always. */}
-      <Tag aria-hidden="true" className="palma-ink-outline block">
+      {/* The outline sits underneath, always — and is a plain span rather than
+          a second copy of the heading tag. Hiding a duplicate <h1> from the
+          accessibility tree fixes what a screen reader hears and leaves the
+          document with two <h1> elements in it, which is still wrong. */}
+      <span aria-hidden="true" className="palma-ink-outline block">
         {children}
-      </Tag>
+      </span>
       {/* The ink is painted over it through a clipped gradient. Only this
           layer is read aloud, so the text is announced exactly once. */}
       <Tag data-ink-fill className="palma-ink-fill absolute inset-0 block">

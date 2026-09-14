@@ -34,6 +34,18 @@ export default async function HomePage() {
 
   const open = acceptsNominations(season.stage);
   const rollPreview = roll.flatMap((year) => year.entries).slice(0, 6);
+  // The Roll of Honour holds winners, so this is a count of PALMAs conferred —
+  // not of honours, which would also include finalist places.
+  const palmasConferred = roll.reduce((sum, year) => sum + year.entries.length, 0);
+
+  // Days until nominations close, counted here rather than written into copy,
+  // so the hero cannot go stale while the season is running.
+  const closesIn = season.nominationsCloseAt
+    ? Math.max(
+        0,
+        Math.ceil((new Date(season.nominationsCloseAt).getTime() - Date.now()) / 86_400_000),
+      )
+    : null;
   const lead = articles[0];
   const rest = articles.slice(1);
 
@@ -45,7 +57,7 @@ export default async function HomePage() {
           variant="line"
           className="text-ivory/[0.035] sm:text-ivory/[0.05] pointer-events-none absolute -top-6 -right-24 h-72 sm:-top-20 sm:-right-16 sm:h-160"
         />
-        <Container className="relative flex min-h-[78dvh] flex-col justify-center py-24 sm:py-32">
+        <Container className="relative flex min-h-[72dvh] flex-col justify-center py-20 sm:py-28">
           <Reveal variant="reveal" className="flex flex-col gap-10">
             <div className="flex flex-col gap-6">
               <span className="palma-label text-champagne">{season.title}</span>
@@ -69,6 +81,46 @@ export default async function HomePage() {
                 <Link href="/nominate">Nominate a creator</Link>
               </Button>
             </div>
+
+            {/* The state of the institution, counted live. The hero says what
+                is true this minute rather than what was true when it was
+                written. */}
+            <dl className="border-ivory/12 mt-2 flex flex-wrap gap-x-12 gap-y-5 border-t pt-8 sm:gap-x-16">
+              <div className="flex flex-col gap-1.5">
+                <dt className="palma-label text-ivory/40">Nominations</dt>
+                <dd className="font-display text-ivory text-2xl leading-none">
+                  {open ? 'Open' : STAGE_LABEL[season.stage]}
+                </dd>
+              </div>
+
+              {open && closesIn !== null ? (
+                <div className="flex flex-col gap-1.5">
+                  <dt className="palma-label text-ivory/40">Closing</dt>
+                  <dd className="font-display text-ivory text-2xl leading-none">
+                    {closesIn === 0 ? 'Today' : `${closesIn} days`}
+                  </dd>
+                </div>
+              ) : null}
+
+              <div className="flex flex-col gap-1.5">
+                <dt className="palma-label text-ivory/40">Categories</dt>
+                <dd className="font-display text-ivory text-2xl leading-none tabular-nums">
+                  {categories.length}
+                </dd>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <dt className="palma-label text-ivory/40">PALMAs conferred</dt>
+                <dd className="font-display text-ivory text-2xl leading-none tabular-nums">
+                  {palmasConferred}
+                </dd>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <dt className="palma-label text-ivory/40">Cost to nominate</dt>
+                <dd className="font-display text-ivory text-2xl leading-none">Free</dd>
+              </div>
+            </dl>
           </Reveal>
         </Container>
       </section>

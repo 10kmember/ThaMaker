@@ -1,12 +1,19 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { Notice } from '@/components/ui/feedback';
 import { StatGrid } from '@/components/admin/StatGrid';
+import { StatGridSkeleton } from '@/components/admin/Skeletons';
 import { PeriodFilter } from '@/components/admin/PeriodFilter';
 import { AdvanceSeasonForm } from '@/components/admin/AdminForms';
 import { buildMetadata } from '@/lib/seo';
 import { requirePermission } from '@/lib/auth/guards';
-import { can } from '@/lib/auth/rbac';
-import { getCommandCentre, isPeriod, PERIOD_LABEL } from '@/server/data/command-centre';
+import { can, type Role } from '@/lib/auth/rbac';
+import {
+  getCommandCentre,
+  isPeriod,
+  PERIOD_LABEL,
+  type Period,
+} from '@/server/data/command-centre';
 import { getSystemHealth } from '@/server/data/system-health';
 import { greeting } from '@/lib/judging-nav';
 import { STAGE_LABEL, type SeasonStage } from '@/domain/season';
@@ -30,12 +37,49 @@ export default async function CommandCentrePage({
   const { period: raw } = await searchParams;
   const period = isPeriod(raw) ? raw : '30d';
 
+  const firstName = session.user.name.split(' ')[0] ?? session.user.name;
+
+  // The greeting and the period filter do not wait on a single count. The
+  // figures stream in behind them, shaped by skeletons so nothing reflows.
+  return (
+    <>
+      <div className="flex flex-col gap-3">
+        <span className="palma-label text-taupe-deep">Command centre</span>
+        <h1 className="text-4xl">
+          {greeting()}, {firstName}.
+        </h1>
+        <p className="text-taupe-deep max-w-160 leading-relaxed">
+          Figures below cover{' '}
+          <strong className="text-ink">{PERIOD_LABEL[period].toLowerCase()}</strong>.
+        </p>
+      </div>
+
+      <div className="border-stone-deep mt-10 border-b pb-5">
+        <PeriodFilter period={period} basePath="/admin" />
+      </div>
+
+      <Suspense
+        fallback={
+          <div className="mt-12 flex flex-col gap-14">
+            <StatGridSkeleton title="Creators" count={8} />
+            <StatGridSkeleton title="Awards" count={6} />
+            <StatGridSkeleton title="Operations" count={6} />
+            <StatGridSkeleton title="Platform" count={6} />
+          </div>
+        }
+      >
+        <Figures period={period} role={session.user.role} />
+      </Suspense>
+    </>
+  );
+}
+
+async function Figures({ period, role }: { period: Period; role: Role }) {
   const [centre, health] = await Promise.all([
     getCommandCentre(period),
-    can(session.user.role, 'admin:manage_system') ? getSystemHealth() : Promise.resolve(null),
+    can(role, 'admin:manage_system') ? getSystemHealth() : Promise.resolve(null),
   ]);
 
-  const firstName = session.user.name.split(' ')[0] ?? session.user.name;
   const { creators, awards, operations, platform } = centre;
 
   const outstanding =
@@ -48,20 +92,12 @@ export default async function CommandCentrePage({
 
   return (
     <>
-      <div className="flex flex-col gap-3">
-        <span className="palma-label text-taupe-deep">Command centre</span>
-        <h1 className="text-4xl">
-          {greeting()}, {firstName}.
-        </h1>
-        <p className="text-taupe-deep max-w-160 leading-relaxed">
-          {outstanding === 0
-            ? 'Nothing is waiting on a person across the institution.'
-            : `${outstanding} item${outstanding === 1 ? '' : 's'} across the queues need a decision.`}{' '}
-          Figures below cover{' '}
-          <strong className="text-ink">{PERIOD_LABEL[period].toLowerCase()}</strong>
-          {centre.since ? ` — since ${formatDate(centre.since)}` : ''}.
-        </p>
-      </div>
+      <p className="text-taupe-deep mt-10 max-w-160 leading-relaxed">
+        {outstanding === 0
+          ? 'Nothing is waiting on a person across the institution.'
+          : `${outstanding} item${outstanding === 1 ? '' : 's'} across the queues need a decision.`}
+        {centre.since ? ` Counted since ${formatDate(centre.since)}.` : ''}
+      </p>
 
       {degraded.length > 0 ? (
         <Notice tone="warning" title="A service is not healthy" className="mt-8">
@@ -72,10 +108,6 @@ export default async function CommandCentrePage({
           .
         </Notice>
       ) : null}
-
-      <div className="border-stone-deep mt-10 border-b pb-5">
-        <PeriodFilter period={period} basePath="/admin" />
-      </div>
 
       <div className="mt-12 flex flex-col gap-14">
         <StatGrid
@@ -194,7 +226,7 @@ export default async function CommandCentrePage({
         />
       </div>
 
-      {awards && can(session.user.role, 'admin:manage_seasons') ? (
+      {awards && can(role, 'admin:manage_seasons') ? (
         <section className="border-stone-deep mt-16 border-t pt-10">
           <h3 className="palma-label text-taupe-deep mb-6">Advance the season</h3>
           <div className="max-w-140">

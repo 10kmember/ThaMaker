@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Amatic_SC, Fraunces, Inter } from 'next/font/google';
+import { headers } from 'next/headers';
 import { SiteHeader } from '@/components/palma/SiteHeader';
 import { SiteFooter } from '@/components/palma/SiteFooter';
 import { MotionProvider } from '@/components/motion/MotionProvider';
@@ -65,7 +66,22 @@ export const viewport: Viewport = {
   colorScheme: 'light dark',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+/**
+ * Surfaces that carry their own furniture.
+ *
+ * An operator's dashboard has no business wearing the public site's marketing
+ * navigation: "Nominate a creator" above a judging room is noise, and the
+ * footer's full sitemap under an audit log is worse. These surfaces bring
+ * their own shell, so the root layout stands back.
+ */
+const SELF_CONTAINED = ['/admin', '/judging', '/portal'];
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const pathname = (await headers()).get('x-palma-pathname') ?? '/';
+  const chrome = !SELF_CONTAINED.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+
   return (
     <html lang="en-GB" className={`${display.variable} ${sans.variable} ${annotation.variable}`}>
       <head>
@@ -81,11 +97,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to content
         </a>
         <MotionProvider>
-          <SiteHeader />
+          {chrome ? <SiteHeader /> : null}
           <main id="main" className="flex-1">
             {children}
           </main>
-          <SiteFooter />
+          {chrome ? <SiteFooter /> : null}
         </MotionProvider>
         <JsonLd data={organisationJsonLd()} />
       </body>
