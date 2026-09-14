@@ -20,9 +20,7 @@ describe('reading a pasted list', () => {
       city: 'Accra',
       headline: 'Documentary shorts',
     });
-    expect(plan.rows[0]!.links).toEqual([
-      { label: 'YouTube', url: 'https://youtube.com/@ama' },
-    ]);
+    expect(plan.rows[0]!.links).toEqual([{ label: 'YouTube', url: 'https://youtube.com/@ama' }]);
   });
 
   it('takes commas, and keeps a comma inside a quoted headline', () => {

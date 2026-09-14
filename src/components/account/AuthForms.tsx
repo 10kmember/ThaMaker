@@ -6,11 +6,7 @@ import { Button } from '@/components/ui/button';
 import { CheckboxField, Field, Input } from '@/components/ui/form';
 import { Notice } from '@/components/ui/feedback';
 import { register, signIn, type AuthState } from '@/server/actions/auth';
-import {
-  requestPasswordReset,
-  resetPassword,
-  type PasswordState,
-} from '@/server/actions/password';
+import { requestPasswordReset, resetPassword, type PasswordState } from '@/server/actions/password';
 
 const initial: AuthState = { status: 'idle' };
 

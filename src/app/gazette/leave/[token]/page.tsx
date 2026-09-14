@@ -20,11 +20,7 @@ export const metadata = buildMetadata({
  * unsubscribe has already decided, and the extra step is how a mailing list
  * gets reported as spam instead.
  */
-export default async function LeaveGazettePage({
-  params,
-}: {
-  params: Promise<{ token: string }>;
-}) {
+export default async function LeaveGazettePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const result = await leaveGazette(token);
 

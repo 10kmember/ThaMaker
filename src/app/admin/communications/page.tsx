@@ -147,7 +147,9 @@ export default async function CommunicationsPage() {
           <Stat label="Left" value={overview.gazette.unsubscribed} />
           <Stat
             label="Last issue"
-            value={overview.gazette.lastIssueAt ? formatShortDate(overview.gazette.lastIssueAt) : '—'}
+            value={
+              overview.gazette.lastIssueAt ? formatShortDate(overview.gazette.lastIssueAt) : '—'
+            }
           />
         </div>
 

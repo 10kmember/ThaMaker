@@ -81,7 +81,9 @@ describe('what a person may switch off', () => {
     const consequential = TEMPLATE_LIST.filter((template) => template.important);
     expect(consequential.length).toBeGreaterThan(0);
     for (const template of consequential) {
-      expect(template.dossier, `${template.key} is important but keeps no Dossier entry`).toBe(true);
+      expect(template.dossier, `${template.key} is important but keeps no Dossier entry`).toBe(
+        true,
+      );
     }
   });
 

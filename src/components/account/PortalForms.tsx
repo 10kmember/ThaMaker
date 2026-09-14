@@ -110,7 +110,9 @@ export function LinksForm({ defaults }: { defaults: { label: string; url: string
   // Controlled, because removing a row from an uncontrolled list leaves the
   // browser's values behind and everything below shifts up by one.
   const set = (key: string, field: 'label' | 'url', value: string) =>
-    setRows((current) => current.map((row) => (row.key === key ? { ...row, [field]: value } : row)));
+    setRows((current) =>
+      current.map((row) => (row.key === key ? { ...row, [field]: value } : row)),
+    );
 
   return (
     <form action={action} className="flex flex-col gap-6">

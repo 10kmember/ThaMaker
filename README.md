@@ -71,6 +71,7 @@ writing, so running it twice leaves exactly the dataset its file describes.
 | `npm run test:integration` | Awards-engine tests against PostgreSQL                 |
 | `npm run db:push`          | Apply the Prisma schema                                |
 | `npm run db:seed`          | Load the seed dataset into PostgreSQL                  |
+| `npm run retention`        | Run the data-retention sweep by hand                   |
 
 ## One source of truth
 

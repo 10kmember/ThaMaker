@@ -814,7 +814,9 @@ export function sendEnforcementNotice(input: {
     subject: input.restored ? 'Your PALMA account has been restored' : input.headline,
     html: shell({
       mailbox: 'concerns',
-      preheader: input.restored ? 'The restriction is lifted.' : 'What was done, why, and the appeal.',
+      preheader: input.restored
+        ? 'The restriction is lifted.'
+        : 'What was done, why, and the appeal.',
       body: [
         lede(input.restored ? 'The restriction is lifted.' : input.headline),
         aside({
@@ -930,7 +932,11 @@ export function sendNominationReceipt(input: {
           ['Reference', input.reference],
           ['Season', `PALMA ${input.year}`],
         ]),
-        action({ href: `${siteUrl}/awards/${input.year}`, label: 'Follow the season', tone: 'olive' }),
+        action({
+          href: `${siteUrl}/awards/${input.year}`,
+          label: 'Follow the season',
+          tone: 'olive',
+        }),
       ].join('\n'),
     }),
     text: plain([

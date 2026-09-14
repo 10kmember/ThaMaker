@@ -7,6 +7,7 @@ import {
   entranceForPath,
   entranceForRole,
   homeForRole,
+  housedAt,
 } from '@/lib/auth/entrances';
 import { ROLES, type Role } from '@/lib/auth/rbac';
 
@@ -15,11 +16,11 @@ import { ROLES, type Role } from '@/lib/auth/rbac';
  * assertions are about one thing rather than two that can drift apart.
  */
 describe('the four surfaces', () => {
-  it('gives every role exactly one path', () => {
+  it('houses every role at exactly one path', () => {
     for (const role of ROLES) {
       if (role === 'visitor') continue;
-      const doors = ENTRANCE_LIST.filter((entrance) => admits(entrance, role));
-      expect(doors, `${role} is admitted at ${doors.length} paths`).toHaveLength(1);
+      const homes = ENTRANCE_LIST.filter((entrance) => housedAt(entrance, role));
+      expect(homes, `${role} lives at ${homes.length} paths`).toHaveLength(1);
     }
   });
 
@@ -45,20 +46,46 @@ describe('the four surfaces', () => {
     expect(paths).toEqual(['/creator', '/judge', '/portal', '/admin']);
   });
 
-  it('never admits one role at another role’s path', () => {
-    const matrix: [Role, string][] = [
-      ['creator', '/creator'],
-      ['judge', '/judge'],
-      ['moderator', '/portal'],
-      ['admin', '/admin'],
-      ['super_admin', '/admin'],
-    ];
+  /**
+   * Living somewhere and being let in are different questions, and the one
+   * place they legitimately come apart is moderation: an administrator holds
+   * every moderator permission and their own sidebar links straight at those
+   * queues, so bouncing them would break the page that sent them.
+   */
+  it('admits each role at its own path, and administrators at the desk', () => {
+    const admitted: Record<Role, string[]> = {
+      visitor: [],
+      creator: ['/creator'],
+      judge: ['/judge'],
+      moderator: ['/portal'],
+      admin: ['/portal', '/admin'],
+      super_admin: ['/portal', '/admin'],
+    };
 
-    for (const [role, path] of matrix) {
-      for (const entrance of ENTRANCE_LIST) {
-        expect(admits(entrance, role), `${role} at ${entrance.path}`).toBe(entrance.path === path);
+    for (const role of ROLES) {
+      const paths = ENTRANCE_LIST.filter((entrance) => admits(entrance, role)).map(
+        (entrance) => entrance.path,
+      );
+      expect(paths.sort(), `${role}`).toEqual([...admitted[role]].sort());
+    }
+  });
+
+  it('never lets a creator or a judge into an operator surface', () => {
+    for (const role of ['creator', 'judge'] as const) {
+      for (const key of ['moderator', 'admin'] as const) {
+        expect(admits(ENTRANCES[key], role), `${role} at ${ENTRANCES[key].path}`).toBe(false);
       }
     }
+  });
+
+  it('never lets a moderator into administration', () => {
+    expect(admits(ENTRANCES.admin, 'moderator')).toBe(false);
+  });
+
+  it('sends an administrator home to /admin even though the desk admits them', () => {
+    expect(admits(ENTRANCES.moderator, 'admin')).toBe(true);
+    expect(housedAt(ENTRANCES.moderator, 'admin')).toBe(false);
+    expect(homeForRole('admin')).toBe('/admin');
   });
 
   it('falls back to the creator surface for a visitor', () => {

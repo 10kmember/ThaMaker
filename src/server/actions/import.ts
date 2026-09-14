@@ -29,7 +29,13 @@ export type ImportState = {
   status: 'idle' | 'error' | 'preview' | 'success';
   message?: string;
   preview?: {
-    rows: { line: number; displayName: string; countryCode: string; links: number; exists: boolean }[];
+    rows: {
+      line: number;
+      displayName: string;
+      countryCode: string;
+      links: number;
+      exists: boolean;
+    }[];
     problems: { line: number; detail: string }[];
     writable: number;
   };
@@ -186,7 +192,9 @@ export async function commitCreatorImport(
   return {
     status: 'success',
     message: `${written} record${written === 1 ? '' : 's'} created, unclaimed and unpublished.${
-      skipped > 0 ? ` ${skipped} already existed and ${skipped === 1 ? 'was' : 'were'} left alone.` : ''
+      skipped > 0
+        ? ` ${skipped} already existed and ${skipped === 1 ? 'was' : 'were'} left alone.`
+        : ''
     }`,
   };
 }

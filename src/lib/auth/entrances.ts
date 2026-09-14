@@ -17,8 +17,21 @@ import type { Role } from './rbac';
  * creator whose account PALMA has *also* given a role — so they reach their
  * desk by typing its path, and their creator record still lives at /creator.
  *
+ * Two questions, deliberately kept apart:
+ *
+ *   `roles`      who *lives* here. Exactly one entrance per role, and this is
+ *                what decides where an account lands after signing in.
+ *   `alsoAdmits` who may *walk in*. An administrator holds every moderator
+ *                permission, so the moderation queues are theirs to open —
+ *                but their home is still /admin, because a dashboard that is
+ *                mostly things you cannot use is worse than a short one that
+ *                is entirely yours.
+ *
+ * Conflating the two is how /portal/claims ends up bouncing the administrator
+ * whose own sidebar linked them to it.
+ *
  * RBAC decides what a signed-in account may do. This decides only where it
- * lives.
+ * lives, and which doors it may walk through.
  */
 
 export type EntranceKey = 'creator' | 'judge' | 'moderator' | 'admin';
@@ -30,8 +43,13 @@ export type Entrance = {
   title: string;
   eyebrow: string;
   standfirst: string;
-  /** Roles admitted here. Nothing else gets a session at this door. */
+  /** Roles that live here. Exactly one entrance per role. */
   roles: readonly Role[];
+  /**
+   * Roles admitted but housed elsewhere. They may open every page here; they
+   * are simply not sent here when they sign in.
+   */
+  alsoAdmits?: readonly Role[];
 };
 
 export const ENTRANCES = {
@@ -60,6 +78,9 @@ export const ENTRANCES = {
     eyebrow: 'PALMA operations',
     standfirst: 'The moderation desk: creator records, claims, age verification and reports.',
     roles: ['moderator'],
+    // The same pages, not a second copy of them: an administrator holds every
+    // moderator permission and their sidebar links straight here.
+    alsoAdmits: ['admin', 'super_admin'],
   },
   admin: {
     key: 'admin',
@@ -74,13 +95,20 @@ export const ENTRANCES = {
 
 export const ENTRANCE_LIST: Entrance[] = Object.values(ENTRANCES);
 
+/** May this role open pages here? */
 export function admits(entrance: Entrance, role: Role): boolean {
+  if ((entrance.roles as readonly Role[]).includes(role)) return true;
+  return Boolean(entrance.alsoAdmits?.includes(role));
+}
+
+/** Does this role *live* here? Only ever true for one entrance. */
+export function housedAt(entrance: Entrance, role: Role): boolean {
   return (entrance.roles as readonly Role[]).includes(role);
 }
 
 /** The path this role belongs at. Every role has exactly one. */
 export function entranceForRole(role: Role): Entrance {
-  return ENTRANCE_LIST.find((entrance) => admits(entrance, role)) ?? ENTRANCES.creator;
+  return ENTRANCE_LIST.find((entrance) => housedAt(entrance, role)) ?? ENTRANCES.creator;
 }
 
 /** Where a role lands. The same thing as its door — that is the point. */

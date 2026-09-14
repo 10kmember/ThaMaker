@@ -8,11 +8,7 @@ export const gazetteSubscribeSchema = z.object({
 
 /** Composing an issue. Sent to confirmed subscribers, and to nobody else. */
 export const gazetteIssueSchema = z.object({
-  subject: z
-    .string()
-    .trim()
-    .min(8, 'Give the issue a subject of at least 8 characters.')
-    .max(160),
+  subject: z.string().trim().min(8, 'Give the issue a subject of at least 8 characters.').max(160),
   standfirst: z
     .string()
     .trim()

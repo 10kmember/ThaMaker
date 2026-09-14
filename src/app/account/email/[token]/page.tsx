@@ -15,11 +15,7 @@ export const metadata = buildMetadata({
   noIndex: true,
 });
 
-export default async function ConfirmEmailPage({
-  params,
-}: {
-  params: Promise<{ token: string }>;
-}) {
+export default async function ConfirmEmailPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const result = await confirmEmailChange(token);
 

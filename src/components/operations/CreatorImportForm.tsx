@@ -66,7 +66,13 @@ export function CreatorImportForm() {
               />
             </Field>
 
-            <Button type="submit" variant="outline" size="md" disabled={previewing} className="self-start">
+            <Button
+              type="submit"
+              variant="outline"
+              size="md"
+              disabled={previewing}
+              className="self-start"
+            >
               {previewing ? 'Reading…' : 'Preview the import'}
             </Button>
           </form>
@@ -128,17 +134,26 @@ export function CreatorImportForm() {
           ) : null}
 
           {plan && plan.writable > 0 ? (
-            <form action={commitAction} className="border-stone-deep flex flex-col gap-5 border-t pt-8">
+            <form
+              action={commitAction}
+              className="border-stone-deep flex flex-col gap-5 border-t pt-8"
+            >
               <input type="hidden" name="rows" value={rows} />
 
               <Notice tone="warning" title="What this writes">
                 {plan.writable} unclaimed, unpublished record{plan.writable === 1 ? '' : 's'}. Names
-                already in the archive are left alone — an import never overwrites a record
-                somebody may hold. Nothing becomes public until a moderator publishes it.
+                already in the archive are left alone — an import never overwrites a record somebody
+                may hold. Nothing becomes public until a moderator publishes it.
               </Notice>
 
               <Field htmlFor="confirm" label="Type IMPORT to confirm" required>
-                <Input id="confirm" name="confirm" required autoComplete="off" placeholder="IMPORT" />
+                <Input
+                  id="confirm"
+                  name="confirm"
+                  required
+                  autoComplete="off"
+                  placeholder="IMPORT"
+                />
               </Field>
 
               <Button type="submit" size="md" disabled={committing} className="self-start">

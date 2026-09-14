@@ -138,8 +138,7 @@ export async function resetPassword(
     include: { user: { select: { id: true, email: true, role: true, isActive: true } } },
   });
 
-  const usable =
-    record && !record.usedAt && record.expiresAt > new Date() && record.user.isActive;
+  const usable = record && !record.usedAt && record.expiresAt > new Date() && record.user.isActive;
 
   if (!usable) {
     return {

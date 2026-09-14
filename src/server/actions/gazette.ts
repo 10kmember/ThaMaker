@@ -10,11 +10,7 @@ import { gazetteIssueSchema, gazetteSubscribeSchema } from '@/lib/validation/gaz
 import { recordAudit } from '@/server/audit';
 import { prisma } from '@/server/db';
 import { RATE_LIMITS, enforceRateLimit } from '@/server/rate-limit';
-import {
-  sendGazetteConfirm,
-  sendGazetteIssue,
-  sendGazetteWelcome,
-} from '@/server/email/gazette';
+import { sendGazetteConfirm, sendGazetteIssue, sendGazetteWelcome } from '@/server/email/gazette';
 
 /**
  * The Gazette.

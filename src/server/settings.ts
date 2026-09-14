@@ -32,7 +32,9 @@ export type VerificationConfig = {
   updatedBy: string | null;
 };
 
-async function readSetting(key: string): Promise<{ value: string; updatedAt: Date; updatedById: string | null } | null> {
+async function readSetting(
+  key: string,
+): Promise<{ value: string; updatedAt: Date; updatedById: string | null } | null> {
   return prisma.systemSetting.findUnique({
     where: { key },
     select: { value: true, updatedAt: true, updatedById: true },

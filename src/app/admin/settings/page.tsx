@@ -127,11 +127,18 @@ export default async function SettingsPage() {
           <dl className="border-stone-deep flex h-fit flex-col border p-6">
             <div className="border-stone-deep/60 flex items-baseline justify-between gap-6 border-b py-3">
               <dt className="text-taupe-deep text-sm">Selected</dt>
-              <dd className="text-sm">{verification.mode === 'automatic' ? 'Automatic' : 'Manual'}</dd>
+              <dd className="text-sm">
+                {verification.mode === 'automatic' ? 'Automatic' : 'Manual'}
+              </dd>
             </div>
             <div className="border-stone-deep/60 flex items-baseline justify-between gap-6 border-b py-3">
               <dt className="text-taupe-deep text-sm">In force</dt>
-              <dd className={cn('text-sm', verification.effective !== verification.mode && 'text-champagne-deep')}>
+              <dd
+                className={cn(
+                  'text-sm',
+                  verification.effective !== verification.mode && 'text-champagne-deep',
+                )}
+              >
                 {verification.effective === 'automatic' ? 'Automatic' : 'Manual'}
               </dd>
             </div>
@@ -170,8 +177,8 @@ export default async function SettingsPage() {
           <Notice className="mt-8" tone="warning" title="The stub provider is named">
             <code className="font-mono text-xs">AGE_VERIFICATION_PROVIDER=stub</code> performs no
             assurance at all. Manual review is in force, so this is currently harmless — but a
-            deployment that switches to automatic while the stub is named would record checks
-            nobody made. Name a real provider before contracting one.
+            deployment that switches to automatic while the stub is named would record checks nobody
+            made. Name a real provider before contracting one.
           </Notice>
         ) : null}
       </section>

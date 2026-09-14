@@ -15,7 +15,13 @@ import { changePassword, type PasswordState } from '@/server/actions/password';
 const accountInitial: AccountState = { status: 'idle' };
 const passwordInitial: PasswordState = { status: 'idle' };
 
-function Feedback({ state, title }: { state: { status: string; message?: string }; title: string }) {
+function Feedback({
+  state,
+  title,
+}: {
+  state: { status: string; message?: string };
+  title: string;
+}) {
   if (state.status === 'idle' || !state.message) return null;
   return (
     <Notice

@@ -527,22 +527,146 @@ ineligible with a written reason, and the audit log records who did so and why.
 - Nominators hold no account and no profile — an address, a verification
   timestamp, and the nominations made from it.
 
+## What PALMA sends
+
+Every message goes through one dispatcher (`src/server/email/dispatch.ts`).
+Nothing calls the provider directly, which buys three things: a delivery record
+written **before** the provider is called, so a failure is as visible as a
+success; preferences enforced in one place rather than at fifteen call sites
+where the fifteenth will forget; and a Dossier entry written whether or not the
+email went.
+
+### Four mailboxes, and no noreply
+
+| Mailbox                     | Writes about                                        |
+| --------------------------- | --------------------------------------------------- |
+| `laurels@palmaawards.com`   | The record — honours, seasons, results, the Gazette |
+| `concierge@palmaawards.com` | The desk — accounts, claims, records, verification  |
+| `security@palmaawards.com`  | Passwords, addresses, sessions                      |
+| `concerns@palmaawards.com`  | Enforcement, complaints and appeals                 |
+
+There is no `noreply@`, here or in the legal register. An institution that
+writes to you and refuses to be written back to is issuing notices, not
+corresponding — and the moment a person most needs to reply is the moment
+something has gone wrong. Every published address accepts replies.
+
+### What a person may switch off
+
+The register (`src/server/email/register.ts`) declares every template once, and
+the `gate` field is the honest part. A template gated `always` is one of three
+things — a security notice, a decision about that person's own record, or
+something they asked for thirty seconds ago — and it is sent regardless of
+preferences. An account that can mute the news that its honour was revoked is
+not being kept informed, it is being managed. A test asserts the list.
+
+### The Dossier
+
+`/dossier`, for every role. Everything PALMA has told this account, kept. It is
+the one authenticated page deliberately outside a role surface: it asks whether
+there is a session and never what the account _is_, which makes it the cheapest
+page on the site and means the link in every email footer resolves for a judge,
+a moderator and a creator alike.
+
+Filing an entry away is not deleting it, and an unread consequential entry
+cannot be filed at all. PALMA does not offer a way to destroy the notice that
+it did something to you.
+
+### The Gazette
+
+`/gazette`, and in the footer of every page. Double opt-in without exception:
+single opt-in means anyone can sign up anybody, which is how a mailing list
+becomes a way to harass somebody with a newsletter. Nothing is sent to an
+address that has not opened the confirmation.
+
+Leaving is one click from any issue — no sign-in, no confirmation screen, no
+survey. The unsubscribe link is an HMAC of the subscription id under the
+signing secret rather than a stored column: stable for the life of the
+subscription, unguessable without the secret, and no second column to keep in
+step with the first.
+
+Issues go one message per subscriber rather than one BCC. A single message to
+hundreds of addresses leaks the whole list to every recipient.
+
+### Reading it back
+
+`/admin/communications` — totals, failures first, the template register, the
+Gazette's numbers, and the composer. An institution that cannot say whether it
+told someone has not told them.
+
+## Getting back in
+
+There is a password reset at `/forgot`. A link lasts one hour and works once;
+asking for a second cancels the first; spending one revokes **every** session
+on the account, which is the point of it — if somebody else was signed in as
+you, that is the moment they stop being.
+
+The response is the same sentence whether or not the address has an account, so
+the form cannot be used to find out who is registered. A closed account gets
+that same sentence and no email.
+
+`/account` carries the rest: change the password (the current one is required
+even though the session already proves possession — a borrowed unlocked laptop
+proves possession too), move the address, see and evict sessions, close the
+account.
+
+A change of address is confirmed **from the new address** and announced **to
+the old one**. Losing an inbox should not silently lose somebody their account.
+
+Closing deletes the sign-in, the sessions, the Dossier and the preferences, and
+leaves the creator record unclaimed again with every honour on it intact. An
+award somebody can erase by clicking a button was never an award. Accounts
+holding a PALMA role are closed by an administrator, not by self-service —
+removing the last administrator through a form is not a thing a system should
+allow.
+
+## Presetting the archive
+
+`/portal/creators/import` takes a pasted list — tab-separated from a
+spreadsheet, or CSV — and writes unclaimed, unpublished records ready to be
+claimed. Preview first, then type IMPORT.
+
+Four things it will not do, each for a reason:
+
+- **Publish.** Every imported record is an unpublished stub. A bulk route that
+  could publish is one that eventually publishes something nobody read.
+- **Overwrite.** A name already in the archive is reported and skipped. Import
+  must never be a way to quietly rewrite a record somebody holds.
+- **Claim.** Imported records are unclaimed, which is what makes them
+  claimable.
+- **Guess.** A line it cannot read is reported with its number rather than
+  half-imported.
+
+## Retention, applied
+
+A period nobody enforces is not a policy. `src/server/services/retention.ts`
+holds the rules and the sweep that applies them; `/admin/settings` shows both
+and can run it by hand.
+
+In production, schedule it: `POST /api/cron/retention` with
+`Authorization: Bearer $CRON_SECRET`. Without `CRON_SECRET` the route refuses
+everything — an unauthenticated endpoint that deletes rows is worse than no
+endpoint, so it fails closed.
+
+The sweep never touches the institutional record. Creator records, honours,
+achievements, verification records and the audit log are permanent, because an
+award that expires after two years was not an award. Everything it removes is
+operational exhaust: spent tokens, ended sessions, rolled-over counters, and
+personal data PALMA has no remaining reason to hold.
+
+It is audited even when it removes nothing. "The job ran and found nothing" and
+"the job never ran" must not look the same.
+
 ## What is not built yet
 
 Written down rather than discovered later. `/admin/health` says the same thing
 about the parts a deployment can check for itself; this is the rest.
 
-| Gap                              | What it means today                                                                                                                                                                    |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Password reset**               | There is no forgot-password route. An account that loses its password has no way back in without a person.                                                                             |
-| **Transactional email**          | Two messages exist — the nomination code and the nomination receipt. Nothing is sent on claim decisions, publication, verification outcomes, honours, panel assignment or enforcement. |
-| **Notification preferences**     | Stored on `/creator` and read by nothing, because there is nothing yet to suppress.                                                                                                    |
-| **Communications**               | Section 12 of the administration spec. No sent-mail record, no delivery state, no template register.                                                                                   |
-| **Bulk creator import**          | Records are written one at a time at `/portal/creators/new`. Presetting an archive of hundreds is not practical yet.                                                                   |
-| **Two-factor authentication**    | Not available, on any role — including the accounts that can revoke an honour.                                                                                                         |
-| **Scheduled retention deletion** | Retention periods are published and applied by hand.                                                                                                                                   |
-| **Third-party age assurance**    | `AGE_VERIFICATION_PROVIDER` is `stub` by default. A real deployment must set `manual` until a provider is contracted, or it records assurance nobody performed.                        |
-| **Account self-service**         | A creator cannot change their email address or close their account without asking PALMA.                                                                                               |
+| Gap                           | What it means today                                                                                                                                                                                               |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Two-factor authentication** | Not offered, on any role — including the accounts that can confer or revoke an honour. A deliberate deferral rather than an oversight; `/account` says so plainly rather than showing a switch that does nothing. |
+| **A contracted age provider** | Both routes are built and the switch is in `/admin/settings`, but no provider is contracted, so manual review is in force. Adding one is: set the key, restart, switch.                                           |
+| **Gazette archive**           | Issues are sent but not published anywhere. A reader who joins today cannot read the last one.                                                                                                                    |
+| **Bounce handling**           | A delivery is recorded as sent when the provider accepts it. A later bounce is not fed back, so a dead address stays "sent" for ever.                                                                             |
 
 None of these are silent. The stub provider and the retention job are reported
 on `/admin/health`; the rest are listed here because a gap nobody wrote down is
