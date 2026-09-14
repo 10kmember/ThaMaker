@@ -2,14 +2,28 @@
 # https://www.rfc-editor.org/rfc/rfc9116
 
 Contact: mailto:security@palmaawards.com
+Contact: https://palmaawards.com/report
 Expires: 2027-12-31T23:59:59.000Z
 Preferred-Languages: en
 Canonical: https://palmaawards.com/.well-known/security.txt
-Policy: https://palmaawards.com/about/policy
+Policy: https://palmaawards.com/legal/terms
+Hiring: https://palmaawards.com/press
 
 # PALMA holds a permanent public record of achievement. Reports that concern
 # the integrity of that record — forged verification, tampered honours,
-# nomination manipulation — are treated as the highest severity.
+# nomination manipulation, or any route to reading confidential judging scores
+# — are treated as the highest severity, above conventional application bugs.
 #
-# Please do not test against live nomination or judging data. Ask us for an
-# isolated environment and we will provide one.
+# Also of high interest: anything that lets one account reach another's Dossier,
+# claim a creator record it does not control, or reach an operator surface
+# (/admin, /portal, /judge) without the corresponding role.
+#
+# Please do not test against live nomination or judging data, and do not
+# attempt to access any real person's verification case. Ask us for an isolated
+# environment and we will provide one.
+#
+# PALMA stores no identity documents and no raw IP addresses. If you believe you
+# have found either in our systems, tell us immediately — that is a finding in
+# itself.
+#
+# Every address PALMA publishes accepts replies. There is no noreply@.

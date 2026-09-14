@@ -1,0 +1,203 @@
+import 'server-only';
+import { prisma } from '@/server/db';
+import { recordAudit, type AuditActor } from '@/server/audit';
+
+/**
+ * Retention, applied rather than published.
+ *
+ * PALMA's privacy notice states how long things are kept. A period nobody
+ * enforces is not a retention policy, it is a sentence — so this is the job
+ * that makes the notice true.
+ *
+ * What it deliberately does *not* touch: the institutional record. Creator
+ * records, honours, achievements, verification records and the audit log are
+ * permanent by design, because an award that expires after two years was not
+ * an award. Everything here is operational exhaust — tokens that have been
+ * spent, sessions that have ended, counters that have rolled over, and
+ * personal data PALMA has no remaining reason to hold.
+ */
+
+export type RetentionRule = {
+  key: string;
+  /** What it removes, in the operator's words. */
+  description: string;
+  days: number;
+};
+
+const DAY = 24 * 60 * 60 * 1000;
+
+export const RETENTION_RULES: RetentionRule[] = [
+  {
+    key: 'auth_sessions',
+    description: 'Expired and revoked sign-in sessions.',
+    days: 30,
+  },
+  {
+    key: 'password_resets',
+    description: 'Spent and expired password reset links.',
+    days: 7,
+  },
+  {
+    key: 'email_changes',
+    description: 'Completed, cancelled and expired address-change requests.',
+    days: 30,
+  },
+  {
+    key: 'rate_limits',
+    description: 'Rate-limit counters whose window has closed.',
+    days: 2,
+  },
+  {
+    key: 'gazette_left',
+    description:
+      'Addresses that unsubscribed from the Gazette. Kept briefly to honour the unsubscribe, then removed entirely.',
+    days: 90,
+  },
+  {
+    key: 'email_deliveries',
+    description:
+      'Delivery records for messages that were sent successfully. Failures are kept longer, because they are the ones somebody still has to act on.',
+    days: 180,
+  },
+  {
+    key: 'email_deliveries_failed',
+    description: 'Delivery records for messages that failed.',
+    days: 365,
+  },
+  {
+    key: 'dossier_archived',
+    description:
+      'Filed Dossier entries that are not consequential. Anything marked consequential is kept, because it is the notice that PALMA did something to you.',
+    days: 730,
+  },
+];
+
+export type RetentionResult = {
+  ranAt: string;
+  removed: Record<string, number>;
+  total: number;
+};
+
+function cutoff(days: number): Date {
+  return new Date(Date.now() - days * DAY);
+}
+
+function ruleDays(key: string): number {
+  return RETENTION_RULES.find((rule) => rule.key === key)?.days ?? 365;
+}
+
+/**
+ * Run the sweep.
+ *
+ * Idempotent and safe to run as often as you like — every rule is "older than
+ * N days", so a second run in the same hour removes nothing. It is written to
+ * be run from a scheduler, from the admin dashboard, or by hand.
+ */
+export async function runRetentionSweep(actor?: AuditActor): Promise<RetentionResult> {
+  const removed: Record<string, number> = {};
+
+  // Sessions that have ended. A live session is untouched however old it is.
+  removed.auth_sessions = (
+    await prisma.authSession.deleteMany({
+      where: {
+        OR: [
+          { expiresAt: { lt: cutoff(ruleDays('auth_sessions')) } },
+          { revokedAt: { lt: cutoff(ruleDays('auth_sessions')) } },
+        ],
+      },
+    })
+  ).count;
+
+  removed.password_resets = (
+    await prisma.passwordResetToken.deleteMany({
+      where: {
+        OR: [
+          { usedAt: { lt: cutoff(ruleDays('password_resets')) } },
+          { expiresAt: { lt: cutoff(ruleDays('password_resets')) } },
+        ],
+      },
+    })
+  ).count;
+
+  removed.email_changes = (
+    await prisma.emailChangeRequest.deleteMany({
+      where: {
+        OR: [
+          { confirmedAt: { lt: cutoff(ruleDays('email_changes')) } },
+          { cancelledAt: { lt: cutoff(ruleDays('email_changes')) } },
+          { expiresAt: { lt: cutoff(ruleDays('email_changes')) } },
+        ],
+      },
+    })
+  ).count;
+
+  removed.rate_limits = (
+    await prisma.rateLimitCounter.deleteMany({
+      where: { windowEndsAt: { lt: cutoff(ruleDays('rate_limits')) } },
+    })
+  ).count;
+
+  removed.gazette_left = (
+    await prisma.gazetteSubscription.deleteMany({
+      where: {
+        status: 'unsubscribed',
+        unsubscribedAt: { lt: cutoff(ruleDays('gazette_left')) },
+      },
+    })
+  ).count;
+
+  removed.email_deliveries = (
+    await prisma.emailDelivery.deleteMany({
+      where: {
+        status: { in: ['sent', 'suppressed'] },
+        createdAt: { lt: cutoff(ruleDays('email_deliveries')) },
+      },
+    })
+  ).count;
+
+  removed.email_deliveries_failed = (
+    await prisma.emailDelivery.deleteMany({
+      where: {
+        status: 'failed',
+        createdAt: { lt: cutoff(ruleDays('email_deliveries_failed')) },
+      },
+    })
+  ).count;
+
+  removed.dossier_archived = (
+    await prisma.notification.deleteMany({
+      where: {
+        isImportant: false,
+        archivedAt: { lt: cutoff(ruleDays('dossier_archived')) },
+      },
+    })
+  ).count;
+
+  const total = Object.values(removed).reduce((sum, count) => sum + count, 0);
+  const ranAt = new Date().toISOString();
+
+  // Always audited, including a sweep that removed nothing: "the job ran and
+  // found nothing" and "the job did not run" must not look the same.
+  await recordAudit({
+    action: 'retention.swept',
+    entityType: 'System',
+    entityId: 'retention',
+    actor: actor ?? { label: 'scheduler' },
+    summary: `Retention sweep removed ${total} row${total === 1 ? '' : 's'}`,
+    after: removed,
+  });
+
+  return { ranAt, removed, total };
+}
+
+/** When the sweep last ran, from the audit log rather than a second table. */
+export async function lastRetentionSweep(): Promise<{ at: string; summary: string } | null> {
+  const entry = await prisma.auditLog.findFirst({
+    where: { action: 'retention.swept' },
+    orderBy: { createdAt: 'desc' },
+    select: { createdAt: true, summary: true },
+  });
+
+  if (!entry) return null;
+  return { at: entry.createdAt.toISOString(), summary: entry.summary ?? '' };
+}

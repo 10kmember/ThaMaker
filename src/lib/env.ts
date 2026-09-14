@@ -16,6 +16,8 @@ const schema = z.object({
   RESEND_API_KEY: z.string().optional(),
   AGE_VERIFICATION_PROVIDER: z.string().default('stub'),
   AGE_VERIFICATION_API_KEY: z.string().optional(),
+  /** Shared secret for the scheduled retention sweep. Unset = route refuses all. */
+  CRON_SECRET: z.string().optional(),
 });
 
 function read() {
@@ -28,6 +30,7 @@ function read() {
     RESEND_API_KEY: process.env.RESEND_API_KEY || undefined,
     AGE_VERIFICATION_PROVIDER: process.env.AGE_VERIFICATION_PROVIDER || undefined,
     AGE_VERIFICATION_API_KEY: process.env.AGE_VERIFICATION_API_KEY || undefined,
+    CRON_SECRET: process.env.CRON_SECRET || undefined,
   });
 
   if (!parsed.success) {

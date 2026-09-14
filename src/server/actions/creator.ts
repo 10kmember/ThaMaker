@@ -12,7 +12,7 @@ import { containsExplicitLanguage } from '@/domain/content-policy';
 import { isValidCountryCode } from '@/lib/countries';
 import { recordAudit } from '@/server/audit';
 import { requireDb } from '@/server/db';
-import { env } from '@/lib/env';
+import { currentVerificationProvider, getVerificationConfig } from '@/server/settings';
 
 export type CreatorState = { status: 'idle' | 'error' | 'success'; message?: string };
 
@@ -223,17 +223,24 @@ export async function startVerification(_previous: CreatorState): Promise<Creato
 
   const db = requireDb();
 
+  // Read at the moment the check starts, so the row records who actually
+  // decided it. A row settled by a moderator keeps saying so for ever, even
+  // after a provider is contracted — the history is not rewritten to claim a
+  // machine did the work.
+  const config = await getVerificationConfig();
+  const provider = await currentVerificationProvider();
+
   await db.creatorVerification.upsert({
     where: { creatorId: session.user.creatorId },
     create: {
       creatorId: session.user.creatorId,
       status: 'pending',
-      provider: env.AGE_VERIFICATION_PROVIDER,
+      provider,
       lastCheckedAt: new Date(),
     },
     update: {
       status: 'pending',
-      provider: env.AGE_VERIFICATION_PROVIDER,
+      provider,
       lastCheckedAt: new Date(),
       failureCode: null,
     },
@@ -245,14 +252,18 @@ export async function startVerification(_previous: CreatorState): Promise<Creato
     entityId: session.user.creatorId,
     actor: { id: session.user.id, role: session.user.role, label: session.user.email },
     summary: 'Verification started',
-    after: { status: 'pending', provider: env.AGE_VERIFICATION_PROVIDER },
+    after: { status: 'pending', provider },
   });
 
   revalidatePath('/creator');
+  revalidatePath('/portal/verification');
+
   return {
     status: 'success',
     message:
-      'Verification started. You will be handed to PALMA’s verification provider to complete it — PALMA never receives or stores your identity documents.',
+      config.effective === 'automatic'
+        ? 'Verification started. You will be handed to PALMA’s assurance provider to complete it — PALMA never receives or stores your identity documents.'
+        : 'Verification started. A PALMA moderator reviews it by hand and will write to you with the outcome. PALMA never keeps your documents: anything you submit is deleted when the case closes.',
   };
 }
 

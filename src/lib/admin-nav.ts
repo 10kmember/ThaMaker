@@ -47,6 +47,7 @@ export const MODERATION_NAV: AdminGroup[] = [
     title: 'The record',
     items: [
       { href: '/portal/creators', label: 'Creators', permission: 'creators:view_records' },
+      { href: '/portal/creators/import', label: 'Import', permission: 'editorial:import_creators' },
       { href: '/paroh', label: 'PaROH', permission: 'operations:view_dashboard' },
     ],
   },
@@ -99,6 +100,16 @@ export const ADMIN_NAV: AdminGroup[] = [
   {
     title: 'Enforcement',
     items: [{ href: '/admin/enforcement', label: 'Enforcement', permission: 'admin:enforce' }],
+  },
+  {
+    title: 'Communications',
+    items: [
+      {
+        href: '/admin/communications',
+        label: 'Mail & the Gazette',
+        permission: 'admin:view_communications',
+      },
+    ],
   },
   {
     title: 'Business',

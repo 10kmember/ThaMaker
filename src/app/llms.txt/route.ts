@@ -111,11 +111,18 @@ is the PALMA Roll of Honour, abbreviated PaROH. It is not a hall of fame.
 
 ## Contact
 
-- General — ${CONTACTS.general}
-- Press — ${CONTACTS.press}
-- Data protection — ${CONTACTS.privacy}
+- The desk (accounts, records, claims, press) — ${CONTACTS.general}
+- Data protection, complaints and appeals — ${CONTACTS.privacy}
 - Security — ${CONTACTS.security}
-- Accessibility — ${CONTACTS.accessibility}
+
+PALMA publishes no noreply address. Every address above accepts replies and a
+person reads them.
+
+## The Gazette
+
+PALMA's mailing list, at ${siteUrl}/gazette. Double opt-in, unsubscribe in one
+click from any issue. It never carries nomination counts, because PALMA does
+not publish them, and sponsorship buys no part of it.
 
 ${siteUrl}
 `;

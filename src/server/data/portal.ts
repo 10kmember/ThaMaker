@@ -65,6 +65,8 @@ export type CreatorPortal = {
   };
   /** What is waiting in the Dossier, for the badge on the portal. */
   dossier: { unread: number; important: number };
+  /** Whether this account's address is on the Gazette. */
+  gazette: boolean;
 };
 
 export async function getCreatorPortal(userId: string): Promise<CreatorPortal | null> {
@@ -92,7 +94,13 @@ export async function getCreatorPortal(userId: string): Promise<CreatorPortal | 
 
   if (!user) return null;
 
-  const dossier = await getDossierBadge(userId);
+  const [dossier, gazette] = await Promise.all([
+    getDossierBadge(userId),
+    db.gazetteSubscription.findUnique({
+      where: { email: user.email },
+      select: { status: true },
+    }),
+  ]);
 
   return {
     hasProfile: Boolean(user.creator),
@@ -151,5 +159,6 @@ export async function getCreatorPortal(userId: string): Promise<CreatorPortal | 
       journalDigest: user.notificationPrefs?.journalDigest ?? false,
     },
     dossier,
+    gazette: gazette?.status === 'confirmed',
   };
 }

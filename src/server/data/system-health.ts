@@ -1,6 +1,8 @@
 import 'server-only';
 import { prisma } from '@/server/db';
 import { env } from '@/lib/env';
+import { getVerificationConfig } from '@/server/settings';
+import { RETENTION_RULES, lastRetentionSweep } from '@/server/services/retention';
 
 /**
  * System health.
@@ -95,21 +97,47 @@ export async function getSystemHealth(): Promise<SystemHealth> {
           'No RESEND_API_KEY. Verification codes and receipts are written to the server log instead of sent, which is correct in development and fatal in production.',
       };
 
+  // Manual assurance is a working mode, not a failure. The old check called it
+  // "not configured", which is how a deployment ends up believing something is
+  // broken while moderators are settling every case correctly by hand.
+  const verificationConfig = await getVerificationConfig();
+
+  // "The job ran and found nothing" and "the job has never run" must not read
+  // the same, so this reports the last sweep rather than merely its existence.
+  const sweep = await lastRetentionSweep();
+  const sweptRecently =
+    sweep && Date.now() - new Date(sweep.at).getTime() < 8 * 24 * 60 * 60 * 1000;
+
+  const retentionDetail = sweep
+    ? `${RETENTION_RULES.length} rules. Last run ${new Date(sweep.at).toISOString().slice(0, 10)} — ${sweep.summary}`
+    : `${RETENTION_RULES.length} rules are defined and the sweep has never run. Schedule it, or run it from Settings.`;
+
+  const retentionState: ServiceCheck['state'] = !sweep
+    ? 'not_configured'
+    : sweptRecently
+      ? 'operational'
+      : 'degraded';
+
   const verification: ServiceCheck =
-    env.AGE_VERIFICATION_PROVIDER === 'stub'
+    verificationConfig.effective === 'automatic'
       ? {
-          name: 'Age assurance provider',
-          state: 'not_configured',
-          detail:
-            'Running the stub. No real assurance is being performed, so no honour conferred now would meet PALMA’s own rule.',
+          name: 'Age assurance',
+          state: 'operational',
+          detail: `Automatic, through ${verificationConfig.provider}. PALMA stores only a status, a reference and a date. Cases the provider cannot settle are referred to the desk.`,
         }
-      : {
-          name: 'Age assurance provider',
-          state: env.AGE_VERIFICATION_API_KEY ? 'operational' : 'degraded',
-          detail: env.AGE_VERIFICATION_API_KEY
-            ? `${env.AGE_VERIFICATION_PROVIDER} configured. PALMA stores only a status, a reference and a date.`
-            : `${env.AGE_VERIFICATION_PROVIDER} named but no API key set — requests will fail and fall to the manual queue.`,
-        };
+      : verificationConfig.mode === 'automatic'
+        ? {
+            name: 'Age assurance',
+            state: 'degraded',
+            detail: `Automatic is selected but cannot run — provider "${verificationConfig.provider}"${verificationConfig.hasApiKey ? '' : ', no API key'}. Every check is going to the moderation desk instead, which is the safe failure.`,
+          }
+        : {
+            name: 'Age assurance',
+            state: 'operational',
+            detail: verificationConfig.automaticAvailable
+              ? 'Manual review at the moderation desk. A provider is configured and can be switched on in Settings whenever you want it.'
+              : 'Manual review at the moderation desk. No third-party provider is contracted yet; add a provider key and switch it on in Settings when one is.',
+          };
 
   const auth: ServiceCheck = env.AUTH_SECRET
     ? {
@@ -161,9 +189,8 @@ export async function getSystemHealth(): Promise<SystemHealth> {
       },
       {
         name: 'Scheduled retention deletion',
-        detail:
-          'Not yet automated. Retention periods are published in the privacy notice and are currently applied by hand.',
-        state: 'not_configured',
+        detail: retentionDetail,
+        state: retentionState,
       },
     ],
     storage: [

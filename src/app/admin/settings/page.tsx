@@ -15,6 +15,11 @@ import {
 import { DEFAULT_FINALIST_COUNT, MIN_JUDGES_PER_CANDIDACY } from '@/domain/selection';
 import { SESSION_TTL_SECONDS } from '@/lib/auth/session';
 import { ENTITY } from '@/lib/legal';
+import { VerificationModeForm } from '@/components/operations/VerificationModeForm';
+import { RetentionPanel } from '@/components/operations/RetentionPanel';
+import { getVerificationConfig } from '@/server/settings';
+import { RETENTION_RULES, lastRetentionSweep } from '@/server/services/retention';
+import { formatShortDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -62,9 +67,11 @@ function Group({ title, note, rows }: { title: string; note: string; rows: Row[]
 export default async function SettingsPage() {
   await requirePermission('admin:manage_system', '/admin/settings');
 
-  const [season, categories] = await Promise.all([
+  const [season, categories, verification, lastSweep] = await Promise.all([
     prisma.awardYear.findFirst({ where: { isCurrent: true } }),
     prisma.category.count(),
+    getVerificationConfig(),
+    lastRetentionSweep(),
   ]);
 
   return (
@@ -94,6 +101,103 @@ export default async function SettingsPage() {
         . Making them editable from a dashboard would let a season&rsquo;s rules change after it
         opened, which the rules themselves forbid.
       </Notice>
+
+      {/* The one setting on this page that is a switch rather than a readout.
+          It sits above the register because it is the thing an administrator
+          actually comes here to change. */}
+      <section className="border-stone-deep mt-12 border-y py-12">
+        <h2 className="palma-label text-taupe-deep">Age and identity assurance</h2>
+        <h3 className="mt-3 text-2xl">Who performs the check</h3>
+        <p className="text-taupe-deep mt-4 max-w-160 leading-relaxed">
+          Both routes are built. Which one runs is this switch, and the provider&rsquo;s key lives
+          in the environment — so contracting a provider is: add the key, restart, come back here
+          and switch. Nothing else changes, and no record is rewritten.
+        </p>
+
+        <div className="mt-8 grid gap-10 lg:grid-cols-[3fr_2fr] lg:gap-14">
+          <div className="max-w-160">
+            <VerificationModeForm
+              mode={verification.mode}
+              provider={verification.provider}
+              automaticAvailable={verification.automaticAvailable}
+              hasApiKey={verification.hasApiKey}
+            />
+          </div>
+
+          <dl className="border-stone-deep flex h-fit flex-col border p-6">
+            <div className="border-stone-deep/60 flex items-baseline justify-between gap-6 border-b py-3">
+              <dt className="text-taupe-deep text-sm">Selected</dt>
+              <dd className="text-sm">{verification.mode === 'automatic' ? 'Automatic' : 'Manual'}</dd>
+            </div>
+            <div className="border-stone-deep/60 flex items-baseline justify-between gap-6 border-b py-3">
+              <dt className="text-taupe-deep text-sm">In force</dt>
+              <dd className={cn('text-sm', verification.effective !== verification.mode && 'text-champagne-deep')}>
+                {verification.effective === 'automatic' ? 'Automatic' : 'Manual'}
+              </dd>
+            </div>
+            <div className="border-stone-deep/60 flex items-baseline justify-between gap-6 border-b py-3">
+              <dt className="text-taupe-deep text-sm">Provider named</dt>
+              <dd className="font-mono text-xs break-all">{verification.provider}</dd>
+            </div>
+            <div className="border-stone-deep/60 flex items-baseline justify-between gap-6 border-b py-3">
+              <dt className="text-taupe-deep text-sm">Provider key</dt>
+              <dd className="text-sm">{verification.hasApiKey ? 'Configured' : 'Not set'}</dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-6 py-3">
+              <dt className="text-taupe-deep text-sm">Last changed</dt>
+              <dd className="text-right text-sm">
+                {verification.updatedAt ? formatShortDate(verification.updatedAt) : 'Never'}
+                {verification.updatedBy ? (
+                  <span className="text-taupe block text-xs break-all">
+                    {verification.updatedBy}
+                  </span>
+                ) : null}
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        {verification.effective !== verification.mode ? (
+          <Notice className="mt-8" tone="warning" title="Selected, but not in force">
+            Automatic assurance is selected and cannot run — the provider is{' '}
+            <code className="font-mono text-xs">{verification.provider}</code> and a key is{' '}
+            {verification.hasApiKey ? 'configured' : 'missing'}. Every check is going to the
+            moderation desk, which is the safe failure rather than the quiet one.
+          </Notice>
+        ) : null}
+
+        {verification.provider === 'stub' ? (
+          <Notice className="mt-8" tone="warning" title="The stub provider is named">
+            <code className="font-mono text-xs">AGE_VERIFICATION_PROVIDER=stub</code> performs no
+            assurance at all. Manual review is in force, so this is currently harmless — but a
+            deployment that switches to automatic while the stub is named would record checks
+            nobody made. Name a real provider before contracting one.
+          </Notice>
+        ) : null}
+      </section>
+
+      <section className="border-stone-deep mt-12 border-b pb-12">
+        <h2 className="palma-label text-taupe-deep">Data retention</h2>
+        <h3 className="mt-3 text-2xl">What PALMA stops holding, and when</h3>
+        <p className="text-taupe-deep mt-4 max-w-160 leading-relaxed">
+          A period nobody enforces is not a policy, it is a sentence. The sweep below is what makes
+          the privacy notice true. It never touches the institutional record — creator records,
+          honours, achievements, verification records and the audit log are permanent, because an
+          award that expires after two years was not an award.
+        </p>
+
+        <div className="mt-8 max-w-160">
+          <RetentionPanel rules={RETENTION_RULES} lastRun={lastSweep} />
+        </div>
+
+        <p className="text-taupe mt-8 max-w-160 text-xs leading-relaxed">
+          In production, schedule it daily rather than running it here:{' '}
+          <code className="font-mono">POST /api/cron/retention</code> with{' '}
+          <code className="font-mono">Authorization: Bearer $CRON_SECRET</code>. Without{' '}
+          <code className="font-mono">CRON_SECRET</code> set the route refuses everything, because
+          an unauthenticated endpoint that deletes rows is worse than no endpoint.
+        </p>
+      </section>
 
       <div className="mt-12 grid gap-14 lg:grid-cols-2 lg:gap-16">
         <Group
@@ -199,7 +303,6 @@ export default async function SettingsPage() {
               source: 'env',
             },
             { label: 'Password hashing', value: 'scrypt, per-user salt', source: 'code' },
-            { label: 'Two-factor authentication', value: 'Not yet available', source: 'code' },
             { label: 'Cookies set', value: 'palma_session, palma_csrf', source: 'code' },
           ]}
         />
@@ -208,6 +311,7 @@ export default async function SettingsPage() {
           title="Verification & email"
           note="Both are third parties. PALMA stores no documents and runs no analytics."
           rows={[
+            { label: 'Assurance mode', value: verification.effective, source: 'database' },
             { label: 'Assurance provider', value: env.AGE_VERIFICATION_PROVIDER, source: 'env' },
             {
               label: 'Provider key',

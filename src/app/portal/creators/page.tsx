@@ -45,11 +45,18 @@ export default async function CreatorRecordsPage({
           </p>
         </div>
 
-        {can(session.user.role, 'editorial:create_creator') ? (
-          <Button asChild size="md">
-            <Link href="/portal/creators/new">Add creator</Link>
-          </Button>
-        ) : null}
+        <div className="flex flex-wrap gap-3">
+          {can(session.user.role, 'editorial:import_creators') ? (
+            <Button asChild variant="outline" size="md">
+              <Link href="/portal/creators/import">Import a list</Link>
+            </Button>
+          ) : null}
+          {can(session.user.role, 'editorial:create_creator') ? (
+            <Button asChild size="md">
+              <Link href="/portal/creators/new">Add creator</Link>
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <div className="border-stone-deep mt-10 flex flex-wrap items-center gap-6 border-b pb-4">

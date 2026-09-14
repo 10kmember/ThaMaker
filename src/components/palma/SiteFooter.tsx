@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { PalmMark } from '@/components/brand/PalmMark';
 import { Container } from './layout';
+import { GazetteForm } from './GazetteForm';
 import { FOOTER_NAV, LEGAL_NAV } from '@/lib/navigation';
 
 export function SiteFooter() {
@@ -41,7 +42,25 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <nav aria-label="Legal register" className="border-ivory/12 mt-16 border-t pt-8">
+        {/* The Gazette sits above the register rather than in a nav column:
+            it is the one thing in the footer a reader does rather than reads. */}
+        <div className="border-ivory/12 mt-16 flex flex-col gap-8 border-t pt-10 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-90">
+            <h2 className="palma-label text-champagne">The Gazette</h2>
+            <p className="text-ivory/55 mt-4 text-sm leading-relaxed">
+              PALMA’s letter on the season — when nominations open, when the panel confers, and what
+              the institution is thinking while it does.
+            </p>
+          </div>
+          {/* A light plate on the dark footer. The form's own controls are
+              designed for paper, and a panel is more honest than restyling
+              every field for one placement. */}
+          <div className="bg-ivory-bright border-stone-deep text-ink w-full max-w-110 border p-6">
+            <GazetteForm source="footer" compact />
+          </div>
+        </div>
+
+        <nav aria-label="Legal register" className="border-ivory/12 mt-14 border-t pt-8">
           <h2 className="palma-label text-champagne">The register</h2>
           <ul className="text-ivory/55 mt-4 flex flex-wrap gap-x-7 gap-y-3 text-xs">
             {LEGAL_NAV.map((item) => (

@@ -60,10 +60,18 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
-        // A well-known path password managers look for when offering to
-        // change a stored credential.
+        // RFC 8615. Password managers follow this when offering to change a
+        // stored credential, so it has to land on the page that changes one —
+        // it used to point at /portal, which is now the moderation desk.
         source: '/.well-known/change-password',
-        destination: '/portal',
+        destination: '/account',
+        permanent: false,
+      },
+      {
+        // The other half of the same convention: somebody who cannot sign in
+        // needs the reset, not the change form.
+        source: '/.well-known/reset-password',
+        destination: '/forgot',
         permanent: false,
       },
     ];

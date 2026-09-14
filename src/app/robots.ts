@@ -9,6 +9,8 @@ export default function robots(): MetadataRoute.Robots {
         allow: '/',
         // Operational surfaces carry no public record and are never indexed.
         disallow: [
+          '/account',
+          '/dossier',
           '/admin',
           '/portal',
           '/judge',

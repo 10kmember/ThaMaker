@@ -49,6 +49,7 @@ export const FOOTER_NAV: { title: string; items: NavItem[] }[] = [
       { href: '/about/judges', label: 'The panel' },
       { href: '/about/sponsors', label: 'Partners' },
       { href: '/about/policy', label: 'Content policy' },
+      { href: '/gazette', label: 'The Gazette' },
       { href: '/press', label: 'Press' },
       { href: '/contact', label: 'Contact' },
     ],

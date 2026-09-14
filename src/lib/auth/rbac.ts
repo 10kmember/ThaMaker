@@ -70,6 +70,13 @@ export const PERMISSIONS = [
   'admin:view_audit_log',
   'admin:manage_users',
   'admin:manage_system',
+  /** Read what PALMA has sent, and to whom. */
+  'admin:view_communications',
+  /** Write to the whole Gazette. Separate from reading, because sending to a
+   *  mailing list cannot be undone and does not belong with a read-only view. */
+  'admin:send_gazette',
+  /** Write records into the archive in bulk. */
+  'editorial:import_creators',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -119,6 +126,8 @@ const MODERATOR: Permission[] = [
   'claims:review',
   'claims:decide',
   'verification:review_manual',
+  // The desk presets records for claiming, so the importer is theirs too.
+  'editorial:import_creators',
 ];
 
 const ADMIN: Permission[] = [
@@ -139,6 +148,9 @@ const ADMIN: Permission[] = [
   'admin:correct_score',
   'admin:manage_sponsors',
   'admin:view_audit_log',
+  'admin:view_communications',
+  'admin:send_gazette',
+  'editorial:import_creators',
 ];
 
 const MATRIX: Record<Role, readonly Permission[]> = {

@@ -6,6 +6,7 @@ import { Table, TBody, THead } from '@/components/ui/table';
 import { EmptyState, Notice } from '@/components/ui/feedback';
 import { Button } from '@/components/ui/button';
 import { CopyLink } from '@/components/palma/CopyLink';
+import { GazetteToggle } from '@/components/account/GazetteToggle';
 import {
   LinksForm,
   PreferencesForm,
@@ -286,9 +287,14 @@ export default async function PortalPage() {
               Everything PALMA has told you, kept — decisions on your record, honours, and changes
               to your account. Entries are written whether or not the email reached you.
             </p>
-            <Button asChild variant="outline" size="sm" className="mt-5">
-              <Link href="/dossier">Open your Dossier</Link>
-            </Button>
+            <div className="mt-5 flex flex-wrap gap-3">
+              <Button asChild variant="outline" size="sm">
+                <Link href="/dossier">Open your Dossier</Link>
+              </Button>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/account">Account & security</Link>
+              </Button>
+            </div>
 
             <div className="border-stone-deep mt-7 border-t pt-6">
               <h3 className="palma-label text-taupe-deep mb-2">What reaches your inbox</h3>
@@ -298,6 +304,15 @@ export default async function PortalPage() {
                 mute is not keeping you informed.
               </p>
               <PreferencesForm defaults={portal.preferences} />
+            </div>
+
+            <div className="border-stone-deep mt-7 border-t pt-6">
+              <h3 className="palma-label text-taupe-deep mb-2">The Gazette</h3>
+              <p className="text-taupe mb-4 text-xs leading-relaxed">
+                PALMA’s letter on the season. Separate from everything above, because it is the one
+                thing we send that nobody is owed.
+              </p>
+              <GazetteToggle subscribed={portal.gazette} />
             </div>
           </section>
 

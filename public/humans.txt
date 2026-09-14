@@ -12,11 +12,30 @@
 
    Institution: PALMA (Palma Awards Ltd)
    Location: United Kingdom
-   Contact: honours [at] palmaawards.com
+   Contact: concierge [at] palmaawards.com
 
    The panel is independent and seated per season.
    Judges are named on the season page once the
    panel is complete.
+
+
+/* WRITE TO US */
+
+   Concierge: concierge [at] palmaawards.com
+      Accounts, records, claims, verification.
+
+   Laurels:   laurels [at] palmaawards.com
+      The record itself — honours, seasons, the
+      Gazette.
+
+   Security:  security [at] palmaawards.com
+      Passwords, sessions, vulnerabilities.
+
+   Concerns:  concerns [at] palmaawards.com
+      Enforcement, complaints and appeals.
+
+   There is no noreply address. Every one of these
+   is read by a person.
 
 
 /* THANKS */
