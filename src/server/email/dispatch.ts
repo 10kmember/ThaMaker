@@ -3,6 +3,7 @@ import { prisma } from '@/server/db';
 import { sender, replyTo } from './addresses';
 import { sendEmail } from './resend';
 import { TEMPLATES, templateMeta, type TemplateKey } from './register';
+import { isSuppressed } from './suppression';
 
 /**
  * The one way PALMA sends anything.
@@ -49,7 +50,7 @@ export async function dispatch(input: DispatchInput): Promise<DispatchResult> {
   const from = sender(meta.mailbox);
 
   try {
-    const suppression = await suppressedBecause(input.userId ?? null, input.template);
+    const suppression = await suppressedBecause(input.userId ?? null, input.template, input.to);
 
     const delivery = await prisma.emailDelivery.create({
       data: {
@@ -115,7 +116,18 @@ export async function dispatch(input: DispatchInput): Promise<DispatchResult> {
 
     await prisma.emailDelivery.update({
       where: { id: delivery.id },
-      data: { status: 'sent', providerId: result.id, sentAt: new Date() },
+      data: {
+        status: 'sent',
+        providerId: result.id,
+        sentAt: new Date(),
+        // The `from` column records the voice PALMA wrote in. When the real
+        // domain is not yet verified the envelope carried a different sender,
+        // and the record should say so rather than imply the institution's own
+        // address was on it.
+        detail: result.sandboxed
+          ? 'Sent through the sandbox sender: the real domain is not yet verified with the provider.'
+          : null,
+      },
     });
 
     return { status: 'sent' };
@@ -135,7 +147,21 @@ export async function dispatch(input: DispatchInput): Promise<DispatchResult> {
 async function suppressedBecause(
   userId: string | null,
   template: TemplateKey,
+  to: string,
 ): Promise<string | null> {
+  // An address the provider has told us is dead stops everything, including
+  // mail PALMA would otherwise owe the account. There is no point posting to a
+  // letterbox that has been returning envelopes for a month, and continuing to
+  // is how a sending domain's reputation is destroyed for everybody else. The
+  // Dossier entry is still written, so the account can read it when they get
+  // back in.
+  const blocked = await isSuppressed(to);
+  if (blocked) {
+    return blocked.reason === 'complaint'
+      ? 'The recipient reported PALMA mail as spam, so this address is suppressed.'
+      : `The provider could not deliver to this address (${blocked.reason.replace('_', ' ')}), so it is suppressed.`;
+  }
+
   const gate = TEMPLATES[template].gate;
   if (gate === 'always') return null;
 

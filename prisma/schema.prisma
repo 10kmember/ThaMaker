@@ -207,6 +207,13 @@ enum EmailDeliveryStatus {
   queued
   /// The provider accepted it.
   sent
+  /// It reached the recipient's mail server.
+  delivered
+  /// It came back. The address does not work, and PALMA has not told them.
+  bounced
+  /// The recipient marked it as spam. Worse than a bounce: it arrived and was
+  /// unwelcome, so PALMA stops sending them anything optional.
+  complained
   /// The provider refused it, or could not be reached.
   failed
   /// Not sent on purpose — the account muted this channel, or there is no
@@ -1089,6 +1096,8 @@ model EmailDelivery {
 
   createdAt DateTime  @default(now())
   sentAt    DateTime?
+  /// When the provider last told us something about it.
+  settledAt DateTime?
 
   user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   creator Creator? @relation(fields: [creatorId], references: [id], onDelete: SetNull)
@@ -1096,6 +1105,39 @@ model EmailDelivery {
   @@index([template, createdAt])
   @@index([status, createdAt])
   @@index([to])
+  @@index([providerId])
+}
+
+/// An address PALMA has stopped writing to, and why.
+///
+/// Written when a message bounces or is reported as spam. It is not a
+/// punishment and not permanent — a person whose mailbox was full, or who
+/// changed provider, comes straight off it by proving the address again. What
+/// it prevents is PALMA spending months writing to an address that has been
+/// telling us for months that it does not work.
+model SuppressedAddress {
+  id          String            @id @default(cuid())
+  email       String            @unique
+  reason      SuppressionReason
+  /// What the provider actually said, for the operator reading the list.
+  detail      String?
+  /// The delivery that caused it, so the decision can be traced.
+  deliveryId  String?
+  createdAt   DateTime          @default(now())
+  /// Set when an operator or the address holder clears it.
+  clearedAt   DateTime?
+  clearedById String?
+
+  @@index([reason])
+}
+
+enum SuppressionReason {
+  /// Permanently undeliverable: no such mailbox, domain gone.
+  hard_bounce
+  /// Temporarily undeliverable often enough to stop trying.
+  soft_bounce
+  /// Reported as spam.
+  complaint
 }
 
 /// A single-use password reset.
@@ -1156,6 +1198,33 @@ model GazetteSubscription {
   createdAt      DateTime  @default(now())
 
   @@index([status])
+}
+
+/// An issue of the Gazette, kept.
+///
+/// Sent issues used to exist only in other people's inboxes, so a reader who
+/// joined today could not read the last one and PALMA had no record of what it
+/// had said. An institution that keeps a permanent record of everybody else's
+/// achievements can keep its own letters.
+model GazetteIssue {
+  id         String  @id @default(cuid())
+  /// Sequential, human-readable: "No. 4".
+  number     Int     @unique
+  slug       String  @unique
+  subject    String
+  standfirst String  @db.Text
+  body       String  @db.Text
+  linkLabel  String?
+  linkUrl    String?
+
+  /// How many confirmed subscribers it went to, and how many did not take it.
+  sentCount   Int @default(0)
+  failedCount Int @default(0)
+
+  sentById String?
+  sentAt   DateTime @default(now())
+
+  @@index([sentAt])
 }
 
 /// Settings an operator changes without a deployment.

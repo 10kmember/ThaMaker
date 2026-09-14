@@ -6,6 +6,7 @@ import { authorise } from '@/lib/auth/guards';
 import { recordAudit } from '@/server/audit';
 import { SETTINGS, getVerificationConfig, setSetting } from '@/server/settings';
 import { runRetentionSweep } from '@/server/services/retention';
+import { clearSuppression } from '@/server/email/suppression';
 
 export type SettingsState = { status: 'idle' | 'error' | 'success'; message?: string };
 
@@ -116,4 +117,42 @@ export async function runRetentionNow(
         ? 'Swept. Nothing was old enough to remove — which is the usual result of running it twice.'
         : `Swept ${result.total} row${result.total === 1 ? '' : 's'}: ${detail}.`,
   };
+}
+
+/**
+ * Letting a suppressed address back in.
+ *
+ * Somebody whose mailbox was full, or who changed provider, should not be cut
+ * off from their own account for ever because of one bounce in March.
+ */
+export async function clearSuppressedAddress(
+  _previous: SettingsState,
+  formData: FormData,
+): Promise<SettingsState> {
+  await assertSameOrigin();
+
+  let session;
+  try {
+    session = await authorise('admin:view_communications');
+  } catch {
+    return { status: 'error', message: 'You are not authorised to change the suppression list.' };
+  }
+
+  const email = String(formData.get('email') ?? '')
+    .trim()
+    .toLowerCase();
+  if (!email) return { status: 'error', message: 'No address given.' };
+
+  await clearSuppression(email, session.user.id);
+
+  await recordAudit({
+    action: 'settings.changed',
+    entityType: 'SuppressedAddress',
+    entityId: email,
+    actor: { id: session.user.id, role: session.user.role, label: session.user.email },
+    summary: `${email} taken off the suppression list`,
+  });
+
+  revalidatePath('/admin/communications');
+  return { status: 'success', message: `PALMA will write to ${email} again.` };
 }

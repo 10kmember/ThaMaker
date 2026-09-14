@@ -4,12 +4,14 @@ import { revalidatePath } from 'next/cache';
 import { randomToken, sha256 } from '@/lib/crypto';
 import { siteUrl, signingSecret } from '@/lib/env';
 import { readUnsubscribeToken, unsubscribeToken } from '@/lib/gazette-token';
+import { slugify } from '@/lib/utils';
 import { assertSameOrigin, getSession } from '@/lib/auth/session';
 import { authorise } from '@/lib/auth/guards';
 import { gazetteIssueSchema, gazetteSubscribeSchema } from '@/lib/validation/gazette';
 import { recordAudit } from '@/server/audit';
 import { prisma } from '@/server/db';
 import { RATE_LIMITS, enforceRateLimit } from '@/server/rate-limit';
+import { clearSuppression } from '@/server/email/suppression';
 import { sendGazetteConfirm, sendGazetteIssue, sendGazetteWelcome } from '@/server/email/gazette';
 
 /**
@@ -106,6 +108,9 @@ export async function confirmGazette(
     where: { id: subscription.id },
     data: { status: 'confirmed', confirmedAt: new Date(), unsubscribedAt: null },
   });
+
+  // They opened the confirmation, so the address works whatever it did before.
+  await clearSuppression(subscription.email);
 
   await sendGazetteWelcome({
     to: subscription.email,
@@ -273,6 +278,28 @@ export async function sendGazetteIssueAction(
     return { status: 'error', message: 'Nobody has confirmed a subscription yet.' };
   }
 
+  // Written before it is sent, and numbered, so an issue exists in PALMA's own
+  // record rather than only in other people's inboxes. A reader who joins
+  // tomorrow can still read what we said today.
+  const previous = await prisma.gazetteIssue.findFirst({
+    orderBy: { number: 'desc' },
+    select: { number: true },
+  });
+  const number = (previous?.number ?? 0) + 1;
+
+  const issue = await prisma.gazetteIssue.create({
+    data: {
+      number,
+      slug: `${number}-${slugify(parsed.data.subject).slice(0, 60)}`,
+      subject: parsed.data.subject,
+      standfirst: parsed.data.standfirst,
+      body: parsed.data.body,
+      linkLabel: parsed.data.linkLabel || null,
+      linkUrl: parsed.data.linkUrl || null,
+      sentById: session.user.id,
+    },
+  });
+
   let sent = 0;
   let failed = 0;
 
@@ -292,6 +319,11 @@ export async function sendGazetteIssueAction(
     else failed += 1;
   }
 
+  await prisma.gazetteIssue.update({
+    where: { id: issue.id },
+    data: { sentCount: sent, failedCount: failed },
+  });
+
   await recordAudit({
     action: 'gazette.issue_sent',
     entityType: 'GazetteSubscription',
@@ -301,12 +333,14 @@ export async function sendGazetteIssueAction(
   });
 
   revalidatePath('/admin/communications');
+  revalidatePath('/gazette');
+  revalidatePath(`/gazette/${issue.slug}`);
 
   return {
     status: 'success',
     message:
       failed === 0
-        ? `Sent to ${sent} subscriber${sent === 1 ? '' : 's'}.`
-        : `Sent to ${sent}; ${failed} did not go. The failures are listed above.`,
+        ? `Issue No. ${number} sent to ${sent} subscriber${sent === 1 ? '' : 's'}, and published to the archive.`
+        : `Issue No. ${number} sent to ${sent}; ${failed} did not go. It is in the archive either way, and the failures are listed above.`,
   };
 }

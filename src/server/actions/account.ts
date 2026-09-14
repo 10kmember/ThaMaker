@@ -14,6 +14,7 @@ import {
   sendEmailChangeConfirm,
   sendEmailChangeNotice,
 } from '@/server/email/messages';
+import { clearSuppression } from '@/server/email/suppression';
 
 /**
  * What a person can do to their own account without asking PALMA.
@@ -152,6 +153,9 @@ export async function confirmEmailChange(
       data: { email: request.newEmail, emailVerifiedAt: new Date() },
     });
   });
+
+  // Confirming from the new address is proof it works.
+  await clearSuppression(request.newEmail);
 
   await recordAudit({
     action: 'user.email_changed',

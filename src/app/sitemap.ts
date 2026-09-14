@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { siteUrl } from '@/lib/env';
 import { listArticles, listCategoryIndex, listCreators, listSeasons } from '@/server/data/queries';
 import { LEGAL_DOCUMENTS } from '@/lib/legal';
+import { prisma } from '@/server/db';
 
 export const revalidate = 3600;
 
@@ -10,11 +11,16 @@ export const revalidate = 3600;
  * indexed: they are the institution's public memory.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [seasons, categories, creators, articles] = await Promise.all([
+  const [seasons, categories, creators, articles, gazette] = await Promise.all([
     listSeasons(),
     listCategoryIndex(),
     listCreators({ limit: 500 }),
     listArticles({ limit: 200 }),
+    prisma.gazetteIssue.findMany({
+      select: { slug: true, sentAt: true },
+      orderBy: { number: 'desc' },
+      take: 200,
+    }),
   ]);
 
   const now = new Date();
@@ -29,6 +35,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/paroh`, lastModified: now, changeFrequency: 'weekly', priority: 1 },
     { url: `${siteUrl}/creators`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${siteUrl}/journal`, lastModified: now, changeFrequency: 'daily', priority: 0.8 },
+    { url: `${siteUrl}/gazette`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
     { url: `${siteUrl}/about`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
     {
       url: `${siteUrl}/about/judging`,
@@ -101,6 +108,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: article.publishedAt ? new Date(article.publishedAt) : now,
       changeFrequency: 'yearly' as const,
       priority: 0.6,
+    })),
+    ...gazette.map((issue) => ({
+      url: `${siteUrl}/gazette/${issue.slug}`,
+      lastModified: issue.sentAt,
+      changeFrequency: 'yearly' as const,
+      priority: 0.4,
     })),
   ];
 }

@@ -1,6 +1,11 @@
+import Link from 'next/link';
 import { Container, Section } from '@/components/palma/layout';
 import { GazetteForm } from '@/components/palma/GazetteForm';
 import { buildMetadata } from '@/lib/seo';
+import { prisma } from '@/server/db';
+import { formatDate } from '@/lib/format';
+
+export const revalidate = 3600;
 
 export const metadata = buildMetadata({
   title: 'The Gazette',
@@ -9,7 +14,13 @@ export const metadata = buildMetadata({
   path: '/gazette',
 });
 
-export default function GazettePage() {
+export default async function GazettePage() {
+  const issues = await prisma.gazetteIssue.findMany({
+    orderBy: { number: 'desc' },
+    take: 20,
+    select: { id: true, number: true, slug: true, subject: true, standfirst: true, sentAt: true },
+  });
+
   return (
     <Section className="py-20">
       <Container size="narrow">
@@ -26,6 +37,29 @@ export default function GazettePage() {
           <div className="border-stone-deep border-y py-9">
             <GazetteForm source="gazette" />
           </div>
+
+          {issues.length > 0 ? (
+            <section>
+              <h2 className="palma-label text-taupe-deep mb-6">Past issues</h2>
+              <ul className="flex flex-col">
+                {issues.map((issue) => (
+                  <li key={issue.id} className="border-stone-deep border-b py-6 first:border-t">
+                    <Link href={`/gazette/${issue.slug}`} className="group flex flex-col gap-2">
+                      <span className="palma-label text-taupe-deep">
+                        No. {issue.number} · {formatDate(issue.sentAt)}
+                      </span>
+                      <span className="font-display group-hover:text-olive text-2xl leading-snug transition-colors">
+                        {issue.subject}
+                      </span>
+                      <span className="text-taupe-deep text-sm leading-relaxed">
+                        {issue.standfirst}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           <div className="flex flex-col gap-6">
             <div>

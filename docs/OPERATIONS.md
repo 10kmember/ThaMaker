@@ -587,10 +587,74 @@ step with the first.
 Issues go one message per subscriber rather than one BCC. A single message to
 hundreds of addresses leaks the whole list to every recipient.
 
+Every issue is also **kept**, numbered, and published at `/gazette/<slug>`.
+Sent issues used to exist only in other people's inboxes, which meant a reader
+who joined today could not read the last one and PALMA had no record of what it
+had said. An institution that keeps a permanent record of everybody else's
+achievements can keep its own letters.
+
+### Getting the provider to accept it
+
+Two environment variables and one DNS job stand between a working API key and
+PALMA being able to write to anybody:
+
+| Variable                | What it does                                                                                  |
+| ----------------------- | --------------------------------------------------------------------------------------------- |
+| `RESEND_API_KEY`        | Lets PALMA send at all. A send-only key is enough; nothing here reads the provider's account. |
+| `EMAIL_SANDBOX_FROM`    | A temporary sender for while the domain is being verified. Unset it once it is.               |
+| `RESEND_WEBHOOK_SECRET` | Lets the provider tell PALMA what became of a message. Without it nothing is ever heard back. |
+
+**The domain has to be verified.** A provider will not let anyone send as
+`laurels@palmaawards.com` until DNS proves ownership — correctly, or anyone
+could. Until that is done every message fails with an error about DNS, so
+`EMAIL_SANDBOX_FROM` bridges the gap: mail goes out from a provider-supplied
+address, the subject is prefixed `[PALMA sandbox]`, the body says why, and the
+reply address is still the real mailbox. It announces itself deliberately — a
+test message that looks exactly like the real thing is how a test message ends
+up forwarded to a creator.
+
+A refusal from the provider is translated into something actionable before it
+is stored. "The provider refused the message (403)" tells nobody anything; "the
+domain is not verified, add it at the provider or set EMAIL_SANDBOX_FROM" names
+the fix.
+
+### Hearing back
+
+`POST /api/webhooks/resend`, signed. Without `RESEND_WEBHOOK_SECRET` the route
+refuses everything — an unauthenticated endpoint that can mark any address
+undeliverable is a way to cut somebody off from their own account. Signatures
+are Svix-format and older than five minutes is rejected, so a replayed delivery
+cannot resurrect a suppression an operator has cleared.
+
+A delivery therefore has a life rather than a single moment: **queued → sent →
+delivered**, or **bounced** / **complained**. Before this existed a message read
+"sent" the instant the provider accepted it and stayed that way for ever, so an
+address that had been bouncing for months still looked like one PALMA was
+successfully writing to. That is the difference between a mail log and a
+delivery record.
+
+### Addresses PALMA stops writing to
+
+A bounce or a spam report suppresses the address. Continuing to write to a dead
+mailbox is how a sending domain's reputation is destroyed, which ends with
+PALMA's mail in everybody's spam folder — so the first job of a bounce is to
+stop the next message.
+
+It is not a punishment and it is not permanent. It blocks no account, refuses no
+claim and touches no record; it governs one thing, which is whether an envelope
+is worth posting. An address clears itself the moment its holder proves it works
+— spending a reset link, confirming a Gazette subscription, or confirming a
+change of address — and an operator can clear one by hand from
+`/admin/communications`.
+
+The Dossier entry is written either way, so an account whose address is
+suppressed can still read what happened when they get back in.
+
 ### Reading it back
 
-`/admin/communications` — totals, failures first, the template register, the
-Gazette's numbers, and the composer. An institution that cannot say whether it
+`/admin/communications` — accepted, confirmed delivered, bounced, failed; the
+undelivered listed first; the suppression list; the template register; the
+Gazette's numbers and its composer. An institution that cannot say whether it
 told someone has not told them.
 
 ## Getting back in
@@ -665,8 +729,7 @@ about the parts a deployment can check for itself; this is the rest.
 | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Two-factor authentication** | Not offered, on any role — including the accounts that can confer or revoke an honour. A deliberate deferral rather than an oversight; `/account` says so plainly rather than showing a switch that does nothing. |
 | **A contracted age provider** | Both routes are built and the switch is in `/admin/settings`, but no provider is contracted, so manual review is in force. Adding one is: set the key, restart, switch.                                           |
-| **Gazette archive**           | Issues are sent but not published anywhere. A reader who joins today cannot read the last one.                                                                                                                    |
-| **Bounce handling**           | A delivery is recorded as sent when the provider accepts it. A later bounce is not fed back, so a dead address stays "sent" for ever.                                                                             |
+| **A verified sending domain** | `palmaawards.com` is not yet verified with the mail provider, so mail goes out through `EMAIL_SANDBOX_FROM` and says so in every message. A DNS job rather than a code one.                                       |
 
 None of these are silent. The stub provider and the retention job are reported
 on `/admin/health`; the rest are listed here because a gap nobody wrote down is

@@ -14,6 +14,14 @@ const schema = z.object({
   NEXT_PUBLIC_SITE_URL: z.string().url().default('https://palmaawards.com'),
   EMAIL_FROM: z.string().default('PALMA <laurels@palmaawards.com>'),
   RESEND_API_KEY: z.string().optional(),
+  /**
+   * A provider-supplied sender, used while the real domain is still being
+   * verified. Set it and every message goes out from here, announcing itself;
+   * unset it and PALMA writes as itself. See src/server/email/resend.ts.
+   */
+  EMAIL_SANDBOX_FROM: z.string().optional(),
+  /** Signing secret for the provider's delivery webhook. Unset = route refuses. */
+  RESEND_WEBHOOK_SECRET: z.string().optional(),
   AGE_VERIFICATION_PROVIDER: z.string().default('stub'),
   AGE_VERIFICATION_API_KEY: z.string().optional(),
   /** Shared secret for the scheduled retention sweep. Unset = route refuses all. */
@@ -28,6 +36,8 @@ function read() {
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || undefined,
     EMAIL_FROM: process.env.EMAIL_FROM || undefined,
     RESEND_API_KEY: process.env.RESEND_API_KEY || undefined,
+    EMAIL_SANDBOX_FROM: process.env.EMAIL_SANDBOX_FROM || undefined,
+    RESEND_WEBHOOK_SECRET: process.env.RESEND_WEBHOOK_SECRET || undefined,
     AGE_VERIFICATION_PROVIDER: process.env.AGE_VERIFICATION_PROVIDER || undefined,
     AGE_VERIFICATION_API_KEY: process.env.AGE_VERIFICATION_API_KEY || undefined,
     CRON_SECRET: process.env.CRON_SECRET || undefined,

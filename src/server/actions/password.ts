@@ -14,6 +14,7 @@ import { recordAudit } from '@/server/audit';
 import { prisma } from '@/server/db';
 import { RATE_LIMITS, enforceRateLimit } from '@/server/rate-limit';
 import { sendPasswordChanged, sendPasswordReset } from '@/server/email/messages';
+import { clearSuppression } from '@/server/email/suppression';
 
 /**
  * Getting back in.
@@ -163,6 +164,10 @@ export async function resetPassword(
       data: { revokedAt: new Date() },
     });
   });
+
+  // Spending the link is proof the address received it, so an old bounce
+  // should not go on blocking mail to somebody who is plainly reading it.
+  await clearSuppression(record.user.email);
 
   await sendPasswordChanged({
     to: record.user.email,

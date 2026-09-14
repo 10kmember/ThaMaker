@@ -3,6 +3,7 @@ import { Stat } from '@/components/ui/stat';
 import { Table, TBody, THead } from '@/components/ui/table';
 import { EmptyState, Notice } from '@/components/ui/feedback';
 import { GazetteIssueForm } from '@/components/operations/GazetteIssueForm';
+import { SuppressionList } from '@/components/operations/SuppressionList';
 import { buildMetadata } from '@/lib/seo';
 import { requirePermission } from '@/lib/auth/guards';
 import { can } from '@/lib/auth/rbac';
@@ -20,7 +21,10 @@ export const metadata = buildMetadata({
 });
 
 const STATUS_TONE: Record<string, 'olive' | 'muted' | 'champagne' | 'default'> = {
+  delivered: 'olive',
   sent: 'olive',
+  bounced: 'champagne',
+  complained: 'champagne',
   failed: 'champagne',
   suppressed: 'muted',
   queued: 'default',
@@ -51,16 +55,38 @@ export default async function CommunicationsPage() {
         </Notice>
       ) : null}
 
-      <div className="border-stone-deep mt-10 grid gap-10 border-b pb-10 sm:grid-cols-4">
-        <Stat label="Sent" value={overview.totals.sent} />
+      {overview.provider.sandboxFrom ? (
+        <Notice className="mt-8" tone="warning" title="Sending through a sandbox address">
+          <code className="font-mono text-xs">{overview.provider.domain}</code> is not yet verified
+          with the provider, so every message goes out from{' '}
+          <code className="font-mono text-xs">{overview.provider.sandboxFrom}</code>, carries a
+          <em> [PALMA sandbox]</em> subject and says so in its body. Replies still reach the real
+          mailbox. Verify the domain at the provider and unset{' '}
+          <code className="font-mono text-xs">EMAIL_SANDBOX_FROM</code> — nothing else changes.
+        </Notice>
+      ) : null}
+
+      {overview.provider.configured && !overview.provider.webhookConfigured ? (
+        <Notice className="mt-8" tone="warning" title="PALMA cannot hear back from the provider">
+          <code className="font-mono text-xs">RESEND_WEBHOOK_SECRET</code> is unset, so nothing
+          points at <code className="font-mono text-xs">/api/webhooks/resend</code>. A message is
+          recorded as <em>sent</em> the moment the provider accepts it and stays that way for ever —
+          a bounce three days later is never heard, and a dead address goes on looking like one
+          PALMA is successfully writing to.
+        </Notice>
+      ) : null}
+
+      <div className="border-stone-deep mt-10 grid gap-10 border-b pb-10 sm:grid-cols-3 lg:grid-cols-5">
+        <Stat label="Accepted" value={overview.totals.sent + overview.totals.delivered} />
+        <Stat label="Confirmed delivered" value={overview.totals.delivered} />
+        <Stat label="Bounced" value={overview.totals.bounced + overview.totals.complained} />
         <Stat label="Failed" value={overview.totals.failed} />
-        <Stat label="Suppressed" value={overview.totals.suppressed} />
-        <Stat label="Gazette" value={overview.gazette.confirmed} />
+        <Stat label="Not sent" value={overview.totals.suppressed} />
       </div>
 
       {overview.failures.length > 0 ? (
         <section className="mt-14">
-          <h2 className="palma-label text-taupe-deep mb-2">Failures</h2>
+          <h2 className="palma-label text-taupe-deep mb-2">Not delivered</h2>
           <p className="text-taupe mb-6 max-w-160 text-xs leading-relaxed">
             The only rows here anybody needs to act on. A failed message was never delivered, and
             the person it concerned does not know what it said — though the Dossier entry was
@@ -90,6 +116,19 @@ export default async function CommunicationsPage() {
           </Table>
         </section>
       ) : null}
+
+      <section className="mt-14">
+        <h2 className="palma-label text-taupe-deep mb-2">Addresses PALMA has stopped writing to</h2>
+        <p className="text-taupe mb-6 max-w-160 text-xs leading-relaxed">
+          An address goes on this list when the provider says it bounced, or its holder reported
+          PALMA as spam. Continuing to write to a dead address is how a sending domain&rsquo;s
+          reputation is destroyed, which ends with PALMA&rsquo;s mail in everybody&rsquo;s spam
+          folder — so the first job of a bounce is to stop the next message.
+        </p>
+        <div className="max-w-160">
+          <SuppressionList rows={overview.suppressed} />
+        </div>
+      </section>
 
       <section className="mt-14">
         <h2 className="palma-label text-taupe-deep mb-2">The template register</h2>
