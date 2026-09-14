@@ -669,21 +669,27 @@ model JudgingAssignment {
 /// Scores are immutable once submitted. Corrections are performed by an
 /// authorised administrator and leave both records in the audit log.
 model JudgingScore {
-  id              String    @id @default(cuid())
-  assignmentId    String    @unique
-  judgeId         String
-  candidacyId     String
-  originality     Int
-  consistency     Int
-  professionalism Int
-  impact          Int
-  brand           Int
-  total           Int
-  remarks         String?   @db.Text
-  submittedAt     DateTime  @default(now())
-  correctedAt     DateTime?
-  correctedById   String?
-  correctionNote  String?   @db.Text
+  id             String    @id @default(cuid())
+  assignmentId   String    @unique
+  judgeId        String
+  candidacyId    String
+  /// Scored 0-10 each. The weights live in src/domain/judging.ts, published
+  /// on /about/judging, and are never stored per row: a score card is the
+  /// judge's marks, and the weighting is the institution's, fixed for a season.
+  achievement    Int
+  quality        Int
+  impact         Int
+  consistency    Int
+  audience       Int
+  fit            Int
+  /// The weighted total, in tenths of a point out of 100. Integer by
+  /// construction: whole marks times whole percentages.
+  total          Int
+  remarks        String?   @db.Text
+  submittedAt    DateTime  @default(now())
+  correctedAt    DateTime?
+  correctedById  String?
+  correctionNote String?   @db.Text
 
   assignment JudgingAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   judge      Judge             @relation(fields: [judgeId], references: [id], onDelete: Cascade)

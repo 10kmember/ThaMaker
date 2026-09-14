@@ -13,6 +13,7 @@
  * own description on the second run, which is how a demonstration database ends
  * up with fourteen creators nobody chose.
  */
+import { totalScore } from '../src/domain/judging';
 import { PrismaClient } from '@prisma/client';
 import { randomBytes, createHmac, scrypt as scryptCallback } from 'node:crypto';
 import { promisify } from 'node:util';
@@ -421,11 +422,12 @@ async function main() {
 
           const spread = position - 1;
           const card = {
-            originality: clamp(basis + spread),
-            consistency: clamp(basis),
-            professionalism: clamp(basis + 1),
+            achievement: clamp(basis + spread),
+            quality: clamp(basis + 1),
             impact: clamp(basis - spread),
-            brand: clamp(basis),
+            consistency: clamp(basis),
+            audience: clamp(basis),
+            fit: clamp(basis + 1),
           };
 
           await prisma.judgingScore.create({
@@ -434,7 +436,10 @@ async function main() {
               judgeId,
               candidacyId: candidacy.id,
               ...card,
-              total: Object.values(card).reduce((sum, value) => sum + value, 0),
+              // The weighted total, as the domain computes it — a seed that
+              // totals differently from the application is a seed that hides
+              // a bug in the application.
+              total: totalScore(card),
               remarks:
                 'Assessed against the published criteria. Audience size discounted, as briefed.',
               submittedAt: issuedAt,

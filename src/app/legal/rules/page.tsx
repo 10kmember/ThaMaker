@@ -8,7 +8,7 @@ import {
 } from '@/components/palma/LegalDocument';
 import { buildMetadata } from '@/lib/seo';
 import { CONTACTS, legalDocument } from '@/lib/legal';
-import { MAX_SCORE, MAX_TOTAL, SCORING_CRITERIA } from '@/domain/judging';
+import { MAX_SCORE, MAX_TOTAL, SCORING_CRITERIA, formatPoints } from '@/domain/judging';
 import { DEFAULT_FINALIST_COUNT, MIN_JUDGES_PER_CANDIDACY } from '@/domain/selection';
 import { MAX_REASON_LENGTH, MIN_REASON_LENGTH } from '@/domain/nomination';
 import { CODE_LENGTH, CODE_TTL_SECONDS, MAX_ATTEMPTS } from '@/domain/verification-code';
@@ -157,21 +157,24 @@ export default function RulesPage() {
     },
     {
       heading: 'Judging',
-      plainly: `Five criteria, ${MAX_SCORE} points each, at least ${MIN_JUDGES_PER_CANDIDACY} judges, audience size explicitly excluded.`,
+      plainly: `Six weighted criteria, ${MAX_SCORE} points each, at least ${MIN_JUDGES_PER_CANDIDACY} judges, audience size explicitly excluded.`,
       body: (
         <>
           <LegalTable
-            caption={`Scoring — ${MAX_TOTAL} points available`}
-            head={['Criterion', 'What it measures', 'Points']}
+            caption={`Scoring — six weighted criteria, marked out of ${formatPoints(MAX_TOTAL)}`}
+            head={['Criterion', 'What it measures', 'Scored', 'Weight']}
             rows={SCORING_CRITERIA.map((criterion) => [
               criterion.label,
               criterion.description,
               `/${MAX_SCORE}`,
+              `${criterion.weight}%`,
             ])}
           />
           <Clauses
             items={[
               `Every eligible candidacy is scored independently by at least ${MIN_JUDGES_PER_CANDIDACY} judges.`,
+              'The criteria and their weights are published before a season opens and do not change during it. The weights above are the whole of the weighting: there is no undisclosed adjustment.',
+              'Nomination volume is a discovery signal. It determines who PALMA investigates; it does not determine any outcome, and nothing in the judging path reads it.',
               'Judges are briefed in writing to discount audience size, follower count and view count. None is a criterion, and none will become one.',
               'Where four or more judges have scored a candidacy, the highest and lowest scores are removed before ranking, so one outlier cannot decide a PALMA.',
               'A submitted score is immutable. A correction is made by a new, audited entry, never by editing the original.',

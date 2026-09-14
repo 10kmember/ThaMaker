@@ -2,7 +2,7 @@ import { Container, Section } from '@/components/palma/layout';
 import { Masthead } from '@/components/palma/Masthead';
 import { Notice } from '@/components/ui/feedback';
 import { buildMetadata } from '@/lib/seo';
-import { SCORING_CRITERIA, MAX_TOTAL } from '@/domain/judging';
+import { SCORING_CRITERIA, formatPoints, MAX_TOTAL } from '@/domain/judging';
 import { CONFLICT_KINDS } from '@/domain/conflicts';
 import { MIN_JUDGES_PER_CANDIDACY, DEFAULT_FINALIST_COUNT } from '@/domain/selection';
 
@@ -29,9 +29,15 @@ export default function JudgingPage() {
           <div className="palma-prose">
             <p>
               Every eligible nomination is scored independently by at least{' '}
-              {MIN_JUDGES_PER_CANDIDACY} judges against five criteria, each out of ten — a maximum
-              of {MAX_TOTAL}. Judges are briefed in writing to discount audience size. It is not a
-              criterion, and it never will be.
+              {MIN_JUDGES_PER_CANDIDACY} judges against six criteria, each out of ten, and weighted
+              to a mark out of {formatPoints(MAX_TOTAL)}. The weights are published below and fixed
+              before a season opens.
+            </p>
+            <p>
+              The audience discovers, PALMA evaluates, judges decide. Nomination volume identifies
+              who is worth investigating and stops there — nothing in the judging path reads it, so
+              a creator with ten thousand nominations does not beat one with two thousand. Audience
+              size, follower count and view count are not criteria and never will be.
             </p>
           </div>
 
@@ -42,11 +48,13 @@ export default function JudgingPage() {
                   {String(index + 1).padStart(2, '0')}
                 </span>
                 <div className="flex flex-col gap-2">
-                  <div className="flex items-baseline gap-4">
+                  <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
                     <h2 className="font-display text-2xl">{criterion.label}</h2>
-                    <span className="palma-label text-taupe">/10</span>
+                    <span className="palma-label text-champagne-deep">{criterion.weight}%</span>
+                    <span className="palma-label text-taupe">scored /10</span>
                   </div>
                   <p className="text-taupe-deep leading-relaxed">{criterion.description}</p>
+                  <p className="text-taupe text-sm leading-relaxed">{criterion.guidance}</p>
                 </div>
               </li>
             ))}

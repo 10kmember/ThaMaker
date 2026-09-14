@@ -437,13 +437,14 @@ export async function correctScore(_previous: AdminState, formData: FormData): P
   const existing = await db.judgingScore.findUnique({ where: { id: parsed.data.scoreId } });
   if (!existing) return { status: 'error', message: 'That score does not exist.' };
 
-  const card = validateScoreCard({
-    originality: parsed.data.originality,
-    consistency: parsed.data.consistency,
-    professionalism: parsed.data.professionalism,
-    impact: parsed.data.impact,
-    brand: parsed.data.brand,
-  });
+  const card = validateScoreCard(
+    Object.fromEntries(
+      SCORING_CRITERIA.map((criterion) => [
+        criterion.key,
+        (parsed.data as Record<string, unknown>)[criterion.key],
+      ]),
+    ),
+  );
   if (!card.ok) return { status: 'error', message: 'Every criterion must be 0 to 10.' };
 
   const total = totalScore(card.card);
@@ -466,11 +467,12 @@ export async function correctScore(_previous: AdminState, formData: FormData): P
     actor: { id: session.user.id, role: session.user.role, label: session.user.email },
     summary: parsed.data.correctionNote,
     before: {
-      originality: existing.originality,
-      consistency: existing.consistency,
-      professionalism: existing.professionalism,
-      impact: existing.impact,
-      brand: existing.brand,
+      ...Object.fromEntries(
+        SCORING_CRITERIA.map((criterion) => [
+          criterion.key,
+          (existing as unknown as Record<string, number>)[criterion.key],
+        ]),
+      ),
       total: existing.total,
     },
     after: { ...card.card, total },

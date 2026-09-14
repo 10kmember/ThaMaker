@@ -1,46 +1,104 @@
+/**
+ * The scorecard.
+ *
+ * PALMA's position in one line: **the audience discovers, PALMA evaluates,
+ * judges decide.** Nomination volume is a discovery signal — evidence that
+ * somebody is worth investigating — and nothing in this file reads it. A
+ * creator with ten thousand nominations does not beat a creator with two
+ * thousand, because the two numbers are not what is being compared.
+ *
+ * Six criteria, weighted. The weights are published — they are on
+ * /about/judging, in the competition rules and in the press pack — while the
+ * scores themselves never are. That combination is the whole design: anybody
+ * can check what PALMA claims to value and argue with it, and nobody can work
+ * out how an individual judge voted.
+ *
+ * **On the arithmetic.** Each criterion is scored 0–10 as a whole number, and
+ * every weight is a whole number of percent. So a weighted total is
+ * `Σ(score × weight)` — an integer from 0 to 1000, with no floating point
+ * anywhere in the path and no rounding to argue about later. Read it as a mark
+ * out of 100 to one decimal place: 873 is 87.3. `asPoints` does that, and it is
+ * the only place the division happens.
+ */
+
 export const SCORING_CRITERIA = [
   {
-    key: 'originality',
-    label: 'Originality',
-    description: 'Distinctiveness of the work and the ideas behind it.',
+    key: 'achievement',
+    label: 'Achievement and performance',
+    weight: 25,
+    description: 'What was actually accomplished in the eligibility window.',
     guidance:
-      'Would this work be recognisable as theirs with the name removed? Score the ideas and the form they take, not how unusual the subject happens to be this year.',
+      'The work itself, at its own level of ambition. A modest project executed completely scores above an ambitious one that did not land. Judge what was made, not what was announced.',
+  },
+  {
+    key: 'quality',
+    label: 'Creative quality and originality',
+    weight: 20,
+    description: 'Craft, and distinctiveness of the ideas behind it.',
+    guidance:
+      'Would this be recognisable as theirs with the name removed? Score the ideas and the form they take — not how unusual the subject happens to be this year, and not production budget.',
+  },
+  {
+    key: 'impact',
+    label: 'Impact and influence',
+    weight: 20,
+    description: 'What changed because this work exists.',
+    guidance:
+      'Practice other creators picked up, a subject taken seriously, a standard raised. Reach is not impact: a piece seen by a hundred thousand people that changed nothing scores below one seen by five thousand that changed how a form is made.',
   },
   {
     key: 'consistency',
-    label: 'Consistency',
-    description: 'Sustained quality and output across the eligibility window.',
+    label: 'Consistency and body of work',
+    weight: 15,
+    description: 'Sustained quality and output across the window.',
     guidance:
       'One exceptional piece is not a body of work. Look for quality held across the season, and do not penalise a deliberately small output that is uniformly strong.',
   },
   {
-    key: 'professionalism',
-    label: 'Professionalism',
-    description: 'Conduct, reliability and standards in how the work is made.',
+    key: 'audience',
+    label: 'Audience and community significance',
+    weight: 10,
+    description: 'What the work means to the people it reached.',
     guidance:
-      'Craft, rigour, corrections, credit given to collaborators, and how the creator conducts themselves in the making. Not politeness, and not media training.',
+      'Not how many. This is the criterion most easily misread, so it is put plainly: score what the work means to the community around it — whether it gave people something they did not have, whether it is defended and passed on. Follower counts, subscriber numbers and view counts are not evidence for this criterion and must be disregarded.',
   },
   {
-    key: 'impact',
-    label: 'Impact',
-    description: 'Influence on audiences, peers and the wider creator industry.',
+    key: 'fit',
+    label: 'Category fit',
+    weight: 10,
+    description: 'How squarely the work sits in the category it was entered in.',
     guidance:
-      'What changed because this work exists — practice other creators picked up, a subject taken seriously, a standard raised. Reach is not impact. Ignore audience size entirely.',
-  },
-  {
-    key: 'brand',
-    label: 'Brand',
-    description: 'Coherence and craft of the creator’s public identity.',
-    guidance:
-      'How deliberately the work is presented: naming, design, titling, the fit between what is promised and what is delivered. Not how commercial it is.',
+      'Excellent work in the wrong category is still in the wrong category. This is not a penalty for range — it asks whether this category is where the work should be judged, and it is the criterion that keeps a strong creator from sweeping every category they are named in.',
   },
 ] as const;
 
-export type CriterionKey = (typeof SCORING_CRITERIA)[number]['key'];
+export type Criterion = (typeof SCORING_CRITERIA)[number];
+export type CriterionKey = Criterion['key'];
 
 export const MIN_SCORE = 0;
 export const MAX_SCORE = 10;
-export const MAX_TOTAL = SCORING_CRITERIA.length * MAX_SCORE;
+
+/**
+ * The weights must total 100.
+ *
+ * Computed rather than written down, so the constant cannot drift from the
+ * table above — and asserted in a test, because a scorecard whose weights sum
+ * to 95 produces totals that look right and are not.
+ */
+export const TOTAL_WEIGHT = SCORING_CRITERIA.reduce((sum, criterion) => sum + criterion.weight, 0);
+
+/** A perfect card: 10 across, weighted, in tenths of a point out of 100. */
+export const MAX_TOTAL = MAX_SCORE * TOTAL_WEIGHT;
+
+/** A weighted total as a mark out of 100, to one decimal place. */
+export function asPoints(total: number): number {
+  return Math.round(total) / 10;
+}
+
+/** The same, formatted, for anywhere a figure is shown to a person. */
+export function formatPoints(total: number): string {
+  return asPoints(total).toFixed(1);
+}
 
 export type ScoreCard = Record<CriterionKey, number>;
 
@@ -106,8 +164,22 @@ export function validateScoreCard(card: Partial<ScoreCard>):
   return { ok: true, card: result };
 }
 
+/**
+ * The weighted total, in tenths of a point out of 100.
+ *
+ * Integer throughout: whole scores times whole percentages. An award decided by
+ * a number should not depend on how a language rounds.
+ */
 export function totalScore(card: ScoreCard): number {
-  return SCORING_CRITERIA.reduce((sum, criterion) => sum + card[criterion.key], 0);
+  return SCORING_CRITERIA.reduce(
+    (sum, criterion) => sum + card[criterion.key] * criterion.weight,
+    0,
+  );
+}
+
+/** What a single criterion contributed, for showing the working. */
+export function contribution(criterion: Criterion, score: number): number {
+  return score * criterion.weight;
 }
 
 export type CandidacyScores = { candidacyId: string; totals: number[] };
@@ -121,6 +193,16 @@ export type AggregatedScore = {
   trimmedMean: number;
   spread: number;
 };
+
+/**
+ * The point at which a panel is disagreeing rather than merely differing.
+ *
+ * Expressed against the scale rather than as a bare number, because it was one
+ * before: when the scale was 0–50 this was `20`, and moving to a weighted 0–1000
+ * would have left a threshold that fires on every candidacy while looking
+ * deliberate. Anything calibrated to the scale belongs to the scale.
+ */
+export const SHARP_DISAGREEMENT = Math.round(MAX_TOTAL * 0.4);
 
 /**
  * Panels disagree, and a single outlier should not decide a PALMA. Once four or

@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Notice } from '@/components/ui/feedback';
 import { Label, Select, Textarea } from '@/components/ui/form';
 import {
+  contribution,
+  formatPoints,
   MAX_SCORE,
   MAX_TOTAL,
   RATIONALE_MAX_WORDS,
@@ -63,8 +65,16 @@ export function JudgingRoom({
   const [state, action, pending] = useActionState(submitScore, initial);
   const reduced = useReducedMotion();
 
-  const total = SCORING_CRITERIA.reduce((sum, criterion) => sum + (scores[criterion.key] ?? 0), 0);
-  const mean = total / SCORING_CRITERIA.length;
+  // The weighted total, exactly as the server will compute it. A running
+  // figure that disagrees with the recorded one is worse than no running
+  // figure: a judge would calibrate against a number that is not their score.
+  const total = SCORING_CRITERIA.reduce(
+    (sum, criterion) => sum + contribution(criterion, scores[criterion.key] ?? 0),
+    0,
+  );
+  const mean =
+    SCORING_CRITERIA.reduce((sum, criterion) => sum + (scores[criterion.key] ?? 0), 0) /
+    SCORING_CRITERIA.length;
   const words = countWords(rationale);
   const rationaleReady = words >= RATIONALE_MIN_WORDS && words <= RATIONALE_MAX_WORDS;
 
@@ -126,8 +136,8 @@ export function JudgingRoom({
             <div className="border-stone-deep flex items-baseline justify-between border-t pt-6">
               <span className="palma-label text-taupe-deep">Running total</span>
               <span className="font-display text-4xl tabular-nums">
-                {total}
-                <span className="text-taupe-deep text-lg">/{MAX_TOTAL}</span>
+                {formatPoints(total)}
+                <span className="text-taupe-deep text-lg">/{formatPoints(MAX_TOTAL)}</span>
               </span>
             </div>
 
@@ -212,10 +222,16 @@ export function JudgingRoom({
                       key={criterion.key}
                       className="border-stone-deep/50 flex items-baseline justify-between gap-6 border-b px-6 py-4"
                     >
-                      <dt className="text-taupe-deep text-sm">{criterion.label}</dt>
+                      <dt className="text-taupe-deep text-sm">
+                        {criterion.label}
+                        <span className="text-taupe palma-label ml-2">{criterion.weight}%</span>
+                      </dt>
                       <dd className="font-display text-xl tabular-nums">
                         {scores[criterion.key]}
                         <span className="text-taupe text-sm"> / {MAX_SCORE}</span>
+                        <span className="text-taupe ml-2 text-sm">
+                          → {formatPoints(contribution(criterion, scores[criterion.key] ?? 0))}
+                        </span>
                       </dd>
                     </div>
                   ))}
@@ -224,8 +240,8 @@ export function JudgingRoom({
                 <div className="bg-stone/25 flex items-baseline justify-between gap-6 px-6 py-5">
                   <span className="palma-label text-taupe-deep">Overall</span>
                   <span className="font-display text-3xl tabular-nums">
-                    {total}
-                    <span className="text-taupe-deep text-base">/{MAX_TOTAL}</span>
+                    {formatPoints(total)}
+                    <span className="text-taupe-deep text-base">/{formatPoints(MAX_TOTAL)}</span>
                     <span className="text-taupe ml-3 text-base">
                       mean {mean.toFixed(1)}/{MAX_SCORE}
                     </span>
@@ -324,6 +340,7 @@ function CriterionField({
           <span id={`${criterion.key}-label`} className="font-display text-xl">
             {criterion.label}
           </span>
+          <span className="palma-label text-champagne-deep">{criterion.weight}%</span>
           <button
             type="button"
             onClick={() => setOpen((current) => !current)}

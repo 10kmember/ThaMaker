@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { buildMetadata } from '@/lib/seo';
 import { formatDate } from '@/lib/format';
 import { CONTACTS, ENTITY } from '@/lib/legal';
-import { MAX_TOTAL, SCORING_CRITERIA } from '@/domain/judging';
+import { MAX_TOTAL, SCORING_CRITERIA, formatPoints } from '@/domain/judging';
 import { MIN_JUDGES_PER_CANDIDACY } from '@/domain/selection';
 import { listJudges, listSeasons, listCategoryIndex, getRollOfHonour } from '@/server/data/queries';
 
@@ -176,7 +176,10 @@ export default async function PressPage() {
                   ['Categories this season', String(categories.length)],
                   ['Judges on the panel', String(judges.length)],
                   ['Judges per candidacy', `${MIN_JUDGES_PER_CANDIDACY} minimum`],
-                  ['Judging criteria', `${SCORING_CRITERIA.length}, ${MAX_TOTAL} points available`],
+                  [
+                    'Judging criteria',
+                    `${SCORING_CRITERIA.length}, weighted, marked out of ${formatPoints(MAX_TOTAL)}`,
+                  ],
                   ['Audience size as a criterion', 'Not used'],
                   ['Cost to nominate', 'Free'],
                   ['Cost to be shortlisted or to win', 'Free — and unpurchasable'],

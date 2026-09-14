@@ -1,4 +1,4 @@
-import { rank, type CandidacyScores } from './judging';
+import { rank, SHARP_DISAGREEMENT, type CandidacyScores } from './judging';
 
 export const DEFAULT_FINALIST_COUNT = 4;
 export const MIN_JUDGES_PER_CANDIDACY = 3;
@@ -82,7 +82,7 @@ export function proposeWinner(
   if (top.judgeCount < MIN_JUDGES_PER_CANDIDACY) {
     warnings.push(`The leading finalist has only ${top.judgeCount} completed score(s).`);
   }
-  if (top.spread >= 20) {
+  if (top.spread >= SHARP_DISAGREEMENT) {
     warnings.push('Judges disagree sharply on the leading finalist — review before confirming.');
   }
 

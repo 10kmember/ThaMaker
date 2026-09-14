@@ -103,11 +103,9 @@ export async function submitScore(
 
   const parsed = scoreSchema.safeParse({
     assignmentId: formData.get('assignmentId'),
-    originality: formData.get('originality'),
-    consistency: formData.get('consistency'),
-    professionalism: formData.get('professionalism'),
-    impact: formData.get('impact'),
-    brand: formData.get('brand'),
+    ...Object.fromEntries(
+      SCORING_CRITERIA.map((criterion) => [criterion.key, formData.get(criterion.key)]),
+    ),
     remarks: formData.get('remarks') ?? '',
     conflictDeclared: formData.get('conflictDeclared') === 'on',
   });
@@ -148,7 +146,10 @@ export async function submitScore(
 
   const card = validateScoreCard(
     Object.fromEntries(
-      SCORING_CRITERIA.map((criterion) => [criterion.key, parsed.data[criterion.key]]),
+      SCORING_CRITERIA.map((criterion) => [
+        criterion.key,
+        (parsed.data as Record<string, unknown>)[criterion.key],
+      ]),
     ) as Partial<ScoreCard>,
   );
 

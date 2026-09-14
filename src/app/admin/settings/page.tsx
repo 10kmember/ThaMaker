@@ -273,7 +273,7 @@ export default async function SettingsPage() {
           rows={[
             {
               label: 'Criteria',
-              value: `${SCORING_CRITERIA.length}, ${MAX_SCORE} points each`,
+              value: `${SCORING_CRITERIA.length}, weighted, ${MAX_SCORE} points each`,
               source: 'code',
             },
             {
