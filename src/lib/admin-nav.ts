@@ -66,6 +66,7 @@ export const ADMIN_NAV: AdminGroup[] = [
     items: [
       { href: '/admin', label: 'Overview', permission: 'admin:view_dashboard' },
       { href: '/admin/analytics', label: 'Analytics', permission: 'admin:view_analytics' },
+      { href: '/admin/audience', label: 'Audience', permission: 'admin:view_analytics' },
       { href: '/admin/search', label: 'Search', permission: 'creators:view_records' },
       { href: '/admin/activity', label: 'Activity', permission: 'admin:view_audit_log' },
     ],

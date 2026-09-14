@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { after } from 'next/server';
 import { Container, Section } from '@/components/palma/layout';
 import { Masthead } from '@/components/palma/Masthead';
 import { CreatorCard } from '@/components/palma/CreatorCard';
@@ -9,6 +10,7 @@ import { buildMetadata } from '@/lib/seo';
 import { countryName } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { listCountries, listCreators } from '@/server/data/queries';
+import { countSearch } from '@/server/services/measurement';
 
 export const revalidate = 900;
 
@@ -29,6 +31,13 @@ export default async function CreatorsPage({ searchParams }: Props) {
     listCreators({ query: filters.q, country: filters.country, honoursOnly, limit: 120 }),
     listCountries(),
   ]);
+
+  // As on the Roll of Honour: the term and the result count, nothing else.
+  if (filters.q) {
+    const term = filters.q;
+    const found = creators.length;
+    after(() => countSearch('creators', term, found));
+  }
 
   const href = (patch: Record<string, string | undefined>) => {
     const params = new URLSearchParams();

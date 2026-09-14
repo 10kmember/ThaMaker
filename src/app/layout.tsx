@@ -3,6 +3,7 @@ import { Amatic_SC, Fraunces, Inter } from 'next/font/google';
 import { headers } from 'next/headers';
 import { SiteHeader } from '@/components/palma/SiteHeader';
 import { SiteFooter } from '@/components/palma/SiteFooter';
+import { PageCounter } from '@/components/palma/PageCounter';
 import { MotionProvider } from '@/components/motion/MotionProvider';
 import { THEME_BOOTSTRAP } from '@/lib/theme';
 import { JsonLd, organisationJsonLd, SITE_DESCRIPTOR, SITE_NAME } from '@/lib/seo';
@@ -103,6 +104,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </main>
           {chrome ? <SiteFooter /> : null}
         </MotionProvider>
+        {/* Counts the page. Sets nothing, stores nothing, sends nothing about
+            the reader — see src/domain/measurement.ts. */}
+        {chrome ? <PageCounter /> : null}
         <JsonLd data={organisationJsonLd()} />
       </body>
     </html>

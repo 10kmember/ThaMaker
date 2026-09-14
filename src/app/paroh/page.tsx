@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { after } from 'next/server';
 import { Container, Section } from '@/components/palma/layout';
 import { EmptyState } from '@/components/ui/feedback';
 import { Input } from '@/components/ui/form';
@@ -15,6 +16,7 @@ import {
   listCountries,
   listSeasons,
 } from '@/server/data/queries';
+import { countSearch } from '@/server/services/measurement';
 
 export const revalidate = 900;
 
@@ -58,6 +60,14 @@ export default async function ParohPage({ searchParams }: Props) {
 
   const total = roll.reduce((sum, group) => sum + group.entries.length, 0);
   const filtered = Boolean(filters.year || filters.category || filters.country || filters.q);
+
+  // What the archive was asked for, and whether it had it. The term only —
+  // never who asked. A search returning nothing is the useful row: it is PALMA
+  // being asked for something it does not hold.
+  if (filters.q) {
+    const term = filters.q;
+    after(() => countSearch('paroh', term, total));
+  }
 
   return (
     <>

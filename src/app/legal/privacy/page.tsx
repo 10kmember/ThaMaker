@@ -537,9 +537,9 @@ export default function PrivacyPage() {
       ),
     },
     {
-      heading: 'Cookies',
+      heading: 'Cookies and page counting',
       plainly:
-        'Only the ones needed to sign you in and keep you safe. No analytics, no advertising.',
+        'Only the cookies needed to sign you in and keep you safe. Pages are counted; people are not.',
       body: (
         <>
           <p>
@@ -551,9 +551,21 @@ export default function PrivacyPage() {
             .
           </p>
           <p>
-            PALMA currently runs no analytics, advertising or tracking technologies. If that ever
-            changes, they will be used only with the required consent, a preference mechanism will
-            be provided, and continuing to browse will not be treated as consent.
+            PALMA keeps an aggregate count of how often each of its pages is opened, and of the
+            terms typed into its search boxes. These counts hold no personal data: no IP address, no
+            cookie, no device identifier, no user-agent and no session — none of them stored, and
+            none of them derived and discarded. Because nothing identifies a reader, no part of this
+            is personal data about you and there is no record of your visit to request, correct or
+            erase. The mechanics are set out in{' '}
+            <Link href="/legal/cookies" className="palma-link text-ink">
+              the cookie notice
+            </Link>
+            .
+          </p>
+          <p>
+            PALMA runs no advertising, no third-party analytics and no tracking technologies. If
+            that ever changes, they will be used only with the required consent, a preference
+            mechanism will be provided, and continuing to browse will not be treated as consent.
           </p>
         </>
       ),

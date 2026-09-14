@@ -51,8 +51,8 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
       'What personal data PALMA holds, why, for how long, and the things it has deliberately chosen not to hold.',
     plainly:
       'What we know about you, why we know it, how long we keep it, and how to make us stop.',
-    version: '1.0',
-    effective: '2026-09-01',
+    version: '1.1',
+    effective: '2026-09-14',
     status: 'in-force',
   },
   {
@@ -72,11 +72,11 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
     title: 'Cookie Notice',
     shortTitle: 'Cookies',
     summary:
-      'The two cookies PALMA sets, both strictly necessary, the single preference it stores, and why there is no consent banner.',
+      'The two cookies PALMA sets, both strictly necessary, the single preference it stores, how pages are counted without identifying anyone, and why there is no consent banner.',
     plainly:
-      'We set two cookies and remember one preference. None of them watch you. That is why there is no banner.',
-    version: '1.0',
-    effective: '2026-09-01',
+      'We set two cookies and remember one preference. We count pages, never people. None of it watches you, which is why there is no banner.',
+    version: '1.1',
+    effective: '2026-09-14',
     status: 'in-force',
   },
   {

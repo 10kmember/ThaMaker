@@ -1794,3 +1794,48 @@ model RateLimitCounter {
   @@unique([bucket, identity])
   @@index([windowEndsAt])
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Measurement
+//
+// PALMA measures its own activity, not its visitors. Both tables below hold
+// counts and nothing else: no identifier, no IP, no hash of an IP, no
+// user-agent, no session, no timestamp finer than the day. There is deliberately
+// nothing here that could be joined to a person, because the surest way to be
+// unable to identify somebody is never to hold the thing that would.
+//
+// See src/domain/measurement.ts for what this does and does not make possible.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// One row per page per day. The whole of PALMA's traffic measurement.
+model PageCount {
+  id      String   @id @default(cuid())
+  /// Pathname only. Query strings are stripped before this is written.
+  path    String
+  /// The UTC day. Days rather than timestamps: a timestamp is a trail.
+  day     DateTime @db.Date
+  /// Which part of the institution this page belongs to, resolved at write time.
+  surface String
+  count   Int      @default(0)
+
+  @@unique([path, day])
+  @@index([day])
+  @@index([surface, day])
+}
+
+/// What people looked for, and whether PALMA had it. Terms only, never who.
+model SearchCount {
+  id      String   @id @default(cuid())
+  /// Trimmed, lower-cased, capped, and never containing an address.
+  term    String
+  /// Which search this was: the archive, the creator index, and so on.
+  scope   String
+  day     DateTime @db.Date
+  count   Int      @default(0)
+  /// Results the last such search returned. Zero is the useful case: it is
+  /// PALMA being asked for something it does not have.
+  results Int?
+
+  @@unique([scope, term, day])
+  @@index([scope, day])
+}
