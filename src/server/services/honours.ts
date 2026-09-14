@@ -4,6 +4,7 @@ import { deriveCode, payloadDigest, signAchievement } from '@/lib/verification';
 import { canReceiveHonour } from '@/domain/eligibility';
 import { recordAudit, type AuditActor } from '@/server/audit';
 import { requireDb } from '@/server/db';
+import { sendHonourConferred, sendHonourRevoked } from '@/server/email/messages';
 
 export type HonourKind = 'shortlist' | 'finalist' | 'winner' | 'special_recognition';
 
@@ -32,7 +33,9 @@ export async function conferHonour(input: ConferInput): Promise<ConferResult> {
   const candidacy = await db.candidacy.findUnique({
     where: { id: input.candidacyId },
     include: {
-      creator: { include: { verification: true } },
+      creator: {
+        include: { verification: true, user: { select: { id: true, email: true } } },
+      },
       category: true,
       awardYear: true,
     },
@@ -161,6 +164,23 @@ export async function conferHonour(input: ConferInput): Promise<ConferResult> {
     });
   }
 
+  // Telling the creator belongs here rather than at each call site: an honour
+  // conferred by a route that forgot to send the email is an honour somebody
+  // finds out about from a stranger. A record nobody holds has nobody to tell,
+  // and special recognition is announced by the desk rather than by a template.
+  if (candidacy.creator.user && input.kind !== 'special_recognition') {
+    await sendHonourConferred({
+      to: candidacy.creator.user.email,
+      userId: candidacy.creator.user.id,
+      creatorId: candidacy.creatorId,
+      creatorName: candidacy.creator.displayName,
+      kind: input.kind,
+      categoryName: candidacy.category.name,
+      year: candidacy.awardYear.year,
+      verificationCode: result.code,
+    });
+  }
+
   return { ok: true, honourId: result.honourId, code: result.code };
 }
 
@@ -214,6 +234,26 @@ export async function revokeHonour(input: {
     before: { state: 'active' },
     after: { state: 'revoked', reason: input.reason },
   });
+
+  // Never gated by a preference. Finding out from the public page that your
+  // honour was revoked is not an acceptable way to be told.
+  if (honour.creator.userId) {
+    const holder = await db.user.findUnique({
+      where: { id: honour.creator.userId },
+      select: { id: true, email: true },
+    });
+    if (holder) {
+      await sendHonourRevoked({
+        to: holder.email,
+        userId: holder.id,
+        creatorId: honour.creatorId,
+        creatorName: honour.creator.displayName,
+        categoryName: honour.category.name,
+        year: honour.awardYear.year,
+        reason: input.reason,
+      });
+    }
+  }
 
   return { ok: true };
 }

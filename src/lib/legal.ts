@@ -116,15 +116,30 @@ export function legalDocument(slug: string): LegalDocument | undefined {
   return LEGAL_DOCUMENTS.find((document) => document.slug === slug);
 }
 
-/** Addresses printed across the legal register and the contact page. */
+/**
+ * Addresses printed across the legal register and the contact page.
+ *
+ * These collapse onto the four mailboxes PALMA actually reads (see
+ * `src/server/email/addresses.ts`). Seven published addresses where three are
+ * aspirational is worse than four that are staffed: a person writing to an
+ * inbox nobody opens has been refused without being told so. The keys stay
+ * distinct because the *reason* someone is writing still differs, and the page
+ * should name it.
+ *
+ * There is no noreply@ here either. Every address PALMA prints accepts replies.
+ */
 export const CONTACTS = {
-  general: 'honours@palmaawards.com',
-  privacy: 'privacy@palmaawards.com',
+  /** The desk: accounts, records, claims, anything in progress. */
+  general: 'concierge@palmaawards.com',
+  /** Data protection, complaints and appeals. */
+  privacy: 'concerns@palmaawards.com',
+  /** Vulnerabilities and account safety. */
   security: 'security@palmaawards.com',
-  integrity: 'integrity@palmaawards.com',
-  press: 'press@palmaawards.com',
-  partnerships: 'partnerships@palmaawards.com',
-  accessibility: 'access@palmaawards.com',
+  /** Integrity of the record — forged verification, manipulated nominations. */
+  integrity: 'concerns@palmaawards.com',
+  press: 'concierge@palmaawards.com',
+  partnerships: 'concierge@palmaawards.com',
+  accessibility: 'concierge@palmaawards.com',
 } as const;
 
 export const ENTITY = {

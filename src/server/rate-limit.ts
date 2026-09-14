@@ -21,6 +21,13 @@ export const RATE_LIMITS = {
   nominationVerify: { bucket: 'nomination:verify', limit: 15, windowSeconds: 15 * 60 },
   signIn: { bucket: 'auth:sign-in', limit: 10, windowSeconds: 15 * 60 },
   register: { bucket: 'auth:register', limit: 5, windowSeconds: 60 * 60 },
+  /** Asking for a reset link. Tight: the cost of abuse lands in someone
+   *  else's inbox, and nobody needs five in a quarter of an hour. */
+  passwordReset: { bucket: 'auth:password-reset', limit: 5, windowSeconds: 15 * 60 },
+  /** Presenting a reset token. Guessing is the only reason to repeat. */
+  passwordResetSubmit: { bucket: 'auth:password-reset-submit', limit: 10, windowSeconds: 15 * 60 },
+  /** Joining the Gazette. One address per person; the rest is a script. */
+  gazette: { bucket: 'gazette:subscribe', limit: 5, windowSeconds: 60 * 60 },
   report: { bucket: 'integrity:report', limit: 10, windowSeconds: 60 * 60 },
   verifyLookup: { bucket: 'verify:lookup', limit: 120, windowSeconds: 60 * 60 },
   creatorSearch: { bucket: 'creator:search', limit: 120, windowSeconds: 10 * 60 },

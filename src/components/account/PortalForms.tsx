@@ -236,13 +236,13 @@ export function PreferencesForm({
       <CheckboxField
         id="nominationUpdates"
         name="nominationUpdates"
-        label="Updates on nominations I submit"
+        label="Movement on a candidacy of mine"
         defaultChecked={defaults.nominationUpdates}
       />
       <CheckboxField
         id="honourAnnouncements"
         name="honourAnnouncements"
-        label="Shortlist, finalist and winner announcements"
+        label="Honours conferred on my record"
         defaultChecked={defaults.honourAnnouncements}
       />
       <CheckboxField

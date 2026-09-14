@@ -9,6 +9,7 @@ import { proposeFinalists, proposeWinner, DEFAULT_FINALIST_COUNT } from '@/domai
 import { SCORING_CRITERIA, totalScore, validateScoreCard } from '@/domain/judging';
 import { scoreCorrectionSchema } from '@/lib/validation/judging';
 import { recordAudit } from '@/server/audit';
+import { sendCandidacyUpdate, sendPanelAssignment } from '@/server/email/messages';
 import { requireDb } from '@/server/db';
 import { conferHonour, revokeHonour } from '@/server/services/honours';
 
@@ -50,7 +51,16 @@ export async function reviewCandidacy(
   const db = requireDb();
   const before = await db.candidacy.findUnique({
     where: { id: candidacyId },
-    select: { status: true, reference: true },
+    select: {
+      status: true,
+      reference: true,
+      creatorId: true,
+      creator: {
+        select: { displayName: true, user: { select: { id: true, email: true } } },
+      },
+      category: { select: { name: true } },
+      awardYear: { select: { year: true } },
+    },
   });
   if (!before) return { status: 'error', message: 'That candidacy does not exist.' };
 
@@ -75,6 +85,23 @@ export async function reviewCandidacy(
     before: { status: before.status },
     after: { status: decision, note: note || null },
   });
+
+  // Only the two outcomes a creator can act on. "Under review" is PALMA's
+  // internal state and telling somebody their case is being looked at, twice,
+  // is noise rather than transparency.
+  const holder = before.creator.user;
+  if (holder && (decision === 'eligible' || decision === 'ineligible')) {
+    await sendCandidacyUpdate({
+      to: holder.email,
+      userId: holder.id,
+      creatorId: before.creatorId,
+      creatorName: before.creator.displayName,
+      categoryName: before.category.name,
+      year: before.awardYear.year,
+      status: decision === 'eligible' ? 'in_contention' : 'ineligible',
+      reason: note || null,
+    });
+  }
 
   revalidatePath('/admin/nominations');
   return { status: 'success', message: `Candidacy marked ${decision.replace('_', ' ')}.` };
@@ -159,6 +186,31 @@ export async function assignJudges(_previous: AdminState, formData: FormData): P
     })),
     skipDuplicates: true,
   });
+
+  // One message per judge naming how many cases they have, rather than one per
+  // case. A panel member who opens fourteen identical emails learns nothing
+  // from the second one.
+  const perJudge = new Map<string, number>();
+  for (const assignment of fresh) {
+    perJudge.set(assignment.judgeId, (perJudge.get(assignment.judgeId) ?? 0) + 1);
+  }
+
+  const seated = await db.judge.findMany({
+    where: { id: { in: [...perJudge.keys()] } },
+    select: { id: true, displayName: true, user: { select: { id: true, email: true } } },
+  });
+
+  for (const judge of seated) {
+    if (!judge.user) continue;
+    await sendPanelAssignment({
+      to: judge.user.email,
+      userId: judge.user.id,
+      judgeName: judge.displayName,
+      categoryName: category.name,
+      year: category.awardYear.year,
+      caseCount: perJudge.get(judge.id) ?? 0,
+    });
+  }
 
   await recordAudit({
     action: 'judge.assigned',

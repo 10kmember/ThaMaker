@@ -1,0 +1,65 @@
+import { Container, Section } from '@/components/palma/layout';
+import { Wordmark } from '@/components/brand/Wordmark';
+import { ResetPasswordForm } from '@/components/account/AuthForms';
+import { Notice } from '@/components/ui/feedback';
+import { buildMetadata } from '@/lib/seo';
+import { sha256 } from '@/lib/crypto';
+import { prisma } from '@/server/db';
+
+export const dynamic = 'force-dynamic';
+
+export const metadata = buildMetadata({
+  title: 'Set a new password',
+  description: 'Set a new password on your PALMA account.',
+  path: '/reset',
+  noIndex: true,
+});
+
+export default async function ResetPasswordPage({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}) {
+  const { token } = await params;
+
+  // Checked here only to say something useful before the form is filled in.
+  // The action checks it again — this page proves nothing to the server.
+  const record = await prisma.passwordResetToken.findUnique({
+    where: { tokenHash: sha256(token) },
+    select: { usedAt: true, expiresAt: true },
+  });
+
+  const usable = Boolean(record && !record.usedAt && record.expiresAt > new Date());
+
+  return (
+    <Section className="py-20">
+      <Container size="narrow">
+        <div className="mx-auto flex max-w-110 flex-col gap-10">
+          <div className="flex flex-col gap-4">
+            <Wordmark size="md" descriptor />
+            <h1 className="text-4xl">Set a new password</h1>
+            {usable ? (
+              <p className="text-taupe-deep leading-relaxed">
+                Setting it signs out every other session on this account — including anyone else who
+                was signed in as you.
+              </p>
+            ) : null}
+          </div>
+
+          {usable ? (
+            <ResetPasswordForm token={token} />
+          ) : (
+            <Notice tone="warning" title="This link is no longer valid">
+              A reset link lasts an hour and works once, and asking for a new one cancels the old.
+              Start again from the{' '}
+              <a href="/forgot" className="palma-link text-ink">
+                forgotten password
+              </a>{' '}
+              page.
+            </Notice>
+          )}
+        </div>
+      </Container>
+    </Section>
+  );
+}

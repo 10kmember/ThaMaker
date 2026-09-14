@@ -6,6 +6,11 @@ import { Button } from '@/components/ui/button';
 import { CheckboxField, Field, Input } from '@/components/ui/form';
 import { Notice } from '@/components/ui/feedback';
 import { register, signIn, type AuthState } from '@/server/actions/auth';
+import {
+  requestPasswordReset,
+  resetPassword,
+  type PasswordState,
+} from '@/server/actions/password';
 
 const initial: AuthState = { status: 'idle' };
 
@@ -60,6 +65,14 @@ export function SignInForm({
       <Button type="submit" size="md" disabled={pending}>
         {pending ? 'Signing in…' : submitLabel}
       </Button>
+
+      {/* Every door carries this. Losing a password is the most ordinary way
+          to lose an account, and it should never be the end of the road. */}
+      <p className="text-taupe-deep text-sm">
+        <Link href="/forgot" className="palma-link hover:text-ink">
+          Forgotten your password?
+        </Link>
+      </p>
 
       {showRegister ? (
         <p className="text-taupe-deep text-sm">
@@ -128,6 +141,120 @@ export function RegisterForm() {
         </Link>
         .
       </p>
+    </form>
+  );
+}
+
+const passwordInitial: PasswordState = { status: 'idle' };
+
+/**
+ * Asking for a link.
+ *
+ * The answer is the same sentence whether or not the address has an account,
+ * and the form is replaced by it — so there is nothing to submit twice and
+ * nothing to compare between two attempts.
+ */
+export function ForgotPasswordForm() {
+  const [state, action, pending] = useActionState(requestPasswordReset, passwordInitial);
+
+  if (state.status === 'success') {
+    return (
+      <Notice tone="ceremonial" title="Check your inbox">
+        {state.message}
+      </Notice>
+    );
+  }
+
+  return (
+    <form action={action} className="flex flex-col gap-6">
+      {state.status === 'error' && state.message ? (
+        <Notice tone="error" title="Could not send the link">
+          {state.message}
+        </Notice>
+      ) : null}
+
+      <Field htmlFor="email" label="Email" required>
+        <Input id="email" name="email" type="email" required autoComplete="email" autoFocus />
+      </Field>
+
+      <Button type="submit" size="md" disabled={pending}>
+        {pending ? 'Sending…' : 'Send the link'}
+      </Button>
+
+      <p className="text-taupe-deep text-sm">
+        Remembered it?{' '}
+        <Link href="/creator" className="palma-link hover:text-ink">
+          Sign in
+        </Link>
+        .
+      </p>
+    </form>
+  );
+}
+
+/** Spending it. The token rides in a hidden field rather than the form data. */
+export function ResetPasswordForm({ token }: { token: string }) {
+  const [state, action, pending] = useActionState(resetPassword, passwordInitial);
+
+  if (state.status === 'success') {
+    return (
+      <div className="flex flex-col gap-6">
+        <Notice tone="ceremonial" title="Password set">
+          {state.message}
+        </Notice>
+        <Button asChild size="md" className="self-start">
+          <Link href="/creator">Sign in</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <form action={action} className="flex flex-col gap-6">
+      <input type="hidden" name="token" value={token} />
+
+      {state.status === 'error' && state.message ? (
+        <Notice tone="error" title="Could not set the password">
+          {state.message}
+        </Notice>
+      ) : null}
+
+      <Field
+        htmlFor="password"
+        label="New password"
+        required
+        hint="At least 12 characters, mixing cases or including a number."
+        error={state.errors?.password}
+      >
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          required
+          autoComplete="new-password"
+          minLength={12}
+          autoFocus
+        />
+      </Field>
+
+      <Field
+        htmlFor="confirmPassword"
+        label="Repeat it"
+        required
+        error={state.errors?.confirmPassword}
+      >
+        <Input
+          id="confirmPassword"
+          name="confirmPassword"
+          type="password"
+          required
+          autoComplete="new-password"
+        />
+      </Field>
+
+      <Button type="submit" size="md" disabled={pending}>
+        {pending ? 'Setting…' : 'Set the password'}
+      </Button>
     </form>
   );
 }

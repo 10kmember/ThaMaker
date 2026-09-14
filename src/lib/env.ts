@@ -12,7 +12,7 @@ const schema = z.object({
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required — PostgreSQL is the source of truth.'),
   AUTH_SECRET: z.string().min(32).optional(),
   NEXT_PUBLIC_SITE_URL: z.string().url().default('https://palmaawards.com'),
-  EMAIL_FROM: z.string().default('PALMA <honours@palmaawards.com>'),
+  EMAIL_FROM: z.string().default('PALMA <laurels@palmaawards.com>'),
   RESEND_API_KEY: z.string().optional(),
   AGE_VERIFICATION_PROVIDER: z.string().default('stub'),
   AGE_VERIFICATION_API_KEY: z.string().optional(),

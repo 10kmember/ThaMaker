@@ -70,7 +70,7 @@ export default async function ClaimInvitationPage({
                 <Link href="/creator/claim" className="palma-link text-ink">
                   Claim a profile
                 </Link>
-                , or write to honours@palmaawards.com.
+                , or write to concierge@palmaawards.com.
               </p>
             </>
           ) : (

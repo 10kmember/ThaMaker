@@ -13,6 +13,7 @@ import {
 } from '@/lib/validation/claims';
 import { fieldErrors } from '@/lib/validation/nomination';
 import { recordAudit } from '@/server/audit';
+import { sendRecordPublished, sendVerificationOutcome } from '@/server/email/messages';
 import { requireDb } from '@/server/db';
 import { slugify } from '@/lib/utils';
 
@@ -88,6 +89,7 @@ export async function saveCreatorRecord(
         biography: true,
         websiteUrl: true,
         isPublished: true,
+        user: { select: { id: true, email: true } },
       },
     });
 
@@ -105,8 +107,23 @@ export async function saveCreatorRecord(
       after: data,
     });
 
+    // Publication is the one edit the creator is waiting on, so it is the one
+    // that writes to them. Every other change is editorial housekeeping and
+    // does not need an email about it.
+    const justPublished = !before.isPublished && data.isPublished;
+    if (justPublished && before.user) {
+      await sendRecordPublished({
+        to: before.user.email,
+        userId: before.user.id,
+        creatorId,
+        creatorName: data.displayName,
+        slug: before.slug,
+      });
+    }
+
     revalidatePath(`/creators/${before.slug}`);
     revalidatePath(`/portal/creators/${before.slug}`);
+    revalidatePath('/creators');
     return { status: 'success', message: 'Record updated. The change is in the audit log.' };
   }
 
@@ -266,7 +283,16 @@ export async function decideVerificationCase(
   const db = requireDb();
   const record = await db.verificationCase.findUnique({
     where: { id: parsed.data.caseId },
-    include: { creator: { select: { id: true, slug: true, displayName: true } } },
+    include: {
+      creator: {
+        select: {
+          id: true,
+          slug: true,
+          displayName: true,
+          user: { select: { id: true, email: true } },
+        },
+      },
+    },
   });
 
   if (!record) return { status: 'error', message: 'That case does not exist.' };
@@ -280,6 +306,16 @@ export async function decideVerificationCase(
       where: { id: record.id },
       data: { status: 'awaiting_information', decisionNote: parsed.data.note || null },
     });
+
+    if (record.creator.user) {
+      await sendVerificationOutcome({
+        to: record.creator.user.email,
+        userId: record.creator.user.id,
+        creatorId: record.creator.id,
+        outcome: 'more_needed',
+        note: parsed.data.note || null,
+      });
+    }
 
     revalidatePath('/portal/verification');
     return { status: 'success', message: 'Information requested. The case stays open.' };
@@ -375,7 +411,20 @@ export async function decideVerificationCase(
     });
   }
 
+  // Told to the creator, never quoting anything they submitted. An abandoned
+  // case is one nobody is waiting on, so it writes nothing.
+  if (record.creator.user && outcome !== 'abandoned') {
+    await sendVerificationOutcome({
+      to: record.creator.user.email,
+      userId: record.creator.user.id,
+      creatorId: record.creator.id,
+      outcome: outcome === 'verified' ? 'verified' : 'failed',
+      note: parsed.data.note || null,
+    });
+  }
+
   revalidatePath('/portal/verification');
+  revalidatePath('/creator');
   revalidatePath(`/creators/${record.creator.slug}`);
   return {
     status: 'success',

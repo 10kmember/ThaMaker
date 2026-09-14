@@ -1,6 +1,7 @@
 import 'server-only';
 import { canIssueReferralLink, referralPath } from '@/domain/nomination';
 import { prisma } from '@/server/db';
+import { getDossierBadge } from './dossier';
 
 export type PortalCandidacy = {
   id: string;
@@ -62,6 +63,8 @@ export type CreatorPortal = {
     honourAnnouncements: boolean;
     journalDigest: boolean;
   };
+  /** What is waiting in the Dossier, for the badge on the portal. */
+  dossier: { unread: number; important: number };
 };
 
 export async function getCreatorPortal(userId: string): Promise<CreatorPortal | null> {
@@ -88,6 +91,8 @@ export async function getCreatorPortal(userId: string): Promise<CreatorPortal | 
   });
 
   if (!user) return null;
+
+  const dossier = await getDossierBadge(userId);
 
   return {
     hasProfile: Boolean(user.creator),
@@ -145,5 +150,6 @@ export async function getCreatorPortal(userId: string): Promise<CreatorPortal | 
       honourAnnouncements: user.notificationPrefs?.honourAnnouncements ?? true,
       journalDigest: user.notificationPrefs?.journalDigest ?? false,
     },
+    dossier,
   };
 }

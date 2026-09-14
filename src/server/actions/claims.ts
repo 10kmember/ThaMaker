@@ -9,6 +9,7 @@ import { approvalIsBlocked, isOpenClaim } from '@/domain/claim';
 import { claimDecisionSchema, claimRequestSchema, newRecordSchema } from '@/lib/validation/claims';
 import { fieldErrors } from '@/lib/validation/nomination';
 import { recordAudit } from '@/server/audit';
+import { sendClaimApproved, sendClaimRefused } from '@/server/email/messages';
 import { requireDb } from '@/server/db';
 import { slugify } from '@/lib/utils';
 
@@ -277,6 +278,17 @@ export async function decideClaim(_previous: ClaimState, formData: FormData): Pr
       after: { reason: parsed.data.note },
     });
 
+    // The person who claimed it is told, with the reason and the route back.
+    // A refusal nobody explains is how an institution loses somebody's trust
+    // over something that was usually only an evidence problem.
+    await sendClaimRefused({
+      to: claim.user.email,
+      userId: claim.user.id,
+      creatorId: claim.creator.id,
+      creatorName: claim.creator.displayName,
+      reason: parsed.data.note,
+    });
+
     revalidatePath('/portal/claims');
     return { status: 'success', message: 'Claim rejected, with the reason recorded.' };
   }
@@ -344,6 +356,14 @@ export async function decideClaim(_previous: ClaimState, formData: FormData): Pr
     summary: `${session.user.email} approved ${claim.user.email}'s claim on ${claim.creator.displayName}`,
     before: { userId: null, isClaimed: false },
     after: { userId: claim.userId, isClaimed: true },
+  });
+
+  await sendClaimApproved({
+    to: claim.user.email,
+    userId: claim.user.id,
+    creatorId: claim.creator.id,
+    creatorName: claim.creator.displayName,
+    slug: claim.creator.slug,
   });
 
   revalidatePath('/portal/claims');

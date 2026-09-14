@@ -5,6 +5,7 @@ import { authorise } from '@/lib/auth/guards';
 import { assertSameOrigin } from '@/lib/auth/session';
 import { ROLES, type Role } from '@/lib/auth/rbac';
 import { recordAudit } from '@/server/audit';
+import { sendEnforcementNotice } from '@/server/email/messages';
 import { requireDb } from '@/server/db';
 
 export type PeopleState = { status: 'idle' | 'error' | 'success'; message?: string };
@@ -144,6 +145,19 @@ export async function setAccountState(
     summary: suspend ? `${user.email} suspended: ${reason}` : `${user.email} restored`,
     before: { isActive: user.isActive },
     after: { isActive: !suspend },
+  });
+
+  // Enforcement is told to the person it lands on, with the reason and the
+  // appeal. An account that is simply stopped working, with no explanation, is
+  // how an institution turns a moderation decision into a grievance.
+  await sendEnforcementNotice({
+    to: user.email,
+    userId: user.id,
+    headline: suspend
+      ? 'Your PALMA account has been suspended'
+      : 'Your PALMA account has been restored',
+    reason: suspend ? reason : 'The suspension has been lifted.',
+    restored: !suspend,
   });
 
   revalidatePath('/admin/users');

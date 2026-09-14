@@ -66,6 +66,19 @@ export const AUDIT_ACTIONS = [
   'user.signed_out',
   'user.registered',
   'user.wrong_entrance',
+  'user.password_reset_requested',
+  'user.password_reset',
+  'user.password_changed',
+  'user.email_change_requested',
+  'user.email_changed',
+  'user.account_closed',
+  'gazette.subscribed',
+  'gazette.confirmed',
+  'gazette.unsubscribed',
+  'gazette.issue_sent',
+  'creators.imported',
+  'retention.swept',
+  'settings.changed',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

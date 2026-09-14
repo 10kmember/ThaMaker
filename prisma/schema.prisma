@@ -202,6 +202,24 @@ enum NotificationChannel {
   in_app
 }
 
+enum EmailDeliveryStatus {
+  /// Written, not yet handed to the provider.
+  queued
+  /// The provider accepted it.
+  sent
+  /// The provider refused it, or could not be reached.
+  failed
+  /// Not sent on purpose — the account muted this channel, or there is no
+  /// provider configured in this environment.
+  suppressed
+}
+
+enum GazetteSubscriptionStatus {
+  pending
+  confirmed
+  unsubscribed
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Identity & access
 // ─────────────────────────────────────────────────────────────────────────────
@@ -234,6 +252,9 @@ model User {
   verificationCasesDecided VerificationCase[]      @relation("VerificationCaseReviewer")
   actionsRequested         ConsequentialAction[]   @relation("ConsequentialRequester")
   actionsApproved          ConsequentialAction[]   @relation("ConsequentialApprover")
+  passwordResets           PasswordResetToken[]
+  emailChanges             EmailChangeRequest[]
+  emailDeliveries          EmailDelivery[]
 
   @@index([role])
 }
@@ -255,12 +276,23 @@ model AuthSession {
   @@index([expiresAt])
 }
 
+/// What an account has asked to hear about, by channel.
+///
+/// These gate the Gazette and the announcements. They never gate a message
+/// PALMA owes the account regardless — a password reset, a security notice, a
+/// decision on their own record — because an institution that lets you switch
+/// off the news that your honour was revoked is not keeping a record.
 model NotificationPreference {
-  id                  String  @id @default(cuid())
-  userId              String  @unique
+  id     String @id @default(cuid())
+  userId String @unique
+
+  /// Shortlist, finalist and winner announcements across the season.
   seasonAnnouncements Boolean @default(true)
+  /// Movement on a nomination or candidacy that concerns this account.
   nominationUpdates   Boolean @default(true)
+  /// Honours conferred on this account's creator record.
   honourAnnouncements Boolean @default(true)
+  /// The PALMA Journal digest.
   journalDigest       Boolean @default(false)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -300,6 +332,7 @@ model Creator {
   invitations       ClaimInvitation[]
   staffNotes        CreatorNote[]
   verificationCases VerificationCase[]
+  emailDeliveries   EmailDelivery[]
 
   /// The creator's own nomination link: palmaawards.com/nominate/<slug>.
   /// Issued once the profile is claimed and verified.
@@ -999,20 +1032,142 @@ model AuditLog {
   @@index([createdAt])
 }
 
+/// The Dossier: everything PALMA has told this account, kept.
+///
+/// An entry is written whether or not the matching email was sent, so an
+/// account that muted a channel or whose address bounced can still find out
+/// what happened. The Dossier is the record; email is only how it travels.
 model Notification {
-  id        String              @id @default(cuid())
-  userId    String
-  channel   NotificationChannel @default(in_app)
-  subject   String
-  body      String              @db.Text
-  href      String?
-  readAt    DateTime?
-  sentAt    DateTime?
-  createdAt DateTime            @default(now())
+  id      String              @id @default(cuid())
+  userId  String
+  channel NotificationChannel @default(in_app)
+
+  /// The template that produced it — see src/server/email/register.ts.
+  kind    String  @default("notice")
+  subject String
+  body    String  @db.Text
+  href    String?
+
+  /// Entries PALMA will not let an account dismiss unread.
+  isImportant Boolean @default(false)
+
+  readAt     DateTime?
+  archivedAt DateTime?
+  sentAt     DateTime?
+  createdAt  DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, readAt])
+  @@index([userId, createdAt])
+}
+
+/// Every message PALMA has tried to send, and what became of it.
+///
+/// Written before the provider is called and updated after, so a message that
+/// failed is as visible as one that arrived. This is what /admin/communications
+/// reads: an institution that cannot say whether it told someone has not told
+/// them.
+model EmailDelivery {
+  id       String @id @default(cuid())
+  /// Template key from the register.
+  template String
+  /// The address it was sent from — which voice of the institution spoke.
+  from     String
+  to       String
+  subject  String
+
+  status     EmailDeliveryStatus @default(queued)
+  /// Resend's id, when the provider accepted it.
+  providerId String?
+  /// Why it did not go, in the operator's words rather than the provider's.
+  detail     String?
+
+  /// Who it concerned, when PALMA knows.
+  userId    String?
+  creatorId String?
+
+  createdAt DateTime  @default(now())
+  sentAt    DateTime?
+
+  user    User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  creator Creator? @relation(fields: [creatorId], references: [id], onDelete: SetNull)
+
+  @@index([template, createdAt])
+  @@index([status, createdAt])
+  @@index([to])
+}
+
+/// A single-use password reset.
+///
+/// Stored as a SHA-256 hash, so a database copy cannot be turned into an
+/// account. Requesting one never says whether the address has an account.
+model PasswordResetToken {
+  id          String    @id @default(cuid())
+  userId      String
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  /// Coarse origin of the request, for the security notice. Never a raw address.
+  requestHash String?
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// A request to move an account to a different address.
+///
+/// Confirmed from the new address, and announced to the old one — so losing
+/// control of an inbox does not silently lose you the account.
+model EmailChangeRequest {
+  id          String    @id @default(cuid())
+  userId      String
+  newEmail    String
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  confirmedAt DateTime?
+  cancelledAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// The Gazette — PALMA's mailing list, open to anyone.
+///
+/// Double opt-in, keyed by address rather than by account, because most of the
+/// people who want the season are not creators and never will be.
+model GazetteSubscription {
+  id     String                    @id @default(cuid())
+  email  String                    @unique
+  status GazetteSubscriptionStatus @default(pending)
+
+  /// Confirmation and unsubscribe both ride this one hash.
+  tokenHash String @unique
+  /// Where the subscription came from — the footer, the Dossier, an import.
+  source    String @default("site")
+
+  confirmedAt    DateTime?
+  unsubscribedAt DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([status])
+}
+
+/// Settings an operator changes without a deployment.
+///
+/// Deliberately small: anything here is a switch an administrator is trusted to
+/// throw at runtime. Secrets stay in the environment — a key in the database is
+/// a key in every backup of it.
+model SystemSetting {
+  key         String   @id
+  value       String
+  updatedById String?
+  updatedAt   DateTime @updatedAt
 }
 
 /// Durable counters backing nomination-form rate limiting and abuse detection.

@@ -17,6 +17,7 @@ import { fieldErrors } from '@/lib/validation/nomination';
 import { recordAudit } from '@/server/audit';
 import { prisma } from '@/server/db';
 import { RATE_LIMITS, enforceRateLimit } from '@/server/rate-limit';
+import { sendWelcome } from '@/server/email/messages';
 
 export type AuthState = {
   status: 'idle' | 'error';
@@ -162,6 +163,10 @@ export async function register(_previous: AuthState, formData: FormData): Promis
     entityId: user.id,
     actor: { id: user.id, role: user.role, label: user.email },
   });
+
+  // Written whatever the mail provider does. A failed welcome is an operator's
+  // problem, not a reason to refuse somebody an account they just created.
+  await sendWelcome({ to: user.email, userId: user.id, name: user.name });
 
   redirect('/creator');
 }

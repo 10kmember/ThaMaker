@@ -50,6 +50,60 @@ export const creatorLinksSchema = z.object({
     .max(6, 'Six links is the limit.'),
 });
 
+/**
+ * Asking for a reset.
+ *
+ * The address is the whole form. Nothing here may reveal whether it has an
+ * account — the response is identical either way, so this schema exists to
+ * validate shape rather than to gate anything.
+ */
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email('Enter a valid email address.'),
+});
+
+/** Setting a new one. The token arrives from the path, not the form. */
+export const resetPasswordSchema = z
+  .object({
+    token: z.string().trim().min(20, 'That reset link is not valid.').max(200),
+    password: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine((value) => value.password === value.confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'Both passwords must match.',
+  });
+
+/** Moving an account to a different address. The current password is required. */
+export const changeEmailSchema = z.object({
+  newEmail: z.string().trim().toLowerCase().email('Enter a valid email address.'),
+  password: z.string().min(1, 'Enter your current password.'),
+});
+
+/** Changing a password while signed in. */
+export const changePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Enter your current password.'),
+    password: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine((value) => value.password === value.confirmPassword, {
+    path: ['confirmPassword'],
+    message: 'Both passwords must match.',
+  });
+
+/**
+ * Closing an account.
+ *
+ * Typed confirmation rather than a checkbox: closing signs you out everywhere
+ * and cannot be undone, and a box you tick by reflex is not a decision.
+ */
+export const closeAccountSchema = z.object({
+  password: z.string().min(1, 'Enter your password.'),
+  confirm: z.literal('CLOSE', {
+    message: 'Type CLOSE to confirm.',
+  }),
+});
+
 export const notificationPreferenceSchema = z.object({
   seasonAnnouncements: z.boolean(),
   nominationUpdates: z.boolean(),

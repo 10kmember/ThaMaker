@@ -274,8 +274,31 @@ export default async function PortalPage() {
           </section>
 
           <section className="border-stone-deep border p-7">
-            <h2 className="palma-label text-taupe-deep mb-5">Notifications</h2>
-            <PreferencesForm defaults={portal.preferences} />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="palma-label text-taupe-deep">Your Dossier</h2>
+              {portal.dossier.unread > 0 ? (
+                <Badge variant={portal.dossier.important > 0 ? 'champagne' : 'default'}>
+                  {portal.dossier.unread} unread
+                </Badge>
+              ) : null}
+            </div>
+            <p className="text-taupe-deep mt-4 text-sm leading-relaxed">
+              Everything PALMA has told you, kept — decisions on your record, honours, and changes
+              to your account. Entries are written whether or not the email reached you.
+            </p>
+            <Button asChild variant="outline" size="sm" className="mt-5">
+              <Link href="/dossier">Open your Dossier</Link>
+            </Button>
+
+            <div className="border-stone-deep mt-7 border-t pt-6">
+              <h3 className="palma-label text-taupe-deep mb-2">What reaches your inbox</h3>
+              <p className="text-taupe mb-5 text-xs leading-relaxed">
+                These govern announcements only. Decisions about your record, and anything
+                concerning the safety of your account, are sent regardless — an institution you can
+                mute is not keeping you informed.
+              </p>
+              <PreferencesForm defaults={portal.preferences} />
+            </div>
           </section>
 
           {session.user.judgeId ? (

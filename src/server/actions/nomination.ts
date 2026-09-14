@@ -265,8 +265,12 @@ export async function requestNominationCode(
     categoryName: category.name,
   });
 
-  if (!sent.ok) {
-    return { step: 'details', status: 'error', message: sent.error };
+  if (sent.status === 'failed') {
+    return {
+      step: 'details',
+      status: 'error',
+      message: 'The code could not be sent just now. Try again in a moment.',
+    };
   }
 
   return {
@@ -276,7 +280,7 @@ export async function requestNominationCode(
     email: input.email,
     creatorName: creator.displayName,
     categoryName: category.name,
-    codeNotDelivered: !sent.delivered,
+    codeNotDelivered: sent.status !== 'sent',
     message: `We have sent a six-digit code to ${input.email}.`,
   };
 }
