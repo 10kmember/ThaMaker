@@ -25,6 +25,12 @@ export type MastheadProps = {
   /** Split across lines for the masked reveal. Falls back to `title`. */
   titleLines?: string[];
   standfirst?: React.ReactNode;
+  /**
+   * One quiet line directly under the title — a sponsor attribution, a status.
+   * Beneath the headline and above the standfirst, so it reads as a note about
+   * the thing rather than part of its name.
+   */
+  belowTitle?: React.ReactNode;
   /** Divided items beneath the folio rule. */
   meta?: React.ReactNode[];
   /** The right-hand column: a figure, a seal, a badge stack. */
@@ -45,6 +51,7 @@ export function Masthead({
   title,
   titleLines,
   standfirst,
+  belowTitle,
   meta,
   plate,
   figure,
@@ -150,6 +157,8 @@ export function Masthead({
               aria-hidden="true"
               className={cn('block h-px w-full max-w-md', dark ? 'bg-ivory/25' : 'bg-stone-deep')}
             />
+
+            {belowTitle ? <div className="-mt-1">{belowTitle}</div> : null}
 
             {standfirst ? (
               <p

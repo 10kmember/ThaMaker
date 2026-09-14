@@ -6,6 +6,7 @@ import { assertSameOrigin } from '@/lib/auth/session';
 import { authorise } from '@/lib/auth/guards';
 import { slugify } from '@/lib/utils';
 import { feature, isFeatureKey } from '@/domain/features';
+import { placement as placementRule, placementTargetIsValid } from '@/domain/sponsorship';
 import { recordAudit } from '@/server/audit';
 import { prisma } from '@/server/db';
 
@@ -353,4 +354,201 @@ export async function savePackage(
   revalidatePath('/admin/business');
 
   return { status: 'success', message: existing ? 'Package updated.' : 'Package created.' };
+}
+
+const placementSchema = z.object({
+  sponsorId: z.string().trim().min(1, 'Choose a sponsor.').max(40),
+  awardYearId: z.string().trim().min(1, 'Choose a season.').max(40),
+  placement: z.enum(['category', 'event', 'editorial', 'principal']),
+  categoryId: z.string().trim().max(40).optional().or(z.literal('')),
+  eventId: z.string().trim().max(40).optional().or(z.literal('')),
+  articleId: z.string().trim().max(40).optional().or(z.literal('')),
+  attribution: z.string().trim().max(60).optional().or(z.literal('')),
+});
+
+/**
+ * Placing a sponsor against the thing they funded.
+ *
+ * The moderation desk does this, because the desk owns the pages a sponsor's
+ * name appears on. What it cannot do is create the sponsor, price the package
+ * or decide the association is live — a placement is proposed here and
+ * approved by administration, so no single person can put a logo on a category
+ * page from end to end.
+ */
+export async function assignPlacement(
+  _previous: CommercialState,
+  formData: FormData,
+): Promise<CommercialState> {
+  await assertSameOrigin();
+
+  let session;
+  try {
+    session = await authorise('commercial:assign_placement');
+  } catch {
+    return { status: 'error', message: 'You are not authorised to place sponsors.' };
+  }
+
+  const parsed = placementSchema.safeParse({
+    sponsorId: formData.get('sponsorId'),
+    awardYearId: formData.get('awardYearId'),
+    placement: formData.get('placement'),
+    categoryId: formData.get('categoryId') ?? '',
+    eventId: formData.get('eventId') ?? '',
+    articleId: formData.get('articleId') ?? '',
+    attribution: formData.get('attribution') ?? '',
+  });
+
+  if (!parsed.success) {
+    return { status: 'error', message: parsed.error.issues[0]?.message ?? 'Check the placement.' };
+  }
+
+  const target = {
+    categoryId: parsed.data.categoryId || null,
+    eventId: parsed.data.eventId || null,
+    articleId: parsed.data.articleId || null,
+  };
+
+  if (!placementTargetIsValid({ placement: parsed.data.placement, ...target })) {
+    const rule = placementRule(parsed.data.placement);
+    return {
+      status: 'error',
+      message: rule.target
+        ? `A ${rule.name.toLowerCase()} has to name exactly one ${rule.target.replace('Id', '')}.`
+        : 'A principal partnership attaches to the season itself — leave the others blank.',
+    };
+  }
+
+  const sponsor = await prisma.sponsor.findUnique({
+    where: { id: parsed.data.sponsorId },
+    select: { id: true, name: true, status: true, agreementStatus: true },
+  });
+
+  if (!sponsor) return { status: 'error', message: 'That sponsor does not exist.' };
+
+  // A placement against a prospect, or against a deal nobody has signed, is a
+  // logo on the strength of a conversation.
+  if (sponsor.status !== 'active' || sponsor.agreementStatus !== 'signed') {
+    return {
+      status: 'error',
+      message: `${sponsor.name} is ${sponsor.status} with a ${sponsor.agreementStatus} agreement. A placement needs an active sponsor and a signed agreement.`,
+    };
+  }
+
+  const existing = await prisma.sponsorship.findFirst({
+    where: {
+      sponsorId: sponsor.id,
+      awardYearId: parsed.data.awardYearId,
+      placement: parsed.data.placement,
+      ...target,
+    },
+    select: { id: true },
+  });
+
+  if (existing) {
+    return { status: 'error', message: 'That placement already exists.' };
+  }
+
+  const created = await prisma.sponsorship.create({
+    data: {
+      sponsorId: sponsor.id,
+      awardYearId: parsed.data.awardYearId,
+      placement: parsed.data.placement,
+      ...target,
+      attribution: parsed.data.attribution || null,
+      // Proposed, not live. Administration approves.
+      isApproved: false,
+    },
+  });
+
+  await recordAudit({
+    action: 'commercial.sponsorship_assigned',
+    entityType: 'Sponsorship',
+    entityId: created.id,
+    actor: { id: session.user.id, role: session.user.role, label: session.user.email },
+    summary: `${sponsor.name} proposed as ${placementRule(parsed.data.placement).name.toLowerCase()}`,
+    after: { placement: parsed.data.placement, ...target },
+  });
+
+  revalidatePath('/portal/sponsorships');
+  revalidatePath('/admin/business');
+
+  return {
+    status: 'success',
+    message: `Proposed. ${sponsor.name} appears nowhere public until an administrator approves it.`,
+  };
+}
+
+/** Approving or removing a placement. Administration only. */
+export async function decidePlacement(
+  _previous: CommercialState,
+  formData: FormData,
+): Promise<CommercialState> {
+  await assertSameOrigin();
+
+  let session;
+  try {
+    session = await authorise('commercial:manage_sponsors');
+  } catch {
+    return { status: 'error', message: 'Approving a placement is an administrator’s decision.' };
+  }
+
+  const id = String(formData.get('sponsorshipId') ?? '');
+  const decision = String(formData.get('decision') ?? '');
+
+  const sponsorship = await prisma.sponsorship.findUnique({
+    where: { id },
+    include: {
+      sponsor: { select: { name: true } },
+      category: { select: { name: true, slug: true } },
+      awardYear: { select: { id: true, title: true } },
+    },
+  });
+
+  if (!sponsorship) return { status: 'error', message: 'That placement does not exist.' };
+
+  if (decision === 'remove') {
+    await prisma.sponsorship.delete({ where: { id } });
+
+    await recordAudit({
+      action: 'commercial.sponsorship_removed',
+      entityType: 'Sponsorship',
+      entityId: id,
+      actor: { id: session.user.id, role: session.user.role, label: session.user.email },
+      summary: `${sponsorship.sponsor.name} removed from ${sponsorship.category?.name ?? sponsorship.awardYear.title}`,
+    });
+
+    revalidatePath('/portal/sponsorships');
+    revalidatePath('/admin/business');
+    if (sponsorship.category) revalidatePath(`/categories/${sponsorship.category.slug}`);
+
+    return { status: 'success', message: 'Removed. The attribution is gone from every page.' };
+  }
+
+  if (decision !== 'approve') {
+    return { status: 'error', message: 'Choose approve or remove.' };
+  }
+
+  await prisma.sponsorship.update({
+    where: { id },
+    data: { isApproved: true, approvedById: session.user.id, approvedAt: new Date() },
+  });
+
+  await recordAudit({
+    action: 'commercial.sponsorship_assigned',
+    entityType: 'Sponsorship',
+    entityId: id,
+    actor: { id: session.user.id, role: session.user.role, label: session.user.email },
+    summary: `${sponsorship.sponsor.name} approved on ${sponsorship.category?.name ?? sponsorship.awardYear.title}`,
+    after: { isApproved: true },
+  });
+
+  revalidatePath('/portal/sponsorships');
+  revalidatePath('/admin/business');
+  revalidatePath('/categories');
+  if (sponsorship.category) revalidatePath(`/categories/${sponsorship.category.slug}`);
+
+  return {
+    status: 'success',
+    message: `Approved. It appears once ${'the matching feature'} is switched on for that season.`,
+  };
 }

@@ -74,7 +74,18 @@ export const listCategories = cache(async (year: number): Promise<CategoryView[]
     orderBy: { position: 'asc' },
     include: {
       awardYear: true,
-      sponsorships: { include: { sponsor: true }, take: 1 },
+      // Only an approved association, with a live sponsor, and only a category
+      // placement. An unapproved sponsorship is a conversation, and a logo on
+      // the strength of one is a claim PALMA cannot support.
+      sponsorships: {
+        where: {
+          isApproved: true,
+          placement: 'category',
+          sponsor: { status: 'active', isActive: true },
+        },
+        include: { sponsor: true },
+        take: 1,
+      },
     },
   });
 

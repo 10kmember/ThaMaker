@@ -50,6 +50,11 @@ export const MODERATION_NAV: AdminGroup[] = [
     items: [
       { href: '/portal/creators', label: 'Creators', permission: 'creators:view_records' },
       { href: '/portal/creators/import', label: 'Import', permission: 'editorial:import_creators' },
+      {
+        href: '/portal/sponsorships',
+        label: 'Sponsor placements',
+        permission: 'commercial:assign_placement',
+      },
       { href: '/paroh', label: 'PaROH', permission: 'operations:view_dashboard' },
     ],
   },
@@ -119,6 +124,11 @@ export const ADMIN_NAV: AdminGroup[] = [
     title: 'Business',
     items: [
       { href: '/admin/business', label: 'Commercial', permission: 'commercial:view' },
+      {
+        href: '/portal/sponsorships',
+        label: 'Sponsor placements',
+        permission: 'commercial:assign_placement',
+      },
       {
         href: '/admin/sponsors',
         label: 'Sponsors & partners',

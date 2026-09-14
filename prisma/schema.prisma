@@ -9,7 +9,22 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+
+  /// The pooled connection, used by the application.
+  ///
+  /// Serverless functions each open their own connection, and a Postgres
+  /// instance has a few hundred — so on Supabase, Neon or anything similar
+  /// this must be the pooler (port 6543 on Supabase, `?pgbouncer=true`), or
+  /// the first busy evening exhausts the database rather than the function.
+  url = env("DATABASE_URL")
+
+  /// The unpooled connection, used only by migrations.
+  ///
+  /// A pooler in transaction mode cannot run DDL or advisory locks, so
+  /// `prisma migrate` and `db push` need the direct port (5432). Falls back to
+  /// DATABASE_URL when unset, which is correct for a local database where the
+  /// two are the same thing.
+  directUrl = env("DIRECT_URL")
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -792,36 +807,73 @@ model Sponsor {
   @@index([status])
 }
 
-/// One sponsor's association with a season, and optionally one category.
+/// A sponsor's association with one thing they funded.
 ///
-/// A category sponsorship buys the association and nothing else. It cannot
-/// touch nomination eligibility, weighting, judging, assignment, scores or
-/// selection — see OUTCOME_PERMISSIONS and the firewall tests.
+/// The architecture in one line: **association follows the thing they funded.**
+/// A category sponsor appears on that category and the finalist and winner
+/// pages beneath it. An event sponsor appears on that event. An editorial
+/// sponsor appears on that article. A principal partner appears at the level of
+/// the institution itself. Nothing bleeds: buying a category does not put a
+/// logo on the Journal, and buying the Journal does not put one on a category.
+///
+/// It buys the association and nothing else. It cannot touch nomination
+/// eligibility, weighting, judging, assignment, scores or selection — see
+/// OUTCOME_PERMISSIONS and the firewall tests.
 model Sponsorship {
-  id          String      @id @default(cuid())
+  id          String               @id @default(cuid())
   sponsorId   String
   awardYearId String
-  categoryId  String?
-  packageId   String?
-  tier        SponsorTier @default(supporting)
-  billing     String?
-  startsAt    DateTime?
-  endsAt      DateTime?
+  placement   SponsorshipPlacement @default(category)
 
-  /// An association is not live until an administrator approves it.
+  /// Exactly one of these is set, matching `placement`. A principal partnership
+  /// sets none: it attaches to the season itself.
+  categoryId String?
+  eventId    String?
+  articleId  String?
+
+  packageId String?
+  tier      SponsorTier @default(supporting)
+  billing   String?
+  startsAt  DateTime?
+  endsAt    DateTime?
+
+  /// How the attribution reads. "Presented by" for a category, "In partnership
+  /// with" for an event — the desk chooses the register, not the sponsor.
+  attribution String?
+
+  /// An association is not live until an administrator approves it. The
+  /// moderation desk proposes placements; approval is a commercial decision.
   isApproved   Boolean   @default(false)
   approvedById String?
   approvedAt   DateTime?
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   sponsor   Sponsor             @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
   awardYear AwardYear           @relation(fields: [awardYearId], references: [id], onDelete: Cascade)
   category  Category?           @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  event     PalmaEvent?         @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  article   Article?            @relation(fields: [articleId], references: [id], onDelete: SetNull)
   package   SponsorshipPackage? @relation(fields: [packageId], references: [id], onDelete: SetNull)
 
-  @@unique([sponsorId, awardYearId, categoryId])
+  @@unique([sponsorId, awardYearId, placement, categoryId, eventId, articleId])
   @@index([isApproved])
+  @@index([placement])
+  @@index([categoryId])
+  @@index([eventId])
+  @@index([articleId])
+}
+
+enum SponsorshipPlacement {
+  /// A category, and the finalist and winner pages beneath it.
+  category
+  /// One PALMA event.
+  event
+  /// One Journal article, labelled as partner content.
+  editorial
+  /// The institution: the partners page, the season page, the ceremony.
+  principal
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1018,6 +1070,8 @@ model Article {
   sponsoredLabel      String?
   sponsorApprovedAt   DateTime?
   sponsorApprovedById String?
+
+  sponsorships Sponsorship[]
 
   @@index([status, publishedAt])
 }
@@ -1557,8 +1611,9 @@ model PalmaEvent {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  awardYear   AwardYear?   @relation(fields: [awardYearId], references: [id], onDelete: SetNull)
-  ticketTypes TicketType[]
+  awardYear    AwardYear?    @relation(fields: [awardYearId], references: [id], onDelete: SetNull)
+  ticketTypes  TicketType[]
+  sponsorships Sponsorship[]
 
   @@index([status])
 }

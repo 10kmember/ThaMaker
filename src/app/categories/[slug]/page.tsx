@@ -5,6 +5,7 @@ import { Masthead, MastheadPlate } from '@/components/palma/Masthead';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/feedback';
 import { FinalistCard } from '@/components/palma/FinalistCard';
+import { SponsorAttribution } from '@/components/palma/SponsorAttribution';
 import { WinnerReveal } from '@/components/palma/WinnerReveal';
 import { JsonLd, breadcrumbJsonLd, buildMetadata } from '@/lib/seo';
 import { STAGE_LABEL, acceptsNominations, finalistsArePublic } from '@/domain/season';
@@ -16,6 +17,7 @@ import {
   listCategories,
   listSeasons,
 } from '@/server/data/queries';
+import { categoryAttribution } from '@/server/data/sponsorship';
 
 export const revalidate = 900;
 
@@ -59,6 +61,7 @@ export default async function CategoryPage({ params, searchParams }: Params) {
   const open = acceptsNominations(category.stage);
   const showFinalists = finalistsArePublic(category.stage) && finalists.length > 0;
   const seasons = await listSeasons();
+  const attribution = await categoryAttribution(season.id, category.id);
 
   return (
     <>
@@ -67,10 +70,13 @@ export default async function CategoryPage({ params, searchParams }: Params) {
         eyebrow={`${season.title} · Category`}
         title={category.name}
         standfirst={category.strapline ?? undefined}
+        /* Beside the category, never in place of it: the name is the headline
+           and this is one line under it in small type. */
+        belowTitle={<SponsorAttribution attribution={attribution} tone="ink" />}
         meta={[
           open ? 'Open for nominations' : STAGE_LABEL[category.stage],
           'Five criteria, ten points each',
-          category.partner ? `Partner · ${category.partner.name}` : 'No category partner',
+          'Judged independently',
         ]}
         figure={season.year}
         actions={

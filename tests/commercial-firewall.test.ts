@@ -118,12 +118,35 @@ describe('the commercial firewall', () => {
     }
   });
 
-  it('keeps commercial work off every role below administrator', () => {
-    for (const role of ['visitor', 'creator', 'judge', 'moderator'] as const) {
+  it('keeps commercial work off creators, judges and visitors entirely', () => {
+    for (const role of ['visitor', 'creator', 'judge'] as const) {
       const held = permissionsFor(role).filter((permission: Permission) =>
         COMMERCIAL_PERMISSIONS.includes(permission),
       );
       expect(held, `${role} holds commercial permissions`).toEqual([]);
+    }
+  });
+
+  /**
+   * The split that matters at the desk.
+   *
+   * Doing the deal is commercial work and belongs with administration. Deciding
+   * that a partner's name sits under a category heading is editorial work and
+   * belongs with the desk that owns those pages. A moderator may place a
+   * sponsor administration has already approved — and may not create one, price
+   * one, or decide what PALMA sells.
+   */
+  it('lets a moderator place a sponsor but never create or price one', () => {
+    expect(can('moderator', 'commercial:assign_placement')).toBe(true);
+
+    for (const permission of [
+      'commercial:manage_sponsors',
+      'commercial:manage_packages',
+      'commercial:manage_features',
+      'commercial:manage_licensing',
+      'commercial:manage_campaigns',
+    ] as const) {
+      expect(can('moderator', permission), `moderator can ${permission}`).toBe(false);
     }
   });
 

@@ -83,6 +83,15 @@ export const PERMISSIONS = [
   'commercial:manage_event_commerce',
   'commercial:manage_licensing',
   'commercial:manage_features',
+  /**
+   * Placing an approved sponsor against a category, event or article.
+   *
+   * Deliberately separate from `manage_sponsors`: doing the deal is commercial
+   * work and belongs with administration, while deciding that a partner's name
+   * sits under a category heading is editorial work and belongs with the desk
+   * that owns those pages. Neither can do the other's half.
+   */
+  'commercial:assign_placement',
   /** Write to a whole PALMA list. Separate from reading, because sending to a
    *  mailing list cannot be undone and does not belong with a read-only view. */
   'communications:send_list',
@@ -139,6 +148,10 @@ const MODERATOR: Permission[] = [
   'verification:review_manual',
   // The desk presets records for claiming, so the importer is theirs too.
   'editorial:import_creators',
+  // The desk owns the pages a sponsor's name appears on, so it places them —
+  // but only sponsors administration has already approved, and only while the
+  // matching feature is live.
+  'commercial:assign_placement',
 ];
 
 const ADMIN: Permission[] = [
@@ -167,6 +180,7 @@ const ADMIN: Permission[] = [
   'commercial:manage_packages',
   'commercial:manage_campaigns',
   'commercial:manage_event_commerce',
+  'commercial:assign_placement',
 ];
 
 const MATRIX: Record<Role, readonly Permission[]> = {
@@ -239,6 +253,15 @@ export const COMMERCIAL_PERMISSIONS: readonly Permission[] = [
   'commercial:manage_event_commerce',
   'commercial:manage_licensing',
   'commercial:manage_features',
+  /**
+   * Placing an approved sponsor against a category, event or article.
+   *
+   * Deliberately separate from `manage_sponsors`: doing the deal is commercial
+   * work and belongs with administration, while deciding that a partner's name
+   * sits under a category heading is editorial work and belongs with the desk
+   * that owns those pages. Neither can do the other's half.
+   */
+  'commercial:assign_placement',
 ];
 
 /**
