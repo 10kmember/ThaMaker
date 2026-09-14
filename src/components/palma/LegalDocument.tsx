@@ -59,7 +59,7 @@ export function LegalDocumentPage({
         meta={[
           `Version ${doc.version}`,
           `Effective ${formatDate(doc.effective)}`,
-          doc.status === 'in-force' ? 'In force' : 'Draft — pending review by UK counsel',
+          doc.status === 'in-force' ? 'In force' : 'Superseded',
         ]}
         plate={
           <MastheadPlate tone="ivory" label="This document">
@@ -71,7 +71,7 @@ export function LegalDocumentPage({
                 {formatDate(doc.effective)}
               </PlateFact>
               <PlateFact tone="ivory" term="Status">
-                {doc.status === 'in-force' ? 'In force' : 'Draft'}
+                {doc.status === 'in-force' ? 'In force' : 'Superseded'}
               </PlateFact>
               <PlateFact tone="ivory" term="Clauses">
                 {sections.length}
@@ -123,16 +123,15 @@ export function LegalDocumentPage({
             {/* A grid item defaults to min-width:auto, so a wide LegalTable would
                 stretch the track and scroll the whole page instead of itself. */}
             <div className="min-w-0 lg:col-span-8">
-              {doc.status === 'draft' ? (
-                <Notice
-                  tone="warning"
-                  title="Draft — not yet reviewed by counsel"
-                  className="mb-10"
-                >
-                  This document sets out PALMA’s intended position and is published so it can be
-                  read and challenged early. It has not yet been reviewed by a solicitor qualified
-                  in {'England and Wales'}, and must be before the first season closes. Where it
-                  conflicts with the law, the law wins.
+              {doc.status === 'superseded' ? (
+                <Notice tone="warning" title="Superseded" className="mb-10">
+                  A later version of this document is in force. This one is kept readable so that
+                  the terms governing a past season can still be produced — an institution that
+                  quietly rewrites its terms has no terms.{' '}
+                  <Link href={`/legal/${doc.slug}`} className="palma-link text-ink">
+                    Read the current version
+                  </Link>
+                  .
                 </Notice>
               ) : null}
 

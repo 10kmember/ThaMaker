@@ -86,10 +86,11 @@ ${seasons.map((entry) => `- [${entry.title}](${siteUrl}/awards/${entry.year}) �
 
 ## Legal register
 
-Every document is versioned and dated, and says on its own page whether it is in
-force or still a draft awaiting review by counsel.
+Every document is versioned and dated. Superseded versions stay at their own
+address rather than being deleted, so the terms that governed a past season can
+still be produced.
 
-${LEGAL_DOCUMENTS.map((entry) => `- [${entry.title}](${siteUrl}/legal/${entry.slug}) — ${entry.summary} (v${entry.version}, ${entry.status === 'in-force' ? 'in force' : 'draft'})`).join('\n')}
+${LEGAL_DOCUMENTS.map((entry) => `- [${entry.title}](${siteUrl}/legal/${entry.slug}) — ${entry.summary} (v${entry.version}, ${entry.status === 'in-force' ? 'in force' : 'superseded'})`).join('\n')}
 
 ## Journal
 

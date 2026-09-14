@@ -62,19 +62,19 @@ writing, so running it twice leaves exactly the dataset its file describes.
 
 ## Scripts
 
-| Script                     | What it does                                           |
-| -------------------------- | ------------------------------------------------------ |
-| `npm run dev`              | Development server                                     |
-| `npm run build` / `start`  | Production build and server                            |
-| `npm run verify`           | Typecheck, lint and unit tests — run before committing |
-| `npm test`                 | Unit tests (no database required)                      |
-| `npm run test:integration` | Awards-engine tests against PostgreSQL                 |
-| `npm run db:push`          | Push the schema without a migration — development only |
-| `npm run db:migrate`       | Create a migration from a schema change                |
+| Script                     | What it does                                            |
+| -------------------------- | ------------------------------------------------------- |
+| `npm run dev`              | Development server                                      |
+| `npm run build` / `start`  | Production build and server                             |
+| `npm run verify`           | Typecheck, lint and unit tests — run before committing  |
+| `npm test`                 | Unit tests (no database required)                       |
+| `npm run test:integration` | Awards-engine tests against PostgreSQL                  |
+| `npm run db:push`          | Push the schema without a migration — development only  |
+| `npm run db:migrate`       | Create a migration from a schema change                 |
 | `npm run db:deploy`        | Apply pending migrations — this is what production runs |
-| `npm run db:status`        | What is applied and what is pending                    |
-| `npm run db:seed`          | Load the seed dataset into PostgreSQL                  |
-| `npm run retention`        | Run the data-retention sweep by hand                   |
+| `npm run db:status`        | What is applied and what is pending                     |
+| `npm run db:seed`          | Load the seed dataset into PostgreSQL                   |
+| `npm run retention`        | Run the data-retention sweep by hand                    |
 
 ## One source of truth
 
@@ -241,12 +241,18 @@ See [`docs/DESIGN.md`](docs/DESIGN.md) for the visual system,
 
 ## Before launch
 
-Two areas are deliberately staged rather than finished, and both need
-specialist input:
+[`docs/LAUNCH.md`](docs/LAUNCH.md) is the full readiness assessment — what is
+finished, what blocks a launch, and the order to do it in. The two areas that
+are staged rather than finished:
 
-- **Legal.** `/legal/privacy` and `/legal/terms` set out intended practice and
-  are marked draft. They must be reviewed and completed by UK counsel, together
-  with the age-verification approach.
 - **Age verification.** The architecture is in place (status, provider
-  reference, `verified_at`, no documents stored) but no provider is integrated.
-  `AGE_VERIFICATION_PROVIDER` currently points at a stub.
+  reference, `verified_at`, no documents stored) but no third-party provider is
+  integrated. Manual review at `/portal/verification` is in force and works;
+  the mode is switched at `/admin/settings`, and adding a provider is a key
+  and a toggle rather than a rewrite.
+- **The company.** `ENTITY.companyNumber`, `registeredOffice` and
+  `icoRegistration` in `src/lib/legal.ts` are null, and the site says so rather
+  than inventing them. They appear everywhere at once when filled in.
+
+The legal register is settled: every document is in force as written, and a
+document that is one day replaced stays at its own address marked superseded.

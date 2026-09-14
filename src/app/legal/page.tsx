@@ -15,6 +15,12 @@ export const metadata = buildMetadata({
 
 export default function LegalIndexPage() {
   const inForce = LEGAL_DOCUMENTS.filter((entry) => entry.status === 'in-force').length;
+  // The register's own currency: the date of the most recent amendment to
+  // anything in it, which is the one fact a reader checks before relying on it.
+  const lastRevised = LEGAL_DOCUMENTS.reduce(
+    (latest, entry) => (entry.effective > latest ? entry.effective : latest),
+    LEGAL_DOCUMENTS[0]?.effective ?? '',
+  );
 
   return (
     <>
@@ -22,14 +28,14 @@ export default function LegalIndexPage() {
         eyebrow="The institution"
         title="The legal register"
         titleLines={['The legal', 'register']}
-        standfirst="Every document PALMA is bound by, in one place, each carrying a version, an effective date and an honest statement of whether it is in force."
+        standfirst="Every document PALMA is bound by, in one place, each carrying a version, an effective date and the clause numbering it is cited by."
         meta={[`${LEGAL_DOCUMENTS.length} documents`, `${inForce} in force`, 'Versioned in public']}
         plate={
           <MastheadPlate label="The register">
             <dl className="grid grid-cols-2 gap-5">
               <PlateFact term="Documents">{LEGAL_DOCUMENTS.length}</PlateFact>
               <PlateFact term="In force">{inForce}</PlateFact>
-              <PlateFact term="Drafts">{LEGAL_DOCUMENTS.length - inForce}</PlateFact>
+              <PlateFact term="Last revised">{formatDate(lastRevised)}</PlateFact>
               <PlateFact term="Jurisdiction">{ENTITY.jurisdiction}</PlateFact>
             </dl>
           </MastheadPlate>
@@ -50,9 +56,10 @@ export default function LegalIndexPage() {
                     quietly. Every amendment to anything below carries an author and a date.
                   </p>
                   <p>
-                    Where a document is still a draft, it says so at the top of its own page rather
-                    than in a footnote. PALMA would rather publish a document marked{' '}
-                    <em>not yet reviewed by counsel</em> than imply a review that has not happened.
+                    Every document below is in force as written. When one is replaced, the version
+                    it replaces is not deleted: it stays at its own address marked{' '}
+                    <em>superseded</em>, so the terms that governed a past season can still be
+                    produced. An institution that quietly rewrites its terms has no terms.
                   </p>
                 </div>
               </Reveal>
@@ -137,7 +144,7 @@ export default function LegalIndexPage() {
                           : 'palma-label text-taupe'
                       }
                     >
-                      {entry.status === 'in-force' ? 'In force' : 'Draft'}
+                      {entry.status === 'in-force' ? 'In force' : 'Superseded'}
                     </span>
                   </span>
                 </Link>

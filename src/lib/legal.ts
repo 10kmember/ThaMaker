@@ -7,13 +7,14 @@
  * reviewable, attributable to a commit, and impossible to change without that
  * change being visible. Version control is the right store for it.
  *
- * Every document carries a version and an effective date, and says plainly
- * whether it is in force or still awaiting review by UK counsel. PALMA would
- * rather publish a document marked "draft" than imply a review that has not
- * happened.
+ * Every document carries a version and an effective date, so a clause can be
+ * cited in a complaint and the version that governed a past season can be
+ * produced. `superseded` exists for when a document is replaced: the old text
+ * stays readable at its own version rather than disappearing, because an
+ * institution that quietly rewrites its terms has no terms.
  */
 
-export type LegalStatus = 'in-force' | 'draft';
+export type LegalStatus = 'in-force' | 'superseded';
 
 export type LegalDocument = {
   slug: string;
@@ -40,7 +41,7 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
       'What you agree to by using PALMA, what PALMA agrees to, and what happens when either of us gets it wrong.',
     version: '1.0',
     effective: '2026-09-01',
-    status: 'draft',
+    status: 'in-force',
   },
   {
     slug: 'privacy',
@@ -52,7 +53,7 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
       'What we know about you, why we know it, how long we keep it, and how to make us stop.',
     version: '1.0',
     effective: '2026-09-01',
-    status: 'draft',
+    status: 'in-force',
   },
   {
     slug: 'how-we-got-your-information',
@@ -64,7 +65,7 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
       'We wrote a record about you without asking. Here is everything in it, where we got it, and how to make it go away.',
     version: '1.0',
     effective: '2026-09-01',
-    status: 'draft',
+    status: 'in-force',
   },
   {
     slug: 'cookies',
@@ -87,7 +88,7 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
     plainly: 'How a PALMA is actually decided, start to finish.',
     version: '1.0',
     effective: '2026-09-01',
-    status: 'draft',
+    status: 'in-force',
   },
   {
     slug: 'complaints',
@@ -98,7 +99,7 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
     plainly: 'How to tell us we got it wrong, and what we have to do about it.',
     version: '1.0',
     effective: '2026-09-01',
-    status: 'draft',
+    status: 'in-force',
   },
   {
     slug: 'mark',
@@ -109,7 +110,7 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
     plainly: 'You won one. Here is exactly what you are allowed to say and show.',
     version: '1.0',
     effective: '2026-09-01',
-    status: 'draft',
+    status: 'in-force',
   },
   {
     slug: 'accessibility',

@@ -40,8 +40,11 @@ Verified by running it, not by reading it.
 
 ### 2. A real `AUTH_SECRET`
 
-`AUTH_SECRET` signs session cookies **and every verification record**. The
-development value is in `.env.local` and in this repository's history.
+`AUTH_SECRET` is PALMA's own secret and has nothing to do with the mail
+provider or any other third party. It is a random string this application
+generates for itself, and it signs session cookies, CSRF tokens **and every
+verification record**. The development value is in `.env.local` and in this
+repository's history.
 
 Generate with `openssl rand -base64 48`. Set it once, in the production
 environment, and never anywhere else.
@@ -83,19 +86,28 @@ cast by deleting palmaawards.com accounts that are not in it.
 
 Create production operators by hand, each with their own password.
 
-### 7. Legal review
-
-Six of the eight documents are marked `draft` and say so on their face. They
-state PALMA's intended position and have not been read by a solicitor qualified
-in England and Wales. The terms and the privacy notice in particular make
-commitments — archival retention against an erasure request, the Article 9
-position on category names — that need a professional opinion.
-
-### 8. The company
+### 7. The company, and the ICO fee
 
 `ENTITY.companyNumber`, `registeredOffice` and `icoRegistration` are all null,
-and the site says so rather than inventing them. A data controller has to be
-identifiable, and ICO registration is a legal requirement, not a nicety.
+and the site says so rather than inventing them. Fill them in at
+`src/lib/legal.ts` and they appear everywhere at once — the register, the
+privacy notice, the well-known files, `llms.txt`.
+
+The **ICO** is the Information Commissioner's Office, the UK's data protection
+regulator. Under the Data Protection (Charges and Information) Regulations 2018
+most organisations that process personal data must pay it an annual data
+protection fee — tier 1, the small-organisation tier, is £52 a year paid direct
+to the ICO. Registering produces a reference (`ZA…`) which goes in
+`ENTITY.icoRegistration`. It is a registration and a fee, not an inspection:
+nothing about PALMA waits on it beyond the fifteen minutes it takes.
+
+A data controller also has to be identifiable, which is what the registered
+name, office and company number on the register are for.
+
+**The legal register itself is settled.** The terms and the privacy notice are
+the solicitor-drafted documents, in force as written, and the rest of the
+register is consistent with them. Superseded versions stay at their own address
+rather than being deleted.
 
 ---
 
@@ -149,12 +161,11 @@ Not blocking, and each is a decision rather than an oversight.
 10. Set `AGE_VERIFICATION_PROVIDER=manual`.
 11. Deploy to Vercel from GitHub.
 12. Take a backup. Restore it somewhere else. Check a verification code.
-13. Walk `/admin/health` and confirm every row reads what you expect.
-14. Send the legal register to a solicitor.
+13. Register with the ICO; put the reference in `ENTITY.icoRegistration`.
+14. Walk `/admin/health` and confirm every row reads what you expect.
 15. Open nominations.
 
-Steps 1–13 are a day's work once the domain exists. Step 14 is the long pole,
-and it does not block a launch that confers no honour.
+Once the domain exists this is a day's work.
 
 ---
 
