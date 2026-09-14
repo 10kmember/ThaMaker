@@ -105,7 +105,7 @@ export default async function PortalPage() {
       ) : null}
 
       <div className="mt-14 grid gap-14 lg:grid-cols-12">
-        <div className="flex flex-col gap-14 lg:col-span-7">
+        <div className="flex min-w-0 flex-col gap-14 lg:col-span-7">
           <section>
             <h2 className="palma-label text-taupe-deep mb-6">Your PALMA record</h2>
             {portal.achievements.length === 0 ? (
@@ -208,7 +208,7 @@ export default async function PortalPage() {
           ) : null}
         </div>
 
-        <aside className="flex flex-col gap-10 lg:col-span-5">
+        <aside className="flex min-w-0 flex-col gap-10 lg:col-span-5">
           <section className="border-stone-deep border p-7">
             <div className="flex items-center justify-between gap-4">
               <h2 className="palma-label text-taupe-deep">Verification</h2>
