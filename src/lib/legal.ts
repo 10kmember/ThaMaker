@@ -55,6 +55,18 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
     status: 'draft',
   },
   {
+    slug: 'how-we-got-your-information',
+    title: 'How PALMA got your information',
+    shortTitle: 'Where this came from',
+    summary:
+      'The Article 14 notice: what PALMA holds about a creator who never gave it anything, where each field came from, and how to have the record removed.',
+    plainly:
+      'We wrote a record about you without asking. Here is everything in it, where we got it, and how to make it go away.',
+    version: '1.0',
+    effective: '2026-09-01',
+    status: 'draft',
+  },
+  {
     slug: 'cookies',
     title: 'Cookie Notice',
     shortTitle: 'Cookies',

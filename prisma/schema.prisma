@@ -340,6 +340,7 @@ model Creator {
   staffNotes        CreatorNote[]
   verificationCases VerificationCase[]
   emailDeliveries   EmailDelivery[]
+  objections        RecordObjection[]
 
   /// The creator's own nomination link: palmaawards.com/nominate/<slug>.
   /// Issued once the profile is claimed and verified.
@@ -1225,6 +1226,45 @@ model GazetteIssue {
   sentAt   DateTime @default(now())
 
   @@index([sentAt])
+}
+
+/// An objection to an unclaimed record, under UK GDPR Article 21.
+///
+/// PALMA writes records about people who never asked, relying on legitimate
+/// interests. The balance that makes that lawful only holds while the person
+/// named can stop it — so this is a first-class route rather than an inbox, it
+/// needs no account, and it needs no reason.
+model RecordObjection {
+  id        String @id @default(cuid())
+  creatorId String
+
+  /// How PALMA can reply. The only personal data an objection needs.
+  contactEmail String
+  /// Optional. Nobody has to explain why they do not want to be listed.
+  note         String? @db.Text
+
+  status       RecordObjectionStatus @default(received)
+  decidedAt    DateTime?
+  decidedById  String?
+  decisionNote String?
+
+  createdAt DateTime @default(now())
+
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([creatorId])
+}
+
+enum RecordObjectionStatus {
+  received
+  /// The record was taken down.
+  upheld
+  /// Refused — only where an honour has been conferred and the archival
+  /// exemption applies. Always explained, always appealable.
+  refused
+  /// Withdrawn by the person who raised it.
+  withdrawn
 }
 
 /// Settings an operator changes without a deployment.

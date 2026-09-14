@@ -74,6 +74,7 @@ export const LEGAL_NAV: NavItem[] = [
   { href: '/legal', label: 'Legal register' },
   { href: '/legal/terms', label: 'Terms' },
   { href: '/legal/privacy', label: 'Privacy' },
+  { href: '/legal/how-we-got-your-information', label: 'Where this came from' },
   { href: '/legal/cookies', label: 'Cookies' },
   { href: '/legal/rules', label: 'Competition rules' },
   { href: '/legal/complaints', label: 'Complaints' },

@@ -252,6 +252,26 @@ export default async function CreatorPage({ params }: Params) {
                   <Button asChild size="sm" variant="outline" className="mt-1 self-start">
                     <Link href={`/creator/claim?creator=${creator.slug}`}>Claim this profile</Link>
                   </Button>
+
+                  {/* The other half of the same sentence. A record PALMA wrote
+                      about somebody who never asked rests on legitimate
+                      interests, and the person named may object — so the
+                      objection is offered as plainly as the claim, rather than
+                      buried in a privacy notice they would have to go and
+                      find. */}
+                  <div className="border-stone-deep/60 mt-4 border-t pt-4">
+                    <p className="text-taupe text-xs leading-relaxed">
+                      It is you, and you would rather not be here? PALMA wrote this record without
+                      asking, and you can have it taken down —{' '}
+                      <Link
+                        href={`/creators/${creator.slug}/object`}
+                        className="palma-link text-taupe-deep"
+                      >
+                        ask PALMA to remove it
+                      </Link>
+                      . No account, no reason needed.
+                    </p>
+                  </div>
                 </div>
               )}
             </aside>

@@ -53,7 +53,7 @@ export function CreatorImportForm() {
               htmlFor="rows"
               label="The list"
               required
-              hint="One creator per line: name, country, city, headline, links. Tab-separated (paste from a spreadsheet) or comma-separated. Blank lines and # comments are ignored."
+              hint="One creator per line: name, country, city, headline, links. Tab-separated (paste from a spreadsheet) or comma-separated. City and headline are accepted so your existing list pastes cleanly — they are read, shown in the preview, and not stored on an unclaimed record."
             >
               <Textarea
                 id="rows"
@@ -110,6 +110,7 @@ export function CreatorImportForm() {
                     <th scope="col">Country</th>
                     <th scope="col">Links</th>
                     <th scope="col">Status</th>
+                    <th scope="col">Not stored</th>
                   </tr>
                 </THead>
                 <TBody>
@@ -125,6 +126,9 @@ export function CreatorImportForm() {
                         ) : (
                           <Badge variant="olive">New</Badge>
                         )}
+                      </td>
+                      <td className="text-taupe-deep text-xs">
+                        {row.dropped.length > 0 ? row.dropped.join(', ') : '—'}
                       </td>
                     </tr>
                   ))}

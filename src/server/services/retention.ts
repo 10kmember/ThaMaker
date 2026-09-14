@@ -1,6 +1,9 @@
 import 'server-only';
 import { prisma } from '@/server/db';
 import { recordAudit, type AuditActor } from '@/server/audit';
+import { RETENTION_RULES, retentionDays, type RetentionRule } from '@/domain/retention-schedule';
+
+export { RETENTION_RULES, type RetentionRule };
 
 /**
  * Retention, applied rather than published.
@@ -17,74 +20,19 @@ import { recordAudit, type AuditActor } from '@/server/audit';
  * personal data PALMA has no remaining reason to hold.
  */
 
-export type RetentionRule = {
-  key: string;
-  /** What it removes, in the operator's words. */
-  description: string;
-  days: number;
-};
-
-const DAY = 24 * 60 * 60 * 1000;
-
-export const RETENTION_RULES: RetentionRule[] = [
-  {
-    key: 'auth_sessions',
-    description: 'Expired and revoked sign-in sessions.',
-    days: 30,
-  },
-  {
-    key: 'password_resets',
-    description: 'Spent and expired password reset links.',
-    days: 7,
-  },
-  {
-    key: 'email_changes',
-    description: 'Completed, cancelled and expired address-change requests.',
-    days: 30,
-  },
-  {
-    key: 'rate_limits',
-    description: 'Rate-limit counters whose window has closed.',
-    days: 2,
-  },
-  {
-    key: 'gazette_left',
-    description:
-      'Addresses that unsubscribed from the Gazette. Kept briefly to honour the unsubscribe, then removed entirely.',
-    days: 90,
-  },
-  {
-    key: 'email_deliveries',
-    description:
-      'Delivery records for messages that were sent successfully. Failures are kept longer, because they are the ones somebody still has to act on.',
-    days: 180,
-  },
-  {
-    key: 'email_deliveries_failed',
-    description: 'Delivery records for messages that failed.',
-    days: 365,
-  },
-  {
-    key: 'dossier_archived',
-    description:
-      'Filed Dossier entries that are not consequential. Anything marked consequential is kept, because it is the notice that PALMA did something to you.',
-    days: 730,
-  },
-];
-
 export type RetentionResult = {
   ranAt: string;
   removed: Record<string, number>;
   total: number;
 };
 
+const DAY = 24 * 60 * 60 * 1000;
+
 function cutoff(days: number): Date {
   return new Date(Date.now() - days * DAY);
 }
 
-function ruleDays(key: string): number {
-  return RETENTION_RULES.find((rule) => rule.key === key)?.days ?? 365;
-}
+const ruleDays = retentionDays;
 
 /**
  * Run the sweep.

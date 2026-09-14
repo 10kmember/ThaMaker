@@ -5,7 +5,7 @@ import { Masthead, MastheadPlate, PlateFact } from './Masthead';
 import { Notice } from '@/components/ui/feedback';
 import { formatDate } from '@/lib/format';
 import { CONTACTS, LEGAL_DOCUMENTS, type LegalDocument as Doc } from '@/lib/legal';
-import { slugify } from '@/lib/utils';
+import { roman, slugify } from '@/lib/utils';
 
 /**
  * The legal document layout.
@@ -99,8 +99,8 @@ export function LegalDocumentPage({
                       href={`#${anchor.id}`}
                       className="palma-row group/card border-stone-deep/60 flex items-baseline gap-4 border-b py-3 last:border-none"
                     >
-                      <span className="palma-label text-taupe w-6 shrink-0">
-                        {String(index + 1).padStart(2, '0')}
+                      <span className="palma-numeral text-taupe w-10 shrink-0 text-right">
+                        {roman(index + 1)}
                       </span>
                       <span className="palma-row-lead text-[0.9375rem] leading-snug">
                         {anchor.heading}
@@ -145,17 +145,19 @@ export function LegalDocumentPage({
                     id={slugify(section.heading)}
                     className="min-w-0 scroll-mt-28"
                   >
-                    <div className="flex items-baseline gap-4">
-                      <span className="palma-label text-taupe-deep pt-2">
-                        {String(index + 1).padStart(2, '0')}
+                    <div className="flex items-baseline gap-4 sm:gap-5">
+                      <span
+                        aria-hidden="true"
+                        className="palma-numeral text-champagne-deep shrink-0 text-lg sm:text-xl"
+                      >
+                        {roman(index + 1)}
                       </span>
                       <h2 className="text-3xl leading-tight sm:text-4xl">{section.heading}</h2>
                     </div>
 
-                    <span
-                      aria-hidden="true"
-                      className="bg-stone-deep mt-5 block h-px w-full max-w-md"
-                    />
+                    {/* Draws itself in when the clause comes into view. A
+                        register should feel written rather than dumped. */}
+                    <span aria-hidden="true" className="palma-clause-rule mt-5 block" />
 
                     {section.plainly ? (
                       <p className="border-olive/40 text-ink/85 font-display mt-6 border-l-2 pl-5 text-lg leading-snug">
@@ -193,14 +195,31 @@ export function LegalDocumentPage({
   );
 }
 
-/** A numbered clause list, which is how these documents are cited. */
-export function Clauses({ items }: { items: React.ReactNode[] }) {
+/**
+ * A numbered clause list, which is how these documents are cited.
+ *
+ * `lettered` switches to (a), (b), (c) — the convention for a list of
+ * conditions inside a clause, as against the clauses themselves.
+ */
+export function Clauses({
+  items,
+  lettered = false,
+}: {
+  items: React.ReactNode[];
+  lettered?: boolean;
+}) {
   return (
     <ol className="text-taupe-deep flex list-none flex-col gap-4 pl-0">
       {items.map((item, index) => (
         <li key={index} className="flex gap-4">
-          <span className="palma-label text-taupe shrink-0 pt-1.5">
-            {String(index + 1).padStart(2, '0')}
+          <span
+            className={
+              lettered
+                ? 'text-taupe shrink-0 pt-1 font-mono text-sm'
+                : 'palma-numeral text-taupe w-8 shrink-0 pt-1 text-right text-sm'
+            }
+          >
+            {lettered ? `(${String.fromCharCode(97 + index)})` : roman(index + 1)}
           </span>
           <span className="text-[1.0625rem] leading-relaxed">{item}</span>
         </li>

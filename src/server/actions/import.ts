@@ -8,6 +8,7 @@ import { slugify } from '@/lib/utils';
 import { recordAudit } from '@/server/audit';
 import { prisma } from '@/server/db';
 import { MAX_IMPORT_ROWS, parseCreatorImport, type ImportRow } from '@/domain/creator-import';
+import { linkIsPublishableUnclaimed } from '@/domain/record-minimalism';
 
 /**
  * Presetting the archive.
@@ -17,12 +18,18 @@ import { MAX_IMPORT_ROWS, parseCreatorImport, type ImportRow } from '@/domain/cr
  * about thirty. This takes a pasted list and writes unclaimed, unpublished
  * records ready to be claimed.
  *
- * Two deliberate constraints. Nothing is published: an imported record is a
+ * Three deliberate constraints. Nothing is published: an imported record is a
  * stub the editorial desk still has to finish, and a bulk route that could
  * publish would be a bulk route that eventually publishes something nobody
- * read. And nothing is overwritten: a name already in the archive is reported
- * and skipped, because "import" must never be a way to quietly rewrite a
- * record somebody holds.
+ * read. Nothing is overwritten: a name already in the archive is reported and
+ * skipped, because "import" must never be a way to quietly rewrite a record
+ * somebody holds.
+ *
+ * And nothing beyond the minimum is stored. A bulk importer is exactly where
+ * "we may as well capture the city while we are here" happens, so the city and
+ * the headline are dropped on the way in — see `record-minimalism`. PALMA does
+ * not collect information about an unclaimed creator because it might be
+ * useful later.
  */
 
 export type ImportState = {
@@ -35,6 +42,8 @@ export type ImportState = {
       countryCode: string;
       links: number;
       exists: boolean;
+      /** Columns the minimalism rule drops before writing. */
+      dropped: string[];
     }[];
     problems: { line: number; detail: string }[];
     writable: number;
@@ -88,8 +97,13 @@ export async function previewCreatorImport(
     line: row.line,
     displayName: row.displayName,
     countryCode: row.countryCode,
-    links: row.links.length,
+    links: row.links.filter((link) => linkIsPublishableUnclaimed(link.url)).length,
     exists: taken.has(slugify(row.displayName)),
+    // Shown in the preview so the operator sees what is being dropped and why,
+    // rather than discovering later that a column silently vanished.
+    dropped: [row.city ? 'city' : null, row.headline ? 'headline' : null].filter(
+      Boolean,
+    ) as string[],
   }));
 
   const writable = rows.filter((row) => !row.exists).length;
@@ -151,23 +165,24 @@ export async function commitCreatorImport(
     const slug = await uniqueSlug(row, claimed);
     claimed.add(slug);
 
+    // Name, country, links. Nothing else, however much the paste contained.
+    const links = row.links.filter((link) => linkIsPublishableUnclaimed(link.url));
+
     await prisma.creator.create({
       data: {
         slug,
         displayName: row.displayName,
         countryCode: row.countryCode,
-        city: row.city,
-        headline: row.headline,
         isPublished: false,
         isClaimed: false,
         verification: { create: { status: 'unverified' } },
         links: {
-          create: row.links.map((link, position) => ({ ...link, position })),
+          create: links.map((link, position) => ({ ...link, position })),
         },
         staffNotes: {
           create: {
             authorId: session.user.id,
-            body: `Imported in bulk by ${session.user.email}. Unpublished stub: check the links and write the record before publishing it.`,
+            body: `Imported in bulk by ${session.user.email}. Unclaimed stub: name, country and links only. Anything further about this creator waits until they claim the record or PALMA has a reason beyond convenience.`,
           },
         },
       },

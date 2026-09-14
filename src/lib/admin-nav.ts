@@ -41,6 +41,7 @@ export const MODERATION_NAV: AdminGroup[] = [
         permission: 'verification:review_manual',
       },
       { href: '/portal/reports', label: 'Reports', permission: 'moderation:view_reports' },
+      { href: '/portal/objections', label: 'Objections', permission: 'creators:view_records' },
     ],
   },
   {
@@ -95,6 +96,7 @@ export const ADMIN_NAV: AdminGroup[] = [
         permission: 'verification:review_manual',
       },
       { href: '/portal/reports', label: 'Reports', permission: 'moderation:view_reports' },
+      { href: '/portal/objections', label: 'Objections', permission: 'creators:view_records' },
     ],
   },
   {

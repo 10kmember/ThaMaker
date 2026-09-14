@@ -602,6 +602,56 @@
     transform: translateX(0.4rem);
   }
 
+  /* Roman numerals in the legal register.
+
+     Old-style figures would be wrong here: a numeral is a citation, not a
+     number you do arithmetic with, so it is set in the display face, spaced
+     like a label, and kept out of the text colour so it never competes with
+     the clause it marks. */
+  .palma-numeral {
+    font-family: var(--font-display), Georgia, serif;
+    font-variant-numeric: normal;
+    letter-spacing: 0.12em;
+    font-feature-settings: 'liga' 0;
+  }
+
+  /* The rule under a clause heading draws itself in when the clause is
+     reached, so a long document reads as written rather than dumped. It is
+     decorative: `animation-timeline` is ignored where unsupported, and the
+     rule is simply there at full width. */
+  .palma-clause-rule {
+    height: 1px;
+    width: min(100%, 28rem);
+    background: linear-gradient(
+      to right,
+      var(--color-champagne-deep),
+      var(--color-stone-deep) 45%,
+      transparent
+    );
+    transform-origin: left center;
+  }
+
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .palma-clause-rule {
+        animation: clause-rule linear both;
+        animation-timeline: view();
+        animation-range: entry 10% cover 22%;
+      }
+    }
+  }
+
+  @keyframes clause-rule {
+    from {
+      transform: scaleX(0);
+      opacity: 0;
+    }
+    to {
+      transform: scaleX(1);
+      opacity: 1;
+    }
+  }
+
   /* A filter chip. The fill sweeps in from the leading edge rather than
      switching colour, so choosing a filter feels like a decision landing. */
   .palma-chip {
