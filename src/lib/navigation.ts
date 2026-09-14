@@ -6,13 +6,20 @@ export type NavItem = {
 };
 
 /**
- * Six destinations, not eight.
+ * Seven destinations, not nine.
  *
  * Finalists and Winners are *states of a season*, not permanent places: they
  * live inside the Awards experience and are reached from the season rail. The
  * navigation names what PALMA is, rather than listing its database tables.
+ *
+ * THE PALMA is the exception that proves the rule and the reason the list is
+ * seven rather than six. It is not a state of a season and not a category: it
+ * is the institution's highest honour, permanent, and the one name PALMA wants
+ * said out loud. A thing nobody can find in the navigation is a thing nobody
+ * asks about.
  */
 export const PUBLIC_NAV: NavItem[] = [
+  { href: '/the-palma', label: 'THE PALMA', preserveCase: true },
   { href: '/awards', label: 'Awards' },
   { href: '/categories', label: 'Categories' },
   { href: '/nominate', label: 'Nominate' },
@@ -25,6 +32,7 @@ export const FOOTER_NAV: { title: string; items: NavItem[] }[] = [
   {
     title: 'The Honours',
     items: [
+      { href: '/the-palma', label: 'THE PALMA' },
       { href: '/awards', label: 'Awards' },
       { href: '/categories', label: 'Categories' },
       { href: '/finalists', label: 'Finalists' },

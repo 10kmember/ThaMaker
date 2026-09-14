@@ -1,5 +1,6 @@
 import 'server-only';
 import { prisma } from '@/server/db';
+import { byUrgency, momentumFor, type CategoryMomentum } from '@/domain/momentum';
 
 /**
  * The command centre's read layer.
@@ -539,5 +540,124 @@ export async function getOperationalAnalytics(): Promise<OperationalAnalytics> {
       label: row.kind.replace(/_/g, ' '),
       value: row._count._all,
     })),
+  };
+}
+
+/**
+ * Category momentum.
+ *
+ * The one question a category list cannot answer on its own: which of these do
+ * people actually want? Counts alone say which category is biggest, which is
+ * mostly a fact about how long it has existed. Momentum compares a window
+ * against the window immediately before it, and pairs that with how widely the
+ * interest is spread — because a category surging on one creator's audience and
+ * a category surging across forty are the same number and opposite findings.
+ *
+ * Internal only, and the module it calls into explains at length why. These
+ * figures are for deciding what next season's categories should be, not for
+ * ranking anybody, and nothing in the judging path reads them.
+ */
+export type MomentumReport = {
+  /** The window these figures cover, and the one they are compared against. */
+  window: { days: number; from: string; comparedFrom: string } | null;
+  seasonYear: number | null;
+  rows: CategoryMomentum[];
+};
+
+export async function getCategoryMomentum(period: Period): Promise<MomentumReport> {
+  const season = await prisma.awardYear.findFirst({
+    where: { isCurrent: true },
+    select: { id: true, year: true },
+  });
+
+  if (!season) return { window: null, seasonYear: null, rows: [] };
+
+  const since = await periodStart(period);
+
+  // "All time" and "this season" have no earlier window to compare against, so
+  // momentum is measured over the season's own length against the equivalent
+  // stretch before it. A comparison against nothing is not a comparison.
+  const days = since ? Math.max(1, Math.ceil((Date.now() - since.getTime()) / 86_400_000)) : 30;
+  const from = since ?? new Date(Date.now() - days * 86_400_000);
+  const comparedFrom = new Date(from.getTime() - days * 86_400_000);
+
+  const categories = await prisma.category.findMany({
+    where: { awardYearId: season.id },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      position: true,
+      candidacies: {
+        select: {
+          id: true,
+          nominationCount: true,
+        },
+      },
+    },
+    orderBy: { position: 'asc' },
+  });
+
+  const candidacyToCategory = new Map<string, string>();
+  for (const category of categories) {
+    for (const candidacy of category.candidacies) {
+      candidacyToCategory.set(candidacy.id, category.id);
+    }
+  }
+
+  // One pass over the two windows rather than a query per category. Only
+  // counted nominations are read: a nomination awaiting its verification code
+  // is not yet a signal about anything, and a rejected one never was.
+  const nominations = await prisma.nomination.findMany({
+    where: {
+      status: 'counted',
+      candidacyId: { in: [...candidacyToCategory.keys()] },
+      createdAt: { gte: comparedFrom },
+    },
+    select: { candidacyId: true, nominatorId: true, createdAt: true },
+    take: 50_000,
+  });
+
+  const current = new Map<string, number>();
+  const previous = new Map<string, number>();
+  const nominators = new Map<string, Set<string>>();
+
+  for (const row of nominations) {
+    const categoryId = candidacyToCategory.get(row.candidacyId);
+    if (!categoryId) continue;
+
+    if (row.createdAt >= from) {
+      current.set(categoryId, (current.get(categoryId) ?? 0) + 1);
+      const seen = nominators.get(categoryId) ?? new Set<string>();
+      seen.add(row.nominatorId);
+      nominators.set(categoryId, seen);
+    } else {
+      previous.set(categoryId, (previous.get(categoryId) ?? 0) + 1);
+    }
+  }
+
+  const rows = categories.map((category) =>
+    momentumFor({
+      categoryId: category.id,
+      name: category.name,
+      slug: category.slug,
+      current: current.get(category.id) ?? 0,
+      previous: previous.get(category.id) ?? 0,
+      nominators: nominators.get(category.id)?.size ?? 0,
+      // Concentration is read from the season's standing totals, not the
+      // window: whether one creator holds a category is a fact about the
+      // category, not about the last thirty days of it.
+      spread: category.candidacies.map((candidacy) => candidacy.nominationCount),
+    }),
+  );
+
+  return {
+    seasonYear: season.year,
+    window: {
+      days,
+      from: from.toISOString(),
+      comparedFrom: comparedFrom.toISOString(),
+    },
+    rows: byUrgency(rows),
   };
 }

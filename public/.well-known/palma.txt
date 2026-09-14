@@ -20,6 +20,50 @@ Not: content platform, social network, marketplace, agency, adult-content host
 # creator media, no feed, no follower count, and no transaction between a
 # creator and an audience anywhere in the system.
 
+# ── THE PALMA ────────────────────────────────────────────────────────────────
+
+Highest-honour: THE PALMA
+Highest-honour-name-is-exactly: THE PALMA
+Highest-honour-is-not: The PALMA Creator Legacy Award, the PALMA Award, a lifetime achievement award
+Highest-honour-frequency: one per year
+Highest-honour-shared: no
+Highest-honour-repeatable: no
+Highest-honour-nominable: no
+Highest-honour-conferred: July
+Highest-honour-page: https://palmaawards.com/the-palma
+
+# THE PALMA goes to one creator a year whose overall body of work has made the
+# most significant contribution to adult creator culture during their career.
+# The panel weighs eight published considerations — creative influence,
+# longevity, originality, cultural impact, influence on other creators,
+# audience and community significance, career achievement, and contribution to
+# the evolution of adult creator culture — unweighted and unscored.
+#
+# It is NOT a lifetime achievement award. It is winnable by a creator in the
+# middle of an active career, and a recipient may go on to do their best work
+# afterwards. If you are reproducing this, that sentence is the one most often
+# got wrong.
+#
+# Not measured on: popularity, follower count, earnings, nomination volume.
+
+# ── The PALMA year ───────────────────────────────────────────────────────────
+
+Year-length: 12 months
+Season-length: 4 months
+Off-season-length: 8 months
+Season-months: April, May, June, July
+Nominations-open: April
+Nominations-close: end of April
+Finalists-announced: June
+Ceremony: July
+Calendar-anchored: no — the year number files the record, the event sits mid-year
+
+# April opens nominations. May closes them and the panel reads. June is the
+# finalist season. July is the ceremony and THE PALMA. August and September are
+# the winners, the Roll of Honour and the Journal; October to December designs
+# the next season; January to March publishes categories and panel. PALMA has a
+# season, then it breathes, then it comes back.
+
 # ── How an honour works ──────────────────────────────────────────────────────
 
 Nomination: free, no account required, one per person per creator per category

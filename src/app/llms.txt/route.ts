@@ -56,6 +56,40 @@ are suitable for every audience.
 - Revocation never deletes. A revoked honour remains on the record, marked
   revoked.
 
+## THE PALMA
+
+The institution's highest honour. Not "The PALMA Creator Legacy Award", not a
+lifetime achievement award — **THE PALMA**, conferred on one creator each year
+whose overall body of work has made the most significant contribution to adult
+creator culture during their career.
+
+- One a year. Never shared, no runner-up, and no creator receives it twice.
+- Not nominated in a category: the panel draws from the whole record and is not
+  limited to that season's finalists.
+- Weighed on eight published considerations — creative influence, longevity,
+  originality, cultural impact, influence on other creators, audience and
+  community significance, career achievement, and contribution to the evolution
+  of adult creator culture. Unweighted and unscored: the panel deliberates.
+- Explicitly not measured on popularity, follower count, earnings or nomination
+  volume.
+- **Winnable by an active creator.** It is not an award for the end of a
+  career, and a recipient may go on to do their best work afterwards.
+- [THE PALMA](${siteUrl}/the-palma)
+
+## The PALMA year
+
+Twelve months make one PALMA year: four months of season, eight of institution.
+The season is not tied to the calendar year — the year number files the record,
+the event sits mid-year, and THE PALMA is conferred in July.
+
+- **April** — nominations open
+- **May** — nominations close, PALMA investigates, the panel reads
+- **June** — finalists announced; four weeks of coverage and judging
+- **July** — final judging, winner validation, the ceremony, THE PALMA
+- **August–September** — winners, the Roll of Honour, the Journal
+- **October–December** — next season designed, partnerships, the panel rebuilt
+- **January–March** — categories and panel published; anticipation
+
 ## Current season
 
 - **${season.title}** — ${STAGE_LABEL[season.stage]}
@@ -71,6 +105,7 @@ ${seasons.map((entry) => `- [${entry.title}](${siteUrl}/awards/${entry.year}) �
 
 ## Key pages
 
+- [THE PALMA](${siteUrl}/the-palma) — the highest honour, and the PALMA year
 - [Awards](${siteUrl}/awards) — the season, its stages and its categories
 - [Nominate](${siteUrl}/nominate) — the nomination form
 - [PALMA Roll of Honour](${siteUrl}/paroh) — the permanent archive of recipients

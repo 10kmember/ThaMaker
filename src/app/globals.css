@@ -965,6 +965,115 @@
     display: inline-block;
   }
 
+  /* ── THE PALMA ────────────────────────────────────────────────────────
+
+     The institution's highest honour gets three gestures of its own, and no
+     more. An award that arrives surrounded by effects is a product launch. */
+
+  /* A refusal, struck through as it is read.
+
+     "Not popularity" is a stronger sentence when you watch the word being
+     ruled out. The rule draws itself across the term as the term enters the
+     viewport, scrubbed to the scroll rather than fired on a timer, so it
+     tracks the reader instead of racing them.
+
+     Decorative by construction: where `animation-timeline` is unsupported the
+     rule is simply already drawn, which is the same statement without the
+     performance. */
+  .palma-strike {
+    position: relative;
+    display: inline-block;
+  }
+
+  .palma-strike::after {
+    content: '';
+    position: absolute;
+    left: -0.06em;
+    right: -0.06em;
+    top: 54%;
+    height: 2px;
+    background: var(--color-champagne-deep);
+    transform-origin: left center;
+  }
+
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .palma-strike::after {
+        animation: palma-strike linear both;
+        animation-timeline: view();
+        animation-range: entry 24% cover 42%;
+      }
+    }
+  }
+
+  @keyframes palma-strike {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+
+  /* The considerations rail: a hairline that fills from the top as the eight
+     criteria are read, so a long list reads as one argument being made rather
+     than eight bullets. */
+  .palma-rail-fill {
+    background: linear-gradient(
+      to bottom,
+      var(--color-champagne-deep),
+      var(--color-olive) 62%,
+      transparent
+    );
+    transform-origin: top center;
+  }
+
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .palma-rail-fill {
+        animation: palma-rail-fill linear both;
+        animation-timeline: view();
+        animation-range: entry 8% cover 78%;
+      }
+    }
+  }
+
+  @keyframes palma-rail-fill {
+    from {
+      transform: scaleY(0);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+
+  /* The wordmark on the honour's own page: letter-spacing that settles as it
+     arrives, so the name appears to be set rather than printed. One element,
+     once per page. */
+  .palma-set-wide {
+    animation: palma-set-wide 1.6s var(--ease-ceremonial) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .palma-set-wide {
+      animation: none;
+    }
+  }
+
+  @keyframes palma-set-wide {
+    from {
+      letter-spacing: 0.02em;
+      opacity: 0;
+    }
+    60% {
+      opacity: 1;
+    }
+    to {
+      letter-spacing: var(--tracking-institution);
+      opacity: 1;
+    }
+  }
+
   /* The institutional label: small, spaced, quietly authoritative. */
   .palma-label {
     font-size: 0.6875rem;

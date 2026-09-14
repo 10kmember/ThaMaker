@@ -14,6 +14,7 @@ import { requirePermission } from '@/lib/auth/guards';
 import {
   compareSeasons,
   getAwardsAnalytics,
+  getCategoryMomentum,
   getCreatorAnalytics,
   getNominationAnalytics,
   getOperationalAnalytics,
@@ -21,6 +22,7 @@ import {
   PERIOD_LABEL,
   type Period,
 } from '@/server/data/command-centre';
+import { DIRECTION_LABEL, type Direction } from '@/domain/momentum';
 import { countryName } from '@/lib/format';
 import { titleCase } from '@/lib/utils';
 
@@ -69,6 +71,10 @@ export default async function AnalyticsPage({
 
       <Suspense fallback={<ChartSkeleton title="Nominations" />}>
         <NominationSection period={period} />
+      </Suspense>
+
+      <Suspense fallback={<ChartSkeleton title="Category momentum" />}>
+        <MomentumSection period={period} />
       </Suspense>
 
       <Suspense fallback={<ChartSkeleton title="Creators" />}>
@@ -249,6 +255,136 @@ async function NominationSection({ period }: { period: Period }) {
         </Notice>
       </section>
     </>
+  );
+}
+
+/**
+ * Category momentum.
+ *
+ * The section that answers "what do people actually like", and the one most
+ * likely to be misread — so each row carries a sentence saying what it means
+ * as well as the figures it means it from. A category surging on one creator's
+ * audience and a category surging across the whole field produce the same
+ * arrow, and the difference between them is the entire finding.
+ */
+async function MomentumSection({ period }: { period: Period }) {
+  const report = await getCategoryMomentum(period);
+
+  if (!report.window || report.rows.length === 0) {
+    return (
+      <section className="mt-14">
+        <h2 className="palma-label text-taupe-deep border-stone-deep border-b pb-3">
+          Category momentum
+        </h2>
+        <Notice className="mt-6" title="No season running">
+          Momentum compares a window of nominations against the window before it. There is no
+          current season with categories to compare.
+        </Notice>
+      </section>
+    );
+  }
+
+  return (
+    <section className="mt-14">
+      <h2 className="palma-label text-taupe-deep border-stone-deep border-b pb-3">
+        Category momentum
+      </h2>
+
+      <p className="text-taupe-deep mt-5 max-w-200 text-sm leading-relaxed">
+        The last {report.window.days} days against the {report.window.days} before them, for the{' '}
+        {report.seasonYear} season. Ordered by what moved, not by what is biggest — a large category
+        that did exactly what it did last month is the least interesting row here.
+      </p>
+
+      <Notice tone="warning" className="mt-6" title="Internal instrument">
+        Nomination counts are never published, never ranked in public and decide no outcome. These
+        figures exist to design next season&rsquo;s categories — which to keep, split or retire —
+        and nothing in the judging path reads them. A count is only honest while nobody can see it.
+      </Notice>
+
+      <div className="border-stone-deep mt-6 overflow-x-auto border">
+        <table className="w-full min-w-200 border-collapse text-left text-sm">
+          <thead className="border-stone-deep border-b">
+            <tr>
+              {['Category', 'Window', 'Before', 'Change', 'Field', 'Nominators', 'Reading'].map(
+                (column) => (
+                  <th key={column} scope="col" className="palma-label text-taupe-deep p-3">
+                    {column}
+                  </th>
+                ),
+              )}
+            </tr>
+          </thead>
+          <tbody>
+            {report.rows.map((row) => (
+              <tr key={row.categoryId} className="border-stone-deep/50 border-b last:border-none">
+                <td className="p-3">
+                  <span className="font-display block text-lg leading-tight">{row.name}</span>
+                  <MomentumMark direction={row.direction} />
+                </td>
+                <td className="p-3 tabular-nums">{row.current}</td>
+                <td className="text-taupe-deep p-3 tabular-nums">{row.previous}</td>
+                <td className="p-3 tabular-nums">
+                  <span
+                    className={
+                      row.change > 0 ? 'text-olive' : row.change < 0 ? 'text-red-800' : 'text-taupe'
+                    }
+                  >
+                    {row.change > 0 ? '+' : ''}
+                    {row.change}
+                  </span>
+                  {row.previous > 0 ? (
+                    <span className="text-taupe block text-xs tabular-nums">
+                      {row.trend > 0 ? '+' : ''}
+                      {Math.round(row.trend * 100)}%
+                    </span>
+                  ) : null}
+                </td>
+                <td className="p-3 tabular-nums">
+                  {row.candidacies === 0 ? (
+                    <span className="text-taupe">—</span>
+                  ) : (
+                    <>
+                      {row.effective.toFixed(1)}
+                      <span className="text-taupe"> / {row.candidacies}</span>
+                      <span className="text-taupe block text-xs">
+                        top {Math.round(row.topShare * 100)}%
+                      </span>
+                    </>
+                  )}
+                </td>
+                <td className="p-3 tabular-nums">
+                  {row.nominators}
+                  {row.current > 0 ? (
+                    <span className="text-taupe block text-xs">
+                      {row.reach.toFixed(2)} per nomination
+                    </span>
+                  ) : null}
+                </td>
+                <td className="text-taupe-deep max-w-100 p-3 leading-relaxed">{row.reading}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+/** The direction, as a word rather than a coloured arrow nobody can read. */
+function MomentumMark({ direction }: { direction: Direction }) {
+  const tone: Record<Direction, string> = {
+    surging: 'text-olive',
+    rising: 'text-olive',
+    steady: 'text-taupe-deep',
+    cooling: 'text-red-800',
+    quiet: 'text-taupe',
+  };
+
+  return (
+    <span className={`palma-label mt-1.5 block ${tone[direction]}`}>
+      {DIRECTION_LABEL[direction]}
+    </span>
   );
 }
 
