@@ -82,6 +82,10 @@ export const AUDIT_ACTIONS = [
   'record.objection_received',
   'record.objection_upheld',
   'record.objection_refused',
+  'creator.portrait_submitted',
+  'creator.portrait_approved',
+  'creator.portrait_rejected',
+  'creator.portrait_removed',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

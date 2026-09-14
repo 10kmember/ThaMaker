@@ -657,6 +657,57 @@ undelivered listed first; the suppression list; the template register; the
 Gazette's numbers and its composer. An institution that cannot say whether it
 told someone has not told them.
 
+## Portraits
+
+A portrait is the one thing a creator sends PALMA that is a file rather than
+text, which makes it the one place where metadata, decompression bombs and
+polyglot files arrive. Three rules follow, and none of them is about images.
+
+**PALMA never stores the file that was uploaded.** It is decoded, stripped of
+everything that is not pixels, cropped square, re-encoded as WebP, and only
+that is kept. The original is never written to disk or to the database.
+
+The metadata is the part that matters. A photograph taken on a phone carries
+GPS coordinates, a device serial and sometimes the owner's name — and PALMA has
+just published a notice promising it holds no location finer than a country. A
+portrait that leaked somebody's home address would be the exact failure the
+rest of the schema is arranged to prevent. The important line in
+`src/server/services/portrait.ts` is the one that is **absent**:
+`.withMetadata()` is never called, anywhere, for any reason. A test asserts
+that EXIF, XMP and ICC are all gone from the stored bytes, using a source that
+demonstrably had them.
+
+Re-encoding also settles the security question. A polyglot file that is both a
+valid image and a valid script does not survive being decoded to a pixel buffer
+and written out again.
+
+**A portrait is a claimed-record field.** PALMA does not find a picture of an
+unclaimed creator and put it on their record. The only way one exists is that
+the person in it uploaded it, from their own account — see
+[record minimalism](#what-is-not-built-yet) and `FORBIDDEN_ON_UNCLAIMED`.
+
+**Every portrait is reviewed before it is public.** PALMA is deliberately SFW
+and hosts no explicit imagery; an upload is the only route by which any could
+arrive. The queue is at `/portal/portraits`, the pending image is rendered
+there from its bytes and nowhere else, and refusing one deletes it — PALMA does
+not keep a copy of an image it has decided not to publish. Replacing an
+approved portrait sends it back for review, or the review would mean nothing.
+
+Approved portraits are served from `/creators/<slug>/portrait/<checksum>`. The
+checksum is in the path rather than a query string, so the URL is immutable and
+cacheable for a year, and a replaced portrait is a _different_ URL — no cache
+anywhere is left holding an image the creator has taken down.
+
+`next.config.ts` declares **no remote image patterns**. It used to allow any
+HTTPS host, which makes the image optimizer an open proxy: anybody can point it
+at an internal address or use PALMA's bandwidth to serve their own images.
+Every image PALMA renders now comes from PALMA.
+
+Where no approved portrait exists the record carries the PALMA plate — the
+creator's initials in the display face over a palm engraving, on a field
+derived from their name so it is always the same one. That is a design rather
+than a gap, and it is why the archive looks finished on the day it launches.
+
 ## Getting back in
 
 There is a password reset at `/forgot`. A link lasts one hour and works once;

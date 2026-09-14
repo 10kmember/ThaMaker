@@ -66,23 +66,33 @@ export default async function ReferralNominatePage({ params }: Params) {
 
   return (
     <>
-      <section className="on-ink bg-ink text-ivory border-ink border-b">
-        <Container className="py-14 sm:py-20">
-          <div className="flex flex-col gap-10 sm:flex-row sm:items-center">
-            <div className="w-full max-w-44 shrink-0">
+      {/* A creator's own link is the one PALMA page that gets shared into a
+          feed, so it is built like a poster rather than a form with a header:
+          the portrait is plated and sealed, and the name is set as large as it
+          would be on the night. */}
+      <section className="on-ink bg-ink text-ivory border-ink relative overflow-hidden border-b">
+        <span aria-hidden="true" className="palma-plate-glow" />
+
+        <Container className="relative py-16 sm:py-24">
+          <div className="flex flex-col items-start gap-12 sm:flex-row sm:items-center sm:gap-14">
+            {/* The plate: a champagne hairline offset behind the portrait, so
+                it reads as mounted rather than pasted on. */}
+            <div className="palma-portrait-plate w-full max-w-52 shrink-0 sm:max-w-56">
               <EditorialImage
                 name={creator.displayName}
                 src={creator.portraitUrl}
                 alt={creator.portraitAlt}
                 ratio="square"
                 priority
-                sizes="11rem"
+                sizes="(max-width: 640px) 13rem, 14rem"
+                className="relative z-10"
               />
+              <span aria-hidden="true" className="palma-portrait-rule" />
             </div>
 
-            <div className="flex flex-col gap-4">
+            <div className="flex min-w-0 flex-col gap-5">
               <span className="palma-label text-champagne">{season.title} · Nomination</span>
-              <h1 className="text-4xl leading-[1.02] sm:text-6xl">{creator.displayName}</h1>
+              <h1 className="text-5xl leading-[1.02] sm:text-7xl">{creator.displayName}</h1>
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
                 <span className="palma-label text-ivory/55">
                   {countryName(creator.countryCode)}
@@ -90,8 +100,13 @@ export default async function ReferralNominatePage({ params }: Params) {
                 <VerificationBadge status={creator.verificationStatus} tone="dark" />
               </div>
               {creator.headline ? (
-                <p className="text-ivory/70 max-w-130 leading-relaxed">{creator.headline}</p>
+                <p className="text-ivory/70 max-w-130 text-lg leading-relaxed">
+                  {creator.headline}
+                </p>
               ) : null}
+              <p className="text-ivory/40 max-w-130 text-sm leading-relaxed">
+                Putting {creator.displayName} forward takes under a minute and needs no account.
+              </p>
             </div>
           </div>
         </Container>

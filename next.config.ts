@@ -37,7 +37,20 @@ const nextConfig: NextConfig = {
   typedRoutes: false,
   images: {
     formats: ['image/avif', 'image/webp'],
-    remotePatterns: [{ protocol: 'https', hostname: '**' }],
+    /**
+     * No remote patterns, deliberately.
+     *
+     * Every image PALMA renders is served from PALMA: portraits are re-encoded
+     * and stored in the database, and the marks and engravings are in the
+     * bundle. An optimizer that will fetch any HTTPS host on request is an open
+     * proxy — anybody can point it at an internal address or use PALMA's
+     * bandwidth to serve their own images — and there is nothing here that
+     * needs one.
+     *
+     * If a sponsor logo or a Journal hero ever has to come from elsewhere, add
+     * that host here explicitly rather than reopening the wildcard.
+     */
+    remotePatterns: [],
   },
   async headers() {
     return [

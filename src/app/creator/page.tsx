@@ -7,6 +7,7 @@ import { EmptyState, Notice } from '@/components/ui/feedback';
 import { Button } from '@/components/ui/button';
 import { CopyLink } from '@/components/palma/CopyLink';
 import { GazetteToggle } from '@/components/account/GazetteToggle';
+import { PortraitForm } from '@/components/account/PortraitForm';
 import {
   LinksForm,
   PreferencesForm,
@@ -192,6 +193,19 @@ export default async function PortalPage() {
               waiting on a moderator is exactly the one who needs to fix it. */}
           {portal.profile ? (
             <>
+              <section>
+                <h2 className="palma-label text-taupe-deep mb-2">Your portrait</h2>
+                <p className="text-taupe-deep mb-6 max-w-140 text-sm leading-relaxed">
+                  One picture, shown on your record, on your nomination link and wherever PALMA
+                  names you. Without one your record carries the PALMA plate, which is a deliberate
+                  design rather than a gap — but the plate is not you.
+                </p>
+                <PortraitForm
+                  standing={portal.portrait}
+                  name={portal.displayName ?? session.user.name}
+                />
+              </section>
+
               <section>
                 <h2 className="palma-label text-taupe-deep mb-6">Profile details</h2>
                 <ProfileForm defaults={portal.profile} />

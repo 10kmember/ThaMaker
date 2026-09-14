@@ -67,6 +67,13 @@ export type CreatorPortal = {
   dossier: { unread: number; important: number };
   /** Whether this account's address is on the Gazette. */
   gazette: boolean;
+  /** Where the creator's portrait has got to. */
+  portrait: {
+    status: 'none' | 'pending' | 'approved' | 'rejected';
+    url: string | null;
+    alt: string | null;
+    rejectionReason: string | null;
+  };
 };
 
 export async function getCreatorPortal(userId: string): Promise<CreatorPortal | null> {
@@ -80,6 +87,7 @@ export async function getCreatorPortal(userId: string): Promise<CreatorPortal | 
       creator: {
         include: {
           verification: true,
+          portrait: true,
           links: { orderBy: { position: 'asc' } },
           achievements: { include: { honour: true }, orderBy: { issuedAt: 'desc' } },
           candidacies: {
@@ -160,5 +168,12 @@ export async function getCreatorPortal(userId: string): Promise<CreatorPortal | 
     },
     dossier,
     gazette: gazette?.status === 'confirmed',
+    portrait: {
+      status: (user.creator?.portrait?.status ?? 'none') as
+        'none' | 'pending' | 'approved' | 'rejected',
+      url: user.creator?.portraitUrl ?? null,
+      alt: user.creator?.portrait?.alt ?? user.creator?.portraitAlt ?? null,
+      rejectionReason: user.creator?.portrait?.rejectionReason ?? null,
+    },
   };
 }

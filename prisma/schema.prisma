@@ -341,6 +341,7 @@ model Creator {
   verificationCases VerificationCase[]
   emailDeliveries   EmailDelivery[]
   objections        RecordObjection[]
+  portrait          CreatorPortrait?
 
   /// The creator's own nomination link: palmaawards.com/nominate/<slug>.
   /// Issued once the profile is claimed and verified.
@@ -1226,6 +1227,61 @@ model GazetteIssue {
   sentAt   DateTime @default(now())
 
   @@index([sentAt])
+}
+
+/// A creator's portrait.
+///
+/// Held as bytes in PostgreSQL rather than in a bucket, because PALMA's whole
+/// read layer is "one source of truth and no fallback", and a few hundred
+/// re-encoded portraits are tens of megabytes. It also keeps the institution
+/// out of a hotlinking arrangement where some other host learns the IP address
+/// of everyone who looks at a PALMA record.
+///
+/// What is stored is never the file that was uploaded. PALMA decodes it,
+/// discards every scrap of metadata — a phone photograph carries GPS
+/// coordinates, and a portrait that leaked somebody's home address would be
+/// the exact failure the rest of this schema is arranged to prevent — resizes
+/// it, and re-encodes it. The original is never written anywhere.
+///
+/// A portrait is a claimed-record field. PALMA does not find a picture of an
+/// unclaimed creator and put it on their record; the only way one exists is
+/// that the person in it uploaded it.
+model CreatorPortrait {
+  id        String @id @default(cuid())
+  creatorId String @unique
+
+  /// Re-encoded by PALMA. Never the bytes that arrived.
+  data        Bytes
+  contentType String
+  width       Int
+  height      Int
+  byteSize    Int
+  /// Of the stored bytes. Versions the cache and proves what is served.
+  checksum    String
+
+  /// The creator's own description of the image, for anyone who cannot see it.
+  alt String?
+
+  status          PortraitStatus @default(pending)
+  reviewedAt      DateTime?
+  reviewedById    String?
+  rejectionReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+}
+
+enum PortraitStatus {
+  /// Uploaded, waiting for a person to look at it.
+  pending
+  /// Published on the record.
+  approved
+  /// Refused, with a reason the creator is told.
+  rejected
 }
 
 /// An objection to an unclaimed record, under UK GDPR Article 21.

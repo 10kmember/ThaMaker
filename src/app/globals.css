@@ -602,6 +602,58 @@
     transform: translateX(0.4rem);
   }
 
+  /* A portrait, mounted.
+
+     The plate is a champagne hairline offset behind the image and a rule
+     beneath it, so a square photograph reads as something hung on a wall
+     rather than dropped into a layout. Both are drawn with pseudo-elements on
+     a wrapper, which keeps `EditorialImage` unchanged — it is used in a dozen
+     places that should not inherit ceremony. */
+  .palma-portrait-plate {
+    position: relative;
+  }
+
+  .palma-portrait-plate::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    translate: 0.7rem 0.7rem;
+    border: 1px solid color-mix(in oklab, var(--color-champagne) 55%, transparent);
+    transition:
+      translate 620ms var(--ease-ceremonial),
+      border-color 620ms var(--ease-ceremonial);
+    pointer-events: none;
+  }
+
+  .palma-portrait-plate:hover::before {
+    translate: 0.35rem 0.35rem;
+    border-color: color-mix(in oklab, var(--color-champagne) 85%, transparent);
+  }
+
+  /* The rule beneath: short, offset left, the same gesture the mastheads use. */
+  .palma-portrait-rule {
+    position: absolute;
+    bottom: -1.35rem;
+    left: 0;
+    height: 1px;
+    width: 3.5rem;
+    background: var(--color-champagne);
+    opacity: 0.8;
+  }
+
+  /* A single soft wash behind the plate. One light source, off to the left,
+     so the dark band is not a flat rectangle. */
+  .palma-plate-glow {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      42rem 26rem at 14% 42%,
+      color-mix(in oklab, var(--color-champagne) 13%, transparent),
+      transparent 68%
+    );
+  }
+
   /* Roman numerals in the legal register.
 
      Old-style figures would be wrong here: a numeral is a citation, not a
