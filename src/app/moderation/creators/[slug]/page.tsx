@@ -21,13 +21,13 @@ export const dynamic = 'force-dynamic';
 export const metadata = buildMetadata({
   title: 'Creator record',
   description: 'Maintain a PALMA creator record.',
-  path: '/admin/creators',
+  path: '/moderation/creators',
   noIndex: true,
 });
 
 export default async function CreatorRecordPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const session = await requirePermission('creators:view_records', `/admin/creators/${slug}`);
+  const session = await requirePermission('creators:view_records', `/moderation/creators/${slug}`);
 
   const record = await getCreatorRecord(slug);
   if (!record) notFound();
@@ -35,7 +35,7 @@ export default async function CreatorRecordPage({ params }: { params: Promise<{ 
   return (
     <>
       <div className="flex flex-wrap items-baseline justify-between gap-4">
-        <Link href="/admin/creators" className="palma-label text-taupe-deep hover:text-ink">
+        <Link href="/moderation/creators" className="palma-label text-taupe-deep hover:text-ink">
           ← Creator records
         </Link>
         <Link href={`/creators/${record.slug}`} className="palma-link text-taupe-deep text-sm">
@@ -224,7 +224,7 @@ export default async function CreatorRecordPage({ params }: { params: Promise<{ 
                 {record.claims.map((claim) => (
                   <li key={claim.id}>
                     <Link
-                      href={`/admin/claims/${claim.id}`}
+                      href={`/moderation/claims/${claim.id}`}
                       className="palma-row border-stone-deep/60 flex flex-wrap items-baseline justify-between gap-3 border-b py-3 text-sm last:border-none"
                     >
                       <span className="palma-row-lead font-mono text-xs">{claim.reference}</span>

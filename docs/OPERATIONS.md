@@ -7,18 +7,42 @@ the audit log with the actor, the entity and the state before and after.
 
 ## Roles
 
-| Role          | Can                                                                                           |
-| ------------- | --------------------------------------------------------------------------------------------- |
-| `visitor`     | Read the public record. Nominate.                                                             |
-| `creator`     | Claim a profile, verify, submit and track nominations.                                        |
-| `judge`       | See their own assignments, score, declare conflicts.                                          |
-| `editor`      | Write and publish the Journal. Create and edit creator records, invite claims, review claims. |
-| `moderator`   | See and act on reports. Decide claims. Run manual age verification. Read creator records.     |
-| `admin`       | Run the season: review, assign, select, revoke, correct, moderate.                            |
-| `super_admin` | Everything, plus users and system settings.                                                   |
+| Role          | Can                                                                                                          |
+| ------------- | ------------------------------------------------------------------------------------------------------------ |
+| `visitor`     | Read the public record. Nominate.                                                                            |
+| `creator`     | Claim a profile, verify, submit and track nominations.                                                       |
+| `judge`       | See their own assignments, score, declare conflicts.                                                         |
+| `moderator`   | The whole editorial and moderation job: creator records, the Journal, claims, manual age assurance, reports. |
+| `admin`       | Run the season: review, assign, select, revoke, correct, moderate.                                           |
+| `super_admin` | Everything, plus users and system settings.                                                                  |
 
 Sponsors hold **no role**. Sponsorship is recorded against a season or category
 and grants no access to nominations, judges, scores or outcomes.
+
+## Four dashboards
+
+| Surface        | Path          | Who                    | Door       |
+| -------------- | ------------- | ---------------------- | ---------- |
+| Creator portal | `/portal`     | `creator`              | `/sign-in` |
+| Judging room   | `/judging`    | `judge`                | `/judge`   |
+| Moderation     | `/moderation` | `moderator`            | `/staff`   |
+| Administration | `/admin`      | `admin`, `super_admin` | `/staff`   |
+
+Three of those are platform operators — moderator, judge, administrator. The
+creator is not one: a creator holds a record, they do not run the institution.
+
+**Editorial and moderation are one role.** They were two until it became clear
+that neither could finish a task on its own: the person who writes a creator's
+record is the person who screens a claim about it. `editor` is gone and
+`moderator` holds the whole of it.
+
+Moderators and administrators share the `/staff` door and _not_ a dashboard.
+`homeForRole` sends each to its own, because a dashboard that is mostly things
+you cannot open is worse than a short one that is entirely yours — a
+moderator's sidebar is six entries, an administrator's is the institution.
+
+The queues live at `/moderation/*`, and an administrator reaches **the same
+pages** from their own sidebar rather than a second copy of them.
 
 ## The seed
 

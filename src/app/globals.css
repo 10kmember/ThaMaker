@@ -920,3 +920,142 @@
 @utility text-balance-display {
   text-wrap: balance;
 }
+
+/* ── Buttons ──────────────────────────────────────────────────────────────
+   A PALMA button is a stamped thing, not a rectangle with a fill.
+
+   Three moves happen at once on approach, and none of them is a colour
+   change: ink sweeps across from the leading edge behind the label, a thin
+   frame draws itself inside the edge, and the button lifts off the page.
+   Pressing settles it back with the ink held.
+
+   All of it is CSS. A hover state that needs JavaScript costs hydration,
+   breaks :focus-visible, and needs a wrapper element that distorts layout —
+   Motion earns its place on entrances and gestures, not here. */
+.palma-btn {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  transition:
+    translate 220ms var(--ease-ceremonial),
+    color 260ms var(--ease-ceremonial),
+    border-color 260ms var(--ease-ceremonial),
+    background-color 260ms var(--ease-ceremonial),
+    letter-spacing 320ms var(--ease-ceremonial),
+    box-shadow 180ms var(--ease-ceremonial);
+}
+
+/* The ink. Sweeps from the leading edge, behind the label. */
+.palma-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--palma-btn-ink, var(--color-ink));
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 460ms var(--ease-ceremonial);
+}
+
+/* The frame. Draws itself inside the edge, like a plate mark. */
+.palma-btn::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border: 1px solid currentColor;
+  opacity: 0;
+  transform: scale(1.035);
+  pointer-events: none;
+  transition:
+    opacity 300ms var(--ease-ceremonial),
+    transform 420ms var(--ease-ceremonial);
+}
+
+/* The label takes a breath. `.palma-label` already sits at 0.14em, so the
+   open value has to clear it to read as movement at all. */
+.palma-btn:hover,
+.palma-btn:focus-visible {
+  letter-spacing: 0.21em;
+}
+
+.palma-btn:hover::before,
+.palma-btn:focus-visible::before {
+  transform: scaleX(1);
+}
+
+.palma-btn:hover::after,
+.palma-btn:focus-visible::after {
+  opacity: 0.35;
+  transform: scale(1);
+}
+
+/* Pressed: settles into the page, ink held. */
+.palma-btn:active {
+  box-shadow: inset 0 2px 6px rgb(0 0 0 / 0.18);
+}
+
+.palma-btn:disabled::before,
+.palma-btn[aria-disabled='true']::before {
+  transform: scaleX(0);
+}
+
+/* An arrow inside a button travels on approach. */
+.palma-btn svg {
+  transition: translate 320ms var(--ease-ceremonial);
+}
+
+.palma-btn:hover svg,
+.palma-btn:focus-visible svg {
+  translate: 0.2rem 0;
+}
+
+/* The seal: a circular, ceremonial button.
+
+   The ring is an outline rather than a pseudo-element, because `.palma-btn`
+   already spends both pseudos — one on the ink, one on the plate mark — and
+   two systems sharing `::before` merge into nonsense. An outline also follows
+   the border radius and can be animated by offset, which is exactly the
+   move: the ring steps back from the face on approach. */
+.palma-seal-btn {
+  outline: 1px dashed color-mix(in oklab, currentColor 35%, transparent);
+  outline-offset: 5px;
+  transition:
+    translate 220ms var(--ease-ceremonial),
+    color 260ms var(--ease-ceremonial),
+    border-color 260ms var(--ease-ceremonial),
+    outline-offset 420ms var(--ease-ceremonial),
+    outline-color 420ms var(--ease-ceremonial),
+    letter-spacing 320ms var(--ease-ceremonial);
+}
+
+.palma-seal-btn:hover,
+.palma-seal-btn:focus-visible {
+  outline-offset: 10px;
+  outline-color: color-mix(in oklab, currentColor 75%, transparent);
+}
+
+/* The ink sweeps across the circle rather than a box behind it. */
+.palma-seal-btn::before {
+  border-radius: 9999px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .palma-btn,
+  .palma-btn::before,
+  .palma-btn::after,
+  .palma-btn svg,
+  .palma-seal-btn {
+    transition-duration: 1ms;
+  }
+
+  .palma-btn:hover,
+  .palma-btn:focus-visible {
+    letter-spacing: inherit;
+  }
+
+  /* Without motion the ink is simply there on approach rather than swept. */
+  .palma-btn:hover::before,
+  .palma-btn:focus-visible::before {
+    transform: scaleX(1);
+  }
+}

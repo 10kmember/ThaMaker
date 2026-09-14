@@ -58,7 +58,10 @@ export const ENTRANCES = {
     title: 'Administration',
     eyebrow: 'PALMA staff',
     standfirst: 'For PALMA staff: screening, selection, moderation and the audit log.',
-    roles: ['editor', 'moderator', 'admin', 'super_admin'],
+    roles: ['moderator', 'admin', 'super_admin'],
+    // Resolved per role rather than fixed: a moderator's dashboard is not the
+    // administrator's, and sending them to a page that refuses them would make
+    // the door a worse experience than no door.
     home: '/admin',
   },
 } as const satisfies Record<EntranceKey, Entrance>;
@@ -75,6 +78,18 @@ export function entranceForRole(role: Role): Entrance {
 }
 
 /**
+ * Where a role lands once it is through its door.
+ *
+ * PALMA has four dashboards and they are not interchangeable: creators hold a
+ * record, judges make decisions, moderators clear queues, administrators run
+ * the institution.
+ */
+export function homeForRole(role: Role): string {
+  if (role === 'moderator') return '/moderation';
+  return entranceForRole(role).home;
+}
+
+/**
  * The door that guards a given path.
  *
  * Resolved from the surface rather than from the visitor, because a visitor
@@ -84,6 +99,7 @@ export function entranceForPath(path: string | undefined | null): Entrance {
   if (!path) return ENTRANCES.creator;
   if (path === '/judging' || path.startsWith('/judging/')) return ENTRANCES.judge;
   if (path === '/admin' || path.startsWith('/admin/')) return ENTRANCES.staff;
+  if (path === '/moderation' || path.startsWith('/moderation/')) return ENTRANCES.staff;
   return ENTRANCES.creator;
 }
 

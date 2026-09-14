@@ -124,7 +124,7 @@ export default async function UsersPage({
                       <dd className="text-right">
                         {account.creator ? (
                           <Link
-                            href={`/admin/creators/${account.creator.slug}`}
+                            href={`/moderation/creators/${account.creator.slug}`}
                             className="palma-link text-ink"
                           >
                             {account.creator.displayName}

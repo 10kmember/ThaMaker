@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { EntrancePanel } from '@/components/account/EntrancePanel';
 import { buildMetadata } from '@/lib/seo';
 import { getSession } from '@/lib/auth/session';
-import { ENTRANCES, entranceForRole } from '@/lib/auth/entrances';
+import { ENTRANCES, homeForRole } from '@/lib/auth/entrances';
 import { CONTACTS } from '@/lib/legal';
 
 export const dynamic = 'force-dynamic';
@@ -22,7 +22,7 @@ export default async function JudgeEntrancePage({
   const session = await getSession();
   // A judge already signed in goes straight through; anyone else goes to their
   // own building rather than being shown a door they cannot use.
-  if (session) redirect(entranceForRole(session.user.role).home);
+  if (session) redirect(homeForRole(session.user.role));
 
   const { next } = await searchParams;
 

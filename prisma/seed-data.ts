@@ -16,7 +16,7 @@
  * a young institution rather than a fake picture of a busy one.
  */
 
-export type PersonRole = 'super_admin' | 'editor' | 'moderator' | 'judge' | 'creator';
+export type PersonRole = 'super_admin' | 'moderator' | 'judge' | 'creator';
 
 export type CreatorFacet = {
   slug: string;
@@ -58,7 +58,7 @@ export const people: Person[] = [
   {
     name: 'Tom Ashworth',
     email: 'tom@palmaawards.com',
-    role: 'editor',
+    role: 'moderator',
   },
   {
     name: 'Nadia Bello',

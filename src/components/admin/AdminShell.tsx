@@ -4,7 +4,7 @@ import { Wordmark } from '@/components/brand/Wordmark';
 import { Button } from '@/components/ui/button';
 import { signOut } from '@/server/actions/auth';
 import { CommandPalette } from './CommandPalette';
-import { navFor } from '@/lib/admin-nav';
+import { navFor, type AdminGroup } from '@/lib/admin-nav';
 import type { Role } from '@/lib/auth/rbac';
 import { cn } from '@/lib/utils';
 
@@ -23,14 +23,20 @@ export function AdminShell({
   role,
   userName,
   activeHref,
+  title = 'Administration',
+  nav,
   children,
 }: {
   role: Role;
   userName: string;
   activeHref: string;
+  /** What this dashboard is called in its own masthead. */
+  title?: string;
+  /** Which sidebar this surface carries. Defaults to the administration one. */
+  nav?: AdminGroup[];
   children: React.ReactNode;
 }) {
-  const groups = navFor(role);
+  const groups = navFor(role, nav);
 
   return (
     <div className="bg-ivory min-h-dvh">
@@ -38,7 +44,7 @@ export function AdminShell({
         <Container className="flex min-w-0 flex-wrap items-center justify-between gap-4 py-6">
           <div className="flex min-w-0 items-center gap-5">
             <Wordmark size="sm" />
-            <span className="palma-label text-champagne shrink-0">Administration</span>
+            <span className="palma-label text-champagne shrink-0">{title}</span>
           </div>
           <div className="flex min-w-0 items-center gap-3">
             <CommandPalette groups={groups} />

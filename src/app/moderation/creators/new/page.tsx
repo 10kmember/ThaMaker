@@ -9,16 +9,16 @@ export const dynamic = 'force-dynamic';
 export const metadata = buildMetadata({
   title: 'Add creator',
   description: 'Create a PALMA creator record.',
-  path: '/admin/creators/new',
+  path: '/moderation/creators/new',
   noIndex: true,
 });
 
 export default async function NewCreatorPage() {
-  await requirePermission('editorial:create_creator', '/admin/creators/new');
+  await requirePermission('editorial:create_creator', '/moderation/creators/new');
 
   return (
     <>
-      <Link href="/admin/creators" className="palma-label text-taupe-deep hover:text-ink">
+      <Link href="/moderation/creators" className="palma-label text-taupe-deep hover:text-ink">
         ← Creator records
       </Link>
 

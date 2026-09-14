@@ -20,7 +20,8 @@ enum Role {
   visitor
   creator
   judge
-  editor
+  /// Editorial and moderation are one job: the person who writes a creator's
+  /// record is the person who screens a claim about it.
   moderator
   admin
   super_admin

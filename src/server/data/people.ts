@@ -218,7 +218,7 @@ export async function searchEverything(query: string): Promise<SearchHit[]> {
       kind: 'Creator',
       title: creator.displayName,
       detail: `${creator.countryCode} · ${creator.userId ? 'claimed' : 'unclaimed'}`,
-      href: `/admin/creators/${creator.slug}`,
+      href: `/moderation/creators/${creator.slug}`,
     })),
     ...accounts.map<SearchHit>((account) => ({
       kind: 'Account',
@@ -230,13 +230,13 @@ export async function searchEverything(query: string): Promise<SearchHit[]> {
       kind: 'Claim',
       title: claim.reference,
       detail: `${claim.creator.displayName} · ${claim.status.replace('_', ' ')}`,
-      href: `/admin/claims/${claim.id}`,
+      href: `/moderation/claims/${claim.id}`,
     })),
     ...cases.map<SearchHit>((entry) => ({
       kind: 'Verification case',
       title: entry.reference,
       detail: `${entry.creator.displayName} · ${entry.status.replace('_', ' ')}`,
-      href: `/admin/creators/${entry.creator.slug}`,
+      href: `/moderation/creators/${entry.creator.slug}`,
     })),
     ...achievements.map<SearchHit>((achievement) => ({
       kind: 'Honour',

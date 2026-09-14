@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { EntrancePanel } from '@/components/account/EntrancePanel';
 import { buildMetadata } from '@/lib/seo';
 import { getSession } from '@/lib/auth/session';
-import { ENTRANCES, entranceForRole } from '@/lib/auth/entrances';
+import { ENTRANCES, homeForRole } from '@/lib/auth/entrances';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,7 +19,7 @@ export default async function StaffEntrancePage({
   searchParams: Promise<{ next?: string }>;
 }) {
   const session = await getSession();
-  if (session) redirect(entranceForRole(session.user.role).home);
+  if (session) redirect(homeForRole(session.user.role));
 
   const { next } = await searchParams;
 

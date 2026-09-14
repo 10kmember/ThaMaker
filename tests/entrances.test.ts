@@ -6,6 +6,7 @@ import {
   entranceByKey,
   entranceForPath,
   entranceForRole,
+  homeForRole,
 } from '@/lib/auth/entrances';
 import { ROLES, type Role } from '@/lib/auth/rbac';
 
@@ -25,7 +26,7 @@ describe('entrances', () => {
   });
 
   it('never admits a creator or staff account at the judges’ entrance', () => {
-    for (const role of ['creator', 'editor', 'moderator', 'admin', 'super_admin'] as Role[]) {
+    for (const role of ['creator', 'moderator', 'admin', 'super_admin'] as Role[]) {
       expect(admits(ENTRANCES.judge, role)).toBe(false);
     }
   });
@@ -35,12 +36,19 @@ describe('entrances', () => {
     expect(admits(ENTRANCES.staff, 'judge')).toBe(false);
   });
 
-  it('sends every role to its own home', () => {
-    expect(entranceForRole('judge').home).toBe('/judging');
-    expect(entranceForRole('creator').home).toBe('/portal');
-    expect(entranceForRole('admin').home).toBe('/admin');
-    expect(entranceForRole('super_admin').home).toBe('/admin');
-    expect(entranceForRole('editor').home).toBe('/admin');
+  it('sends every role to its own dashboard', () => {
+    expect(homeForRole('judge')).toBe('/judging');
+    expect(homeForRole('creator')).toBe('/portal');
+    expect(homeForRole('admin')).toBe('/admin');
+    expect(homeForRole('super_admin')).toBe('/admin');
+    // A moderator shares the staff door and not the administrator's dashboard.
+    expect(homeForRole('moderator')).toBe('/moderation');
+    expect(entranceForRole('moderator').path).toBe('/staff');
+  });
+
+  it('guards the moderation surface behind the staff door', () => {
+    expect(entranceForPath('/moderation').key).toBe('staff');
+    expect(entranceForPath('/moderation/claims').key).toBe('staff');
   });
 
   it('falls back to the creator door for a visitor', () => {

@@ -113,17 +113,17 @@ async function Figures({ period, role }: { period: Period; role: Role }) {
         <StatGrid
           title="Creators"
           stats={[
-            { label: 'Total records', value: creators.total, href: '/admin/creators' },
+            { label: 'Total records', value: creators.total, href: '/moderation/creators' },
             { label: 'Added', value: creators.added, note: PERIOD_LABEL[period] },
             {
               label: 'Claimed',
               value: creators.claimed,
-              href: '/admin/creators?filter=claimed',
+              href: '/moderation/creators?filter=claimed',
             },
             {
               label: 'Unclaimed',
               value: creators.unclaimed,
-              href: '/admin/creators?filter=unclaimed',
+              href: '/moderation/creators?filter=unclaimed',
             },
             { label: 'Verified', value: creators.verified },
             {
@@ -134,7 +134,7 @@ async function Figures({ period, role }: { period: Period; role: Role }) {
             {
               label: 'Unpublished',
               value: creators.unpublished,
-              href: '/admin/creators?filter=unpublished',
+              href: '/moderation/creators?filter=unpublished',
             },
             { label: 'Suspended', value: creators.suspended, tone: 'attention' },
           ]}
@@ -170,25 +170,25 @@ async function Figures({ period, role }: { period: Period; role: Role }) {
             {
               label: 'Open claims',
               value: operations.openClaims,
-              href: '/admin/claims',
+              href: '/moderation/claims',
               tone: 'attention',
             },
             {
               label: 'Escalations',
               value: operations.escalations,
-              href: '/admin/claims?filter=escalated',
+              href: '/moderation/claims?filter=escalated',
               tone: 'attention',
             },
             {
               label: 'Verification queue',
               value: operations.verificationQueue,
-              href: '/admin/verification',
+              href: '/moderation/verification',
               tone: 'attention',
             },
             {
               label: 'Reports',
               value: operations.reports,
-              href: '/admin/moderation',
+              href: '/moderation/reports',
               tone: 'attention',
             },
             {

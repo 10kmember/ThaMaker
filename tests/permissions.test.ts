@@ -22,14 +22,16 @@ describe('role permissions', () => {
     expect(can('judge', 'admin:correct_score')).toBe(false);
   });
 
-  it('keeps editors and moderators out of judging and selection', () => {
-    for (const role of ['editor', 'moderator'] as const) {
-      expect(can(role, 'judging:submit_score'), role).toBe(false);
-      expect(can(role, 'admin:select_winners'), role).toBe(false);
-    }
-    expect(can('editor', 'journal:publish')).toBe(true);
+  it('keeps moderators out of judging and selection', () => {
+    expect(can('moderator', 'judging:submit_score')).toBe(false);
+    expect(can('moderator', 'admin:select_winners')).toBe(false);
+    expect(can('moderator', 'admin:revoke_honour')).toBe(false);
+  });
+
+  it('gives the moderator the editorial job as well, since they are one role', () => {
+    expect(can('moderator', 'journal:publish')).toBe(true);
+    expect(can('moderator', 'editorial:edit_creator')).toBe(true);
     expect(can('moderator', 'moderation:act')).toBe(true);
-    expect(can('moderator', 'journal:publish')).toBe(false);
   });
 
   it('reserves user and system administration for super administrators', () => {
@@ -45,7 +47,7 @@ describe('role permissions', () => {
   });
 
   it('identifies staff roles', () => {
-    expect(ROLES.filter(isStaff)).toEqual(['editor', 'moderator', 'admin', 'super_admin']);
+    expect(ROLES.filter(isStaff)).toEqual(['moderator', 'admin', 'super_admin']);
   });
 
   it('canAny matches any of the listed permissions', () => {

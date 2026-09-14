@@ -4,7 +4,13 @@ import { redirect } from 'next/navigation';
 import { hashPassword, verifyPassword } from '@/lib/crypto';
 import { assertSameOrigin, createSession, destroySession, getSession } from '@/lib/auth/session';
 import { registerSchema, signInSchema } from '@/lib/validation/account';
-import { ENTRANCES, admits, entranceByKey, entranceForRole } from '@/lib/auth/entrances';
+import {
+  ENTRANCES,
+  admits,
+  entranceByKey,
+  entranceForRole,
+  homeForRole,
+} from '@/lib/auth/entrances';
 import type { Role } from '@/lib/auth/rbac';
 import { fieldErrors } from '@/lib/validation/nomination';
 import { recordAudit } from '@/server/audit';
@@ -26,15 +32,21 @@ export type AuthState = {
  */
 function safeNext(value: string | undefined | null, role: Role): string {
   const entrance = entranceForRole(role);
-  if (!value) return entrance.home;
-  if (!value.startsWith('/') || value.startsWith('//')) return entrance.home;
+  // Moderators and administrators share a door and not a dashboard.
+  const home = homeForRole(role);
+  if (!value) return home;
+  if (!value.startsWith('/') || value.startsWith('//')) return home;
 
   // The judging room and the admin surface are reachable only from their own
   // doors; anything else resolves to the home of the role that signed in.
   const judgeOnly = value === '/judging' || value.startsWith('/judging/');
-  const staffOnly = value === '/admin' || value.startsWith('/admin/');
-  if (judgeOnly && entrance.key !== 'judge') return entrance.home;
-  if (staffOnly && entrance.key !== 'staff') return entrance.home;
+  const staffOnly =
+    value === '/admin' ||
+    value.startsWith('/admin/') ||
+    value === '/moderation' ||
+    value.startsWith('/moderation/');
+  if (judgeOnly && entrance.key !== 'judge') return home;
+  if (staffOnly && entrance.key !== 'staff') return home;
 
   return value;
 }

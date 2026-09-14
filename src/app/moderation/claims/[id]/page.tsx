@@ -18,13 +18,13 @@ export const dynamic = 'force-dynamic';
 export const metadata = buildMetadata({
   title: 'Claim review',
   description: 'Review a creator claim.',
-  path: '/admin/claims',
+  path: '/moderation/claims',
   noIndex: true,
 });
 
 export default async function ClaimCasePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const session = await requirePermission('claims:review', `/admin/claims/${id}`);
+  const session = await requirePermission('claims:review', `/moderation/claims/${id}`);
 
   const claim = await getClaimCase(id);
   if (!claim) notFound();
@@ -43,7 +43,7 @@ export default async function ClaimCasePage({ params }: { params: Promise<{ id: 
   return (
     <>
       <div className="flex flex-wrap items-baseline justify-between gap-4">
-        <Link href="/admin/claims" className="palma-label text-taupe-deep hover:text-ink">
+        <Link href="/moderation/claims" className="palma-label text-taupe-deep hover:text-ink">
           ← Claims
         </Link>
         <span className="palma-label text-taupe font-mono">{claim.reference}</span>

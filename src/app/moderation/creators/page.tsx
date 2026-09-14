@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 export const metadata = buildMetadata({
   title: 'Creator records',
   description: 'The creator records PALMA maintains.',
-  path: '/admin/creators',
+  path: '/moderation/creators',
   noIndex: true,
 });
 
@@ -23,7 +23,7 @@ export default async function CreatorRecordsPage({
 }: {
   searchParams: Promise<{ q?: string; filter?: string }>;
 }) {
-  const session = await requirePermission('creators:view_records', '/admin/creators');
+  const session = await requirePermission('creators:view_records', '/moderation/creators');
   const { q, filter } = await searchParams;
 
   const records = await listCreatorRecords({
@@ -47,7 +47,7 @@ export default async function CreatorRecordsPage({
 
         {can(session.user.role, 'editorial:create_creator') ? (
           <Button asChild size="md">
-            <Link href="/admin/creators/new">Add creator</Link>
+            <Link href="/moderation/creators/new">Add creator</Link>
           </Button>
         ) : null}
       </div>
@@ -55,10 +55,10 @@ export default async function CreatorRecordsPage({
       <div className="border-stone-deep mt-10 flex flex-wrap items-center gap-6 border-b pb-4">
         <nav aria-label="Record filters" className="flex flex-wrap gap-6">
           {[
-            ['/admin/creators', 'All'],
-            ['/admin/creators?filter=unclaimed', 'Unclaimed'],
-            ['/admin/creators?filter=claimed', 'Claimed'],
-            ['/admin/creators?filter=unpublished', 'Unpublished'],
+            ['/moderation/creators', 'All'],
+            ['/moderation/creators?filter=unclaimed', 'Unclaimed'],
+            ['/moderation/creators?filter=claimed', 'Claimed'],
+            ['/moderation/creators?filter=unpublished', 'Unpublished'],
           ].map(([href, label]) => (
             <Link key={href} href={href!} className="palma-label text-taupe-deep hover:text-ink">
               {label}
@@ -67,7 +67,7 @@ export default async function CreatorRecordsPage({
         </nav>
 
         <form
-          action="/admin/creators"
+          action="/moderation/creators"
           className="flex min-w-0 flex-1 items-center gap-2 sm:ml-auto sm:flex-none"
         >
           <label htmlFor="q" className="sr-only">
@@ -93,7 +93,7 @@ export default async function CreatorRecordsPage({
           {shown.map((record) => (
             <li key={record.id}>
               <Link
-                href={`/admin/creators/${record.slug}`}
+                href={`/moderation/creators/${record.slug}`}
                 className="palma-row border-stone-deep grid gap-3 border-b py-5 sm:grid-cols-12 sm:items-baseline sm:gap-6"
               >
                 <span className="sm:col-span-4">

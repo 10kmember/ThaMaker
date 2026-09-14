@@ -9,7 +9,9 @@ export const ROLES = [
   'visitor',
   'creator',
   'judge',
-  'editor',
+  // Editorial and moderation are one job at PALMA's size: the person who
+  // writes a creator's record is the person who screens a claim about it.
+  // Splitting them produced two roles neither of which could finish a task.
   'moderator',
   'admin',
   'super_admin',
@@ -46,6 +48,9 @@ export const PERMISSIONS = [
   // Moderation
   'moderation:view_reports',
   'moderation:act',
+
+  // The moderator's dashboard
+  'operations:view_dashboard',
 
   // Administration
   'admin:view_dashboard',
@@ -89,33 +94,34 @@ const JUDGE: Permission[] = [
  * no selection, no revocation, no score correction — and that boundary is the
  * point of the role rather than an oversight in this list.
  */
-const EDITOR: Permission[] = [
-  'admin:view_dashboard',
+/**
+ * The moderator.
+ *
+ * Maintains the *accuracy* of the record and never its *results*: creator
+ * records, the Journal, claims, manual age assurance and reports. Editorial
+ * and moderation were two roles until it became clear that neither could
+ * finish a task on its own — the person who writes a creator's record is the
+ * person who screens a claim about it.
+ *
+ * It holds no permission that decides an award. That boundary is the point of
+ * the role rather than an oversight in this list.
+ */
+const MODERATOR: Permission[] = [
+  'operations:view_dashboard',
   'creators:view_records',
   'journal:write',
   'journal:publish',
-  'creators:view_records',
   'editorial:create_creator',
   'editorial:edit_creator',
   'editorial:write_internal_note',
-  'claims:review',
-];
-
-const MODERATOR: Permission[] = [
-  'admin:view_dashboard',
-  // A moderator reads records to investigate; editing their presentation is
-  // editorial's job, so the page renders read-only for them.
-  'creators:view_records',
   'moderation:view_reports',
   'moderation:act',
-  'editorial:write_internal_note',
   'claims:review',
   'claims:decide',
   'verification:review_manual',
 ];
 
 const ADMIN: Permission[] = [
-  ...EDITOR,
   ...MODERATOR,
   'claims:decide',
   'admin:view_dashboard',
@@ -140,7 +146,6 @@ const MATRIX: Record<Role, readonly Permission[]> = {
   creator: CREATOR,
   // Judges are people first: they may also hold a creator profile of their own.
   judge: [...CREATOR, ...JUDGE],
-  editor: [...CREATOR, ...EDITOR],
   moderator: [...CREATOR, ...MODERATOR],
   admin: [...CREATOR, ...ADMIN],
   super_admin: [...PERMISSIONS],
@@ -185,5 +190,5 @@ export const OUTCOME_PERMISSIONS: readonly Permission[] = [
 export const SPONSOR_PERMISSIONS: readonly Permission[] = [];
 
 export function isStaff(role: Role | null | undefined): boolean {
-  return role === 'editor' || role === 'moderator' || role === 'admin' || role === 'super_admin';
+  return role === 'moderator' || role === 'admin' || role === 'super_admin';
 }

@@ -64,8 +64,12 @@ export default async function VerifyIndexPage({ searchParams }: Props) {
                   />
                 </Field>
 
-                <Button type="submit" size="md" className="self-start">
+                {/* Checking an honour is a ceremonial act, not a routine one:
+                    it gets the seal rather than a rectangle. */}
+                <Button type="submit" variant="ceremonial" size="seal" className="self-start">
                   Verify
+                  <br />
+                  the record
                 </Button>
               </form>
 

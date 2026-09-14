@@ -2,7 +2,7 @@ import 'server-only';
 import { redirect } from 'next/navigation';
 import { getSession, type ActiveSession } from './session';
 import { can, type Permission, type Role } from './rbac';
-import { admits, entranceForPath, entranceForRole } from './entrances';
+import { admits, entranceForPath, homeForRole } from './entrances';
 
 export class AuthorisationError extends Error {
   readonly permission: Permission | null;
@@ -35,7 +35,7 @@ export async function requireSession(returnTo?: string): Promise<ActiveSession> 
   }
 
   if (!admits(entrance, session.user.role)) {
-    redirect(entranceForRole(session.user.role).home);
+    redirect(homeForRole(session.user.role));
   }
 
   return session;

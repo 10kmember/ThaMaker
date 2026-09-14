@@ -106,7 +106,7 @@ export async function saveCreatorRecord(
     });
 
     revalidatePath(`/creators/${before.slug}`);
-    revalidatePath(`/admin/creators/${before.slug}`);
+    revalidatePath(`/moderation/creators/${before.slug}`);
     return { status: 'success', message: 'Record updated. The change is in the audit log.' };
   }
 
@@ -128,7 +128,7 @@ export async function saveCreatorRecord(
     after: data,
   });
 
-  revalidatePath('/admin/creators');
+  revalidatePath('/moderation/creators');
   return { status: 'success', message: `Created ${created.displayName}, unclaimed.` };
 }
 
@@ -173,7 +173,7 @@ export async function addInternalNote(
     summary: `Internal note added to ${creator.displayName}`,
   });
 
-  revalidatePath(`/admin/creators/${creator.slug}`);
+  revalidatePath(`/moderation/creators/${creator.slug}`);
   return { status: 'success', message: 'Note added. Staff only — it is never published.' };
 }
 
@@ -228,7 +228,7 @@ export async function openVerificationCase(
     after: { reason: parsed.data.reason, mediaReceived: parsed.data.mediaReceived },
   });
 
-  revalidatePath('/admin/verification');
+  revalidatePath('/moderation/verification');
   return { status: 'success', message: `Opened ${opened.reference}.` };
 }
 
@@ -281,7 +281,7 @@ export async function decideVerificationCase(
       data: { status: 'awaiting_information', decisionNote: parsed.data.note || null },
     });
 
-    revalidatePath('/admin/verification');
+    revalidatePath('/moderation/verification');
     return { status: 'success', message: 'Information requested. The case stays open.' };
   }
 
@@ -375,7 +375,7 @@ export async function decideVerificationCase(
     });
   }
 
-  revalidatePath('/admin/verification');
+  revalidatePath('/moderation/verification');
   revalidatePath(`/creators/${record.creator.slug}`);
   return {
     status: 'success',

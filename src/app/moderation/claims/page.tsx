@@ -12,7 +12,7 @@ export const dynamic = 'force-dynamic';
 export const metadata = buildMetadata({
   title: 'Creator claims',
   description: 'Requests to control a PALMA creator record.',
-  path: '/admin/claims',
+  path: '/moderation/claims',
   noIndex: true,
 });
 
@@ -21,7 +21,7 @@ export default async function ClaimsQueuePage({
 }: {
   searchParams: Promise<{ filter?: string }>;
 }) {
-  await requirePermission('claims:review', '/admin/claims');
+  await requirePermission('claims:review', '/moderation/claims');
   const { filter } = await searchParams;
 
   const claims = await listClaims(filter === 'settled' ? 'settled' : 'open');
@@ -40,9 +40,9 @@ export default async function ClaimsQueuePage({
 
       <nav aria-label="Claim filters" className="border-stone-deep mt-10 flex gap-6 border-b pb-4">
         {[
-          ['/admin/claims', 'Open'],
-          ['/admin/claims?filter=escalated', 'Escalated'],
-          ['/admin/claims?filter=settled', 'Settled'],
+          ['/moderation/claims', 'Open'],
+          ['/moderation/claims?filter=escalated', 'Escalated'],
+          ['/moderation/claims?filter=settled', 'Settled'],
         ].map(([href, label]) => (
           <Link key={href} href={href!} className="palma-label text-taupe-deep hover:text-ink">
             {label}
@@ -61,7 +61,7 @@ export default async function ClaimsQueuePage({
           {shown.map((claim) => (
             <li key={claim.id}>
               <Link
-                href={`/admin/claims/${claim.id}`}
+                href={`/moderation/claims/${claim.id}`}
                 className="palma-row border-stone-deep grid gap-3 border-b py-6 sm:grid-cols-12 sm:items-baseline sm:gap-6"
               >
                 <span className="palma-label text-taupe font-mono sm:col-span-2">

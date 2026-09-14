@@ -230,7 +230,7 @@ export async function decideClaim(_previous: ClaimState, formData: FormData): Pr
       summary: `More information requested on ${claim.reference}`,
     });
 
-    revalidatePath('/admin/claims');
+    revalidatePath('/moderation/claims');
     return { status: 'success', message: 'Information requested. The claim stays open.' };
   }
 
@@ -248,7 +248,7 @@ export async function decideClaim(_previous: ClaimState, formData: FormData): Pr
       summary: `${claim.reference} escalated`,
     });
 
-    revalidatePath('/admin/claims');
+    revalidatePath('/moderation/claims');
     return { status: 'success', message: 'Escalated. An administrator will take it from here.' };
   }
 
@@ -276,7 +276,7 @@ export async function decideClaim(_previous: ClaimState, formData: FormData): Pr
       after: { reason: parsed.data.note },
     });
 
-    revalidatePath('/admin/claims');
+    revalidatePath('/moderation/claims');
     return { status: 'success', message: 'Claim rejected, with the reason recorded.' };
   }
 
@@ -345,7 +345,7 @@ export async function decideClaim(_previous: ClaimState, formData: FormData): Pr
     after: { userId: claim.userId, isClaimed: true },
   });
 
-  revalidatePath('/admin/claims');
+  revalidatePath('/moderation/claims');
   revalidatePath('/portal');
   // The public record says whether it is claimed, so it goes stale the moment
   // this succeeds.
@@ -406,7 +406,7 @@ export async function issueClaimInvitation(
     summary: `Claim invitation issued for ${creator.displayName}`,
   });
 
-  revalidatePath(`/admin/creators/${creator.slug}`);
+  revalidatePath(`/moderation/creators/${creator.slug}`);
   return {
     status: 'success',
     message: `/claim/${token}`,

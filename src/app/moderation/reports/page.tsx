@@ -9,12 +9,12 @@ import { titleCase } from '@/lib/utils';
 export const metadata = buildMetadata({
   title: 'Moderation',
   description: 'PALMA moderation queue.',
-  path: '/admin/moderation',
+  path: '/moderation/reports',
   noIndex: true,
 });
 
 export default async function AdminModerationPage() {
-  await requirePermission('moderation:view_reports', '/admin/moderation');
+  await requirePermission('moderation:view_reports', '/moderation/reports');
   const reports = await listReports();
 
   return (

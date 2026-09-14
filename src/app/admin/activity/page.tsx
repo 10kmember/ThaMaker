@@ -17,11 +17,11 @@ export const metadata = buildMetadata({
 function hrefFor(entityType: string, entityId: string): string | null {
   switch (entityType) {
     case 'CreatorClaim':
-      return `/admin/claims/${entityId}`;
+      return `/moderation/claims/${entityId}`;
     case 'User':
       return '/admin/users';
     case 'VerificationCase':
-      return '/admin/verification';
+      return '/moderation/verification';
     case 'ConsequentialAction':
       return '/admin/enforcement';
     default:

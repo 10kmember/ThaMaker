@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ADMIN_NAV, navFor } from '@/lib/admin-nav';
+import { ADMIN_NAV, MODERATION_NAV, navFor } from '@/lib/admin-nav';
 import { OUTCOME_PERMISSIONS, ROLES, can, isStaff, type Role } from '@/lib/auth/rbac';
 import { PERIODS, isPeriod } from '@/server/data/command-centre';
 
@@ -29,20 +29,30 @@ describe('the administration sidebar', () => {
     expect(items).toHaveLength(ADMIN_NAV.flatMap((group) => group.items).length);
   });
 
-  it('gives a moderator their queues and nothing that decides an award', () => {
+  it('shows a moderator nothing of the administration surface', () => {
     const hrefs = navFor('moderator').flatMap((group) => group.items.map((item) => item.href));
-    expect(hrefs).toContain('/admin/claims');
-    expect(hrefs).toContain('/admin/moderation');
+    expect(hrefs).not.toContain('/admin');
     expect(hrefs).not.toContain('/admin/selection');
     expect(hrefs).not.toContain('/admin/users');
     expect(hrefs).not.toContain('/admin/settings');
+    expect(hrefs).not.toContain('/admin/enforcement');
   });
 
-  it('shows an editor no enforcement and no user management', () => {
-    const hrefs = navFor('editor').flatMap((group) => group.items.map((item) => item.href));
-    expect(hrefs).not.toContain('/admin/enforcement');
-    expect(hrefs).not.toContain('/admin/users');
-    expect(hrefs).toContain('/admin/creators');
+  it('gives the moderator their own dashboard, with the queues on it', () => {
+    const hrefs = navFor('moderator', MODERATION_NAV).flatMap((group) =>
+      group.items.map((item) => item.href),
+    );
+    expect(hrefs).toContain('/moderation');
+    expect(hrefs).toContain('/moderation/claims');
+    expect(hrefs).toContain('/moderation/verification');
+    expect(hrefs).toContain('/moderation/reports');
+    expect(hrefs).toContain('/moderation/creators');
+  });
+
+  it('lets an administrator reach the same queues, not a second copy of them', () => {
+    const hrefs = navFor('admin').flatMap((group) => group.items.map((item) => item.href));
+    expect(hrefs).toContain('/moderation/claims');
+    expect(hrefs).toContain('/moderation/creators');
   });
 
   it('shows nothing at all to a creator, a judge or a visitor', () => {
@@ -53,7 +63,7 @@ describe('the administration sidebar', () => {
   });
 
   it('keeps the outcome permissions off every non-admin staff role', () => {
-    for (const role of ['editor', 'moderator'] as Role[]) {
+    for (const role of ['moderator'] as Role[]) {
       for (const permission of OUTCOME_PERMISSIONS) {
         expect(can(role, permission), `${role} holds ${permission}`).toBe(false);
       }
@@ -64,7 +74,7 @@ describe('the administration sidebar', () => {
     expect(can('admin', 'admin:enforce')).toBe(true);
     expect(can('super_admin', 'admin:enforce')).toBe(true);
     expect(can('moderator', 'admin:enforce')).toBe(false);
-    expect(can('editor', 'admin:view_analytics')).toBe(false);
+    expect(can('moderator', 'admin:view_analytics')).toBe(false);
   });
 });
 

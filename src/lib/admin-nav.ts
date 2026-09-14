@@ -21,6 +21,37 @@ export type AdminLink = {
 
 export type AdminGroup = { title: string; items: AdminLink[] };
 
+/**
+ * The moderator's dashboard.
+ *
+ * Queues, and the records those queues are about. Short on purpose: a
+ * moderator's day is a list of things waiting for a person, and a sidebar that
+ * offered them the institution's machinery would be offering them work that is
+ * not theirs.
+ */
+export const MODERATION_NAV: AdminGroup[] = [
+  {
+    title: 'Queues',
+    items: [
+      { href: '/moderation', label: 'Overview', permission: 'operations:view_dashboard' },
+      { href: '/moderation/claims', label: 'Creator claims', permission: 'claims:review' },
+      {
+        href: '/moderation/verification',
+        label: 'Age verification',
+        permission: 'verification:review_manual',
+      },
+      { href: '/moderation/reports', label: 'Reports', permission: 'moderation:view_reports' },
+    ],
+  },
+  {
+    title: 'The record',
+    items: [
+      { href: '/moderation/creators', label: 'Creators', permission: 'creators:view_records' },
+      { href: '/paroh', label: 'PaROH', permission: 'operations:view_dashboard' },
+    ],
+  },
+];
+
 export const ADMIN_NAV: AdminGroup[] = [
   {
     title: 'Command centre',
@@ -47,27 +78,27 @@ export const ADMIN_NAV: AdminGroup[] = [
   {
     title: 'People',
     items: [
-      { href: '/admin/creators', label: 'Creators', permission: 'creators:view_records' },
+      { href: '/moderation/creators', label: 'Creators', permission: 'creators:view_records' },
       { href: '/admin/users', label: 'Users & roles', permission: 'admin:manage_users' },
     ],
   },
   {
-    title: 'Verification',
+    // The moderator's queues, reachable from here because an administrator
+    // holds every moderator permission — the same pages, not a second copy.
+    title: 'Queues',
     items: [
+      { href: '/moderation/claims', label: 'Creator claims', permission: 'claims:review' },
       {
-        href: '/admin/verification',
+        href: '/moderation/verification',
         label: 'Age verification',
         permission: 'verification:review_manual',
       },
-      { href: '/admin/claims', label: 'Claims', permission: 'claims:review' },
+      { href: '/moderation/reports', label: 'Reports', permission: 'moderation:view_reports' },
     ],
   },
   {
-    title: 'Operations',
-    items: [
-      { href: '/admin/moderation', label: 'Reports', permission: 'moderation:view_reports' },
-      { href: '/admin/enforcement', label: 'Enforcement', permission: 'admin:enforce' },
-    ],
+    title: 'Enforcement',
+    items: [{ href: '/admin/enforcement', label: 'Enforcement', permission: 'admin:enforce' }],
   },
   {
     title: 'Business',
@@ -90,9 +121,11 @@ export const ADMIN_NAV: AdminGroup[] = [
 ];
 
 /** The sidebar as this role actually sees it. Empty groups disappear. */
-export function navFor(role: Role): AdminGroup[] {
-  return ADMIN_NAV.map((group) => ({
-    title: group.title,
-    items: group.items.filter((item) => can(role, item.permission)),
-  })).filter((group) => group.items.length > 0);
+export function navFor(role: Role, nav: AdminGroup[] = ADMIN_NAV): AdminGroup[] {
+  return nav
+    .map((group) => ({
+      title: group.title,
+      items: group.items.filter((item) => can(role, item.permission)),
+    }))
+    .filter((group) => group.items.length > 0);
 }

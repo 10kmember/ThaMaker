@@ -35,16 +35,16 @@ its own door with the password in `SEED_PASSWORD` (default
 `Palma-Development-2027`) — a correct password at the wrong door creates no
 session.
 
-| Account                   | Role          | Door       | Lands at   |
-| ------------------------- | ------------- | ---------- | ---------- |
-| `sarah@palmaawards.com`   | `super_admin` | `/staff`   | `/admin`   |
-| `tom@palmaawards.com`     | `editor`      | `/staff`   | `/admin`   |
-| `nadia@palmaawards.com`   | `moderator`   | `/staff`   | `/admin`   |
-| `adaeze@palmaawards.com`  | `judge`       | `/judge`   | `/judging` |
-| `frances@palmaawards.com` | `judge`       | `/judge`   | `/judging` |
-| `marcus@palmaawards.com`  | `judge`       | `/judge`   | `/judging` |
-| `maya@example.com`        | `creator`     | `/sign-in` | `/portal`  |
-| `jordan@example.com`      | `creator`     | `/sign-in` | `/portal`  |
+| Account                   | Role          | Door       | Lands at      |
+| ------------------------- | ------------- | ---------- | ------------- |
+| `sarah@palmaawards.com`   | `super_admin` | `/staff`   | `/admin`      |
+| `tom@palmaawards.com`     | `moderator`   | `/staff`   | `/moderation` |
+| `nadia@palmaawards.com`   | `moderator`   | `/staff`   | `/moderation` |
+| `adaeze@palmaawards.com`  | `judge`       | `/judge`   | `/judging`    |
+| `frances@palmaawards.com` | `judge`       | `/judge`   | `/judging`    |
+| `marcus@palmaawards.com`  | `judge`       | `/judge`   | `/judging`    |
+| `maya@example.com`        | `creator`     | `/sign-in` | `/portal`     |
+| `jordan@example.com`      | `creator`     | `/sign-in` | `/portal`     |
 
 The ninth is **Noor Haddad**, a creator record with no account: PALMA wrote it
 when she was first nominated and nobody holds it. That is what `/portal/claim`

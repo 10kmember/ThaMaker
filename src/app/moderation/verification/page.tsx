@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 export const metadata = buildMetadata({
   title: 'Verification',
   description: 'Manual age assurance cases.',
-  path: '/admin/verification',
+  path: '/moderation/verification',
   noIndex: true,
 });
 
@@ -23,7 +23,7 @@ export default async function VerificationQueuePage({
 }: {
   searchParams: Promise<{ filter?: string }>;
 }) {
-  await requirePermission('verification:review_manual', '/admin/verification');
+  await requirePermission('verification:review_manual', '/moderation/verification');
   const { filter } = await searchParams;
 
   const cases = await listVerificationCases(filter === 'all' ? 'all' : 'open');
@@ -49,11 +49,14 @@ export default async function VerificationQueuePage({
         aria-label="Verification filters"
         className="border-stone-deep mt-10 flex gap-6 border-b pb-4"
       >
-        <Link href="/admin/verification" className="palma-label text-taupe-deep hover:text-ink">
+        <Link
+          href="/moderation/verification"
+          className="palma-label text-taupe-deep hover:text-ink"
+        >
           Open
         </Link>
         <Link
-          href="/admin/verification?filter=all"
+          href="/moderation/verification?filter=all"
           className="palma-label text-taupe-deep hover:text-ink"
         >
           All
@@ -80,7 +83,7 @@ export default async function VerificationQueuePage({
                   <div className="flex flex-col gap-1">
                     <span className="palma-label text-taupe font-mono">{entry.reference}</span>
                     <Link
-                      href={`/admin/creators/${entry.creatorSlug}`}
+                      href={`/moderation/creators/${entry.creatorSlug}`}
                       className="palma-link font-display text-2xl"
                     >
                       {entry.creatorName}

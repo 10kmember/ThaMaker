@@ -141,14 +141,14 @@ describe('manual verification', () => {
 
 describe('the editorial boundary', () => {
   it('lets editors and moderators into the back office', () => {
-    for (const role of ['editor', 'moderator', 'admin', 'super_admin'] as Role[]) {
-      expect(can(role, 'admin:view_dashboard'), role).toBe(true);
+    for (const role of ['moderator', 'admin', 'super_admin'] as Role[]) {
+      expect(can(role, 'operations:view_dashboard'), role).toBe(true);
       expect(isStaff(role), role).toBe(true);
     }
   });
 
   it('never lets an editor or moderator touch an award outcome', () => {
-    for (const role of ['editor', 'moderator'] as Role[]) {
+    for (const role of ['moderator'] as Role[]) {
       for (const permission of OUTCOME_PERMISSIONS) {
         expect(can(role, permission), `${role} must not hold ${permission}`).toBe(false);
       }
@@ -157,16 +157,35 @@ describe('the editorial boundary', () => {
 
   it('never lets a creator or judge into the back office', () => {
     for (const role of ['creator', 'judge', 'visitor'] as Role[]) {
+      expect(can(role, 'operations:view_dashboard'), role).toBe(false);
       expect(can(role, 'admin:view_dashboard'), role).toBe(false);
       expect(can(role, 'claims:review'), role).toBe(false);
       expect(can(role, 'verification:review_manual'), role).toBe(false);
     }
   });
 
-  it('lets editors shape presentation but not decide claims', () => {
-    expect(can('editor', 'editorial:edit_creator')).toBe(true);
-    expect(can('editor', 'claims:review')).toBe(true);
-    expect(can('editor', 'claims:decide')).toBe(false);
-    expect(can('moderator', 'claims:decide')).toBe(true);
+  it('gives the moderator the whole of the editorial and moderation job', () => {
+    for (const permission of [
+      'editorial:edit_creator',
+      'editorial:create_creator',
+      'journal:publish',
+      'claims:review',
+      'claims:decide',
+      'verification:review_manual',
+      'moderation:act',
+    ] as const) {
+      expect(can('moderator', permission), permission).toBe(true);
+    }
+  });
+
+  it('keeps the administrator out of nothing the moderator can do', () => {
+    for (const permission of [
+      'editorial:edit_creator',
+      'claims:decide',
+      'verification:review_manual',
+      'moderation:act',
+    ] as const) {
+      expect(can('admin', permission), permission).toBe(true);
+    }
   });
 });
