@@ -69,7 +69,10 @@ writing, so running it twice leaves exactly the dataset its file describes.
 | `npm run verify`           | Typecheck, lint and unit tests — run before committing |
 | `npm test`                 | Unit tests (no database required)                      |
 | `npm run test:integration` | Awards-engine tests against PostgreSQL                 |
-| `npm run db:push`          | Apply the Prisma schema                                |
+| `npm run db:push`          | Push the schema without a migration — development only |
+| `npm run db:migrate`       | Create a migration from a schema change                |
+| `npm run db:deploy`        | Apply pending migrations — this is what production runs |
+| `npm run db:status`        | What is applied and what is pending                    |
 | `npm run db:seed`          | Load the seed dataset into PostgreSQL                  |
 | `npm run retention`        | Run the data-retention sweep by hand                   |
 
