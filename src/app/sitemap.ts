@@ -3,6 +3,7 @@ import { siteUrl } from '@/lib/env';
 import { listArticles, listCategoryIndex, listCreators, listSeasons } from '@/server/data/queries';
 import { LEGAL_DOCUMENTS } from '@/lib/legal';
 import { prisma } from '@/server/db';
+import { EMAIL_LIST_VALUES } from '@/domain/email-lists';
 
 export const revalidate = 3600;
 
@@ -16,9 +17,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     listCategoryIndex(),
     listCreators({ limit: 500 }),
     listArticles({ limit: 200 }),
-    prisma.gazetteIssue.findMany({
-      select: { slug: true, sentAt: true },
-      orderBy: { number: 'desc' },
+    prisma.dispatch.findMany({
+      select: { slug: true, type: true, sentAt: true },
+      orderBy: { sentAt: 'desc' },
       take: 200,
     }),
   ]);
@@ -35,7 +36,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/paroh`, lastModified: now, changeFrequency: 'weekly', priority: 1 },
     { url: `${siteUrl}/creators`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${siteUrl}/journal`, lastModified: now, changeFrequency: 'daily', priority: 0.8 },
-    { url: `${siteUrl}/gazette`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
+    ...EMAIL_LIST_VALUES.map((list) => ({
+      url: `${siteUrl}/lists/${list.key}`,
+      lastModified: now,
+      changeFrequency: 'weekly' as const,
+      priority: 0.5,
+    })),
     { url: `${siteUrl}/about`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
     {
       url: `${siteUrl}/about/judging`,
@@ -110,7 +116,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     })),
     ...gazette.map((issue) => ({
-      url: `${siteUrl}/gazette/${issue.slug}`,
+      url: `${siteUrl}/lists/${issue.type}/${issue.slug}`,
       lastModified: issue.sentAt,
       changeFrequency: 'yearly' as const,
       priority: 0.4,

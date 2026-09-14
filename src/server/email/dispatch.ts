@@ -36,7 +36,7 @@ export type DispatchInput = {
   creatorId?: string | null;
   /** What the Dossier says, when the template declares one. */
   dossier?: { body: string; href?: string | null };
-  /** Present only on Gazette mail. */
+  /** Present only on list mail. */
   unsubscribeUrl?: string;
 };
 
@@ -165,8 +165,9 @@ async function suppressedBecause(
   const gate = TEMPLATES[template].gate;
   if (gate === 'always') return null;
 
-  if (gate === 'gazette') {
-    // Gazette mail is gated by the subscription itself, checked by its sender.
+  if (gate === 'subscription') {
+    // List mail is gated by the subscription, checked by whatever assembles
+    // the audience. Nothing reaches this function that was not on a list.
     return null;
   }
 

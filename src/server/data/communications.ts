@@ -3,6 +3,8 @@ import { prisma } from '@/server/db';
 import { TEMPLATE_LIST, type TemplateMeta } from '@/server/email/register';
 import { MAILBOX_LIST, type Mailbox } from '@/server/email/addresses';
 import { env } from '@/lib/env';
+import { EMAIL_LIST_ORDER, emailList } from '@/domain/email-lists';
+import { featureLive } from '@/server/features';
 
 /**
  * What PALMA has said, and what it is able to say.
@@ -68,12 +70,20 @@ export type CommunicationsOverview = {
   failures: DeliveryRow[];
   recent: DeliveryRow[];
   templates: TemplateRow[];
-  gazette: {
+  /** Subscriber counts per list, which is how campaigns are targeted. */
+  lists: {
+    key: string;
     confirmed: number;
     pending: number;
     unsubscribed: number;
     lastIssueAt: string | null;
-  };
+  }[];
+  /** Whether each list is open, which depends on its feature being live. */
+  listAvailability: Record<string, boolean>;
+  /** The same, shaped for the composer. */
+  listsForSending: { key: string; confirmed: number; available: boolean }[];
+  /** Active sponsors, for attributing a partner message. */
+  activeSponsors: { id: string; name: string }[];
 };
 
 function shape(row: {
@@ -108,9 +118,10 @@ export async function getCommunicationsOverview(): Promise<CommunicationsOvervie
     recent,
     byTemplate,
     lastPerTemplate,
-    gazetteCounts,
+    listCounts,
     lastIssue,
     suppressedRows,
+    activeSponsors,
   ] = await Promise.all([
     prisma.emailDelivery.groupBy({ by: ['status'], _count: { _all: true } }),
     // Bounces sit with failures: both mean somebody was not told.
@@ -129,18 +140,29 @@ export async function getCommunicationsOverview(): Promise<CommunicationsOvervie
       where: { status: { in: ['sent', 'delivered'] } },
       _max: { sentAt: true },
     }),
-    prisma.gazetteSubscription.groupBy({ by: ['status'], _count: { _all: true } }),
-    prisma.emailDelivery.findFirst({
-      where: { template: 'gazette_issue', status: { in: ['sent', 'delivered'] } },
-      orderBy: { sentAt: 'desc' },
-      select: { sentAt: true },
-    }),
+    prisma.emailSubscription.groupBy({ by: ['type', 'status'], _count: { _all: true } }),
+    prisma.dispatch.groupBy({ by: ['type'], _max: { sentAt: true } }),
     prisma.suppressedAddress.findMany({
       where: { clearedAt: null },
       orderBy: { createdAt: 'desc' },
       take: 50,
     }),
+    prisma.sponsor.findMany({
+      where: { status: 'active' },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    }),
   ]);
+
+  // A list whose feature is switched off is not open, and the composer must
+  // not offer it. Lists that stand on their own are always open.
+  const availability = await Promise.all(
+    EMAIL_LIST_ORDER.map(async (key) => {
+      const required = emailList(key).requiresFeature;
+      return [key, required ? await featureLive(required) : true] as const;
+    }),
+  );
+  const listAvailability: Record<string, boolean> = Object.fromEntries(availability);
 
   const count = (rows: { status: string; _count: { _all: number } }[], status: string) =>
     rows.find((row) => row.status === status)?._count._all ?? 0;
@@ -148,8 +170,8 @@ export async function getCommunicationsOverview(): Promise<CommunicationsOvervie
   const templateCount = (key: string, status: string) =>
     byTemplate.find((row) => row.template === key && row.status === status)?._count._all ?? 0;
 
-  const gazette = (status: string) =>
-    gazetteCounts.find((row) => row.status === status)?._count._all ?? 0;
+  const listCount = (type: string, status: string) =>
+    listCounts.find((row) => row.type === type && row.status === status)?._count._all ?? 0;
 
   return {
     provider: {
@@ -187,11 +209,19 @@ export async function getCommunicationsOverview(): Promise<CommunicationsOvervie
         lastPerTemplate.find((row) => row.template === meta.key)?._max.sentAt?.toISOString() ??
         null,
     })),
-    gazette: {
-      confirmed: gazette('confirmed'),
-      pending: gazette('pending'),
-      unsubscribed: gazette('unsubscribed'),
-      lastIssueAt: lastIssue?.sentAt?.toISOString() ?? null,
-    },
+    listAvailability,
+    listsForSending: EMAIL_LIST_ORDER.map((key) => ({
+      key,
+      confirmed: listCount(key, 'confirmed'),
+      available: listAvailability[key] ?? true,
+    })),
+    activeSponsors,
+    lists: EMAIL_LIST_ORDER.map((key) => ({
+      key,
+      confirmed: listCount(key, 'confirmed'),
+      pending: listCount(key, 'pending'),
+      unsubscribed: listCount(key, 'unsubscribed'),
+      lastIssueAt: lastIssue.find((row) => row.type === key)?._max.sentAt?.toISOString() ?? null,
+    })),
   };
 }

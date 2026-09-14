@@ -118,6 +118,7 @@ export const ADMIN_NAV: AdminGroup[] = [
   {
     title: 'Business',
     items: [
+      { href: '/admin/business', label: 'Commercial', permission: 'commercial:view' },
       {
         href: '/admin/sponsors',
         label: 'Sponsors & partners',
@@ -131,6 +132,11 @@ export const ADMIN_NAV: AdminGroup[] = [
       { href: '/admin/audit', label: 'Audit log', permission: 'admin:view_audit_log' },
       { href: '/admin/health', label: 'System health', permission: 'admin:manage_system' },
       { href: '/admin/settings', label: 'Settings', permission: 'admin:manage_system' },
+      {
+        href: '/admin/settings/features',
+        label: 'Features & commercial',
+        permission: 'commercial:manage_features',
+      },
     ],
   },
 ];

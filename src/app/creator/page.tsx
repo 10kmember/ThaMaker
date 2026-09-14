@@ -6,7 +6,6 @@ import { Table, TBody, THead } from '@/components/ui/table';
 import { EmptyState, Notice } from '@/components/ui/feedback';
 import { Button } from '@/components/ui/button';
 import { CopyLink } from '@/components/palma/CopyLink';
-import { GazetteToggle } from '@/components/account/GazetteToggle';
 import { PortraitForm } from '@/components/account/PortraitForm';
 import {
   LinksForm,
@@ -321,12 +320,19 @@ export default async function PortalPage() {
             </div>
 
             <div className="border-stone-deep mt-7 border-t pt-6">
-              <h3 className="palma-label text-taupe-deep mb-2">The Gazette</h3>
+              <h3 className="palma-label text-taupe-deep mb-2">PALMA lists</h3>
               <p className="text-taupe mb-4 text-xs leading-relaxed">
-                PALMA’s letter on the season. Separate from everything above, because it is the one
-                thing we send that nobody is owed.
+                Five separate subscriptions, each opt-in on its own. Nothing above puts you on any
+                of them.
               </p>
-              <GazetteToggle subscribed={portal.gazette} />
+              <p className="text-taupe-deep mb-4 text-sm">
+                {portal.subscriptions.length === 0
+                  ? 'You are on none of them.'
+                  : `You are on ${portal.subscriptions.length} of 5.`}
+              </p>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/account/email-preferences">Choose what reaches you</Link>
+              </Button>
             </div>
           </section>
 

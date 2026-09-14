@@ -72,9 +72,20 @@ export const PERMISSIONS = [
   'admin:manage_system',
   /** Read what PALMA has sent, and to whom. */
   'admin:view_communications',
-  /** Write to the whole Gazette. Separate from reading, because sending to a
+
+  // Commercial. Kept apart from everything above on purpose: these are the
+  // permissions a person selling sponsorship needs, and none of them is
+  // anywhere near an award decision.
+  'commercial:view',
+  'commercial:manage_sponsors',
+  'commercial:manage_packages',
+  'commercial:manage_campaigns',
+  'commercial:manage_event_commerce',
+  'commercial:manage_licensing',
+  'commercial:manage_features',
+  /** Write to a whole PALMA list. Separate from reading, because sending to a
    *  mailing list cannot be undone and does not belong with a read-only view. */
-  'admin:send_gazette',
+  'communications:send_list',
   /** Write records into the archive in bulk. */
   'editorial:import_creators',
 ] as const;
@@ -149,8 +160,13 @@ const ADMIN: Permission[] = [
   'admin:manage_sponsors',
   'admin:view_audit_log',
   'admin:view_communications',
-  'admin:send_gazette',
+  'communications:send_list',
   'editorial:import_creators',
+  'commercial:view',
+  'commercial:manage_sponsors',
+  'commercial:manage_packages',
+  'commercial:manage_campaigns',
+  'commercial:manage_event_commerce',
 ];
 
 const MATRIX: Record<Role, readonly Permission[]> = {
@@ -200,6 +216,45 @@ export const OUTCOME_PERMISSIONS: readonly Permission[] = [
  * judges, scores or outcomes.
  */
 export const SPONSOR_PERMISSIONS: readonly Permission[] = [];
+
+/**
+ * The firewall.
+ *
+ * PALMA's commercial side and PALMA's judging side are two jobs, and the
+ * strongest thing the institution can say to a sponsor is that buying an
+ * association bought no part of a decision. That sentence is only true if it
+ * is enforced somewhere a person cannot quietly undo, so it is enforced here
+ * and asserted by a test: no permission may appear in both lists.
+ *
+ * This is not about hiding a button. A commercial permission grants nothing
+ * that touches a nomination, a score, a conflict, a finalist or a winner —
+ * including, deliberately, read access. "They only look at the scores" is how
+ * a firewall stops being one.
+ */
+export const COMMERCIAL_PERMISSIONS: readonly Permission[] = [
+  'commercial:view',
+  'commercial:manage_sponsors',
+  'commercial:manage_packages',
+  'commercial:manage_campaigns',
+  'commercial:manage_event_commerce',
+  'commercial:manage_licensing',
+  'commercial:manage_features',
+];
+
+/**
+ * What a commercial role must never reach, whatever else it holds.
+ *
+ * Wider than OUTCOME_PERMISSIONS, which names the decisions themselves. This
+ * adds the confidential material somebody would need to *influence* one.
+ */
+export const JUDGING_CONFIDENTIAL_PERMISSIONS: readonly Permission[] = [
+  ...OUTCOME_PERMISSIONS,
+  'judging:view_assignments',
+  'judging:submit_score',
+  'judging:declare_conflict',
+  'admin:review_nominations',
+  'admin:manage_judges',
+];
 
 export function isStaff(role: Role | null | undefined): boolean {
   return role === 'moderator' || role === 'admin' || role === 'super_admin';

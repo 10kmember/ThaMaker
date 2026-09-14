@@ -115,6 +115,7 @@ export function CheckboxField({
   description,
   error,
   defaultChecked,
+  disabled,
 }: {
   id: string;
   name: string;
@@ -122,14 +123,20 @@ export function CheckboxField({
   description?: string;
   error?: string;
   defaultChecked?: boolean;
+  /** A choice that is not currently available to make. */
+  disabled?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="flex cursor-pointer items-start gap-3">
+      <label
+        htmlFor={id}
+        className={cn('flex items-start gap-3', disabled ? 'cursor-not-allowed' : 'cursor-pointer')}
+      >
         <Checkbox
           id={id}
           name={name}
           defaultChecked={defaultChecked}
+          disabled={disabled}
           aria-invalid={error ? true : undefined}
           aria-describedby={description ? `${id}-description` : undefined}
         />

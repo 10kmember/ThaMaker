@@ -137,9 +137,7 @@ describe('preparing a portrait', () => {
 describe('the serving path', () => {
   it('carries the checksum, so a replaced portrait is a different URL', () => {
     expect(portraitPath('maya-rivers', 'abc123')).toBe('/creators/maya-rivers/portrait/abc123');
-    expect(portraitPath('maya-rivers', 'abc123')).not.toBe(
-      portraitPath('maya-rivers', 'def456'),
-    );
+    expect(portraitPath('maya-rivers', 'abc123')).not.toBe(portraitPath('maya-rivers', 'def456'));
   });
 });
 

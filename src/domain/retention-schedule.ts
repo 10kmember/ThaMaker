@@ -35,9 +35,9 @@ export const RETENTION_RULES: RetentionRule[] = [
     days: 2,
   },
   {
-    key: 'gazette_left',
+    key: 'subscriptions_left',
     description:
-      'Addresses that unsubscribed from the Gazette. Kept briefly to honour the unsubscribe, then removed entirely.',
+      'Addresses that unsubscribed from a PALMA list. Kept briefly to honour the unsubscribe, then removed entirely.',
     days: 90,
   },
   {

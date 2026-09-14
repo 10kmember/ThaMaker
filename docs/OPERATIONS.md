@@ -527,6 +527,79 @@ ineligible with a written reason, and the audit log records who did so and why.
 - Nominators hold no account and no profile — an address, a verification
   timestamp, and the nominations made from it.
 
+## The commercial rails
+
+PALMA's monetisation principle, in one line:
+
+> **Never sell the recognition. Sell the ecosystem around it.**
+
+A PALMA is worth something because it cannot be bought. Every commercial
+decision below is downstream of protecting that, which is why almost all of it
+ships switched off.
+
+### What PALMA will never sell
+
+Not "does not currently offer" — will not build. Paid nominations, paid
+finalist or winner placement, paid judging influence, nomination weighting,
+"priority consideration", boosted nominations, sponsor access to scores or
+deliberations, or any sponsor authority over an outcome.
+
+That is enforced rather than promised. `COMMERCIAL_PERMISSIONS` and
+`JUDGING_CONFIDENTIAL_PERMISSIONS` in `src/lib/auth/rbac.ts` are disjoint sets,
+a test asserts it, and a sponsor holds no permissions at all. A package whose
+benefits mention judging, scores or selection is refused at the point somebody
+types it — because the moment such a line exists in a package it will
+eventually be read aloud in a meeting.
+
+The residual risk is honest and worth naming: at PALMA's scale one
+administrator may run the season _and_ the business. What protects an outcome
+there is not role separation but the two-administrator rule on the most
+consequential decisions, plus the fact that commercial permissions grant no
+judging access of any kind. A dedicated commercial role is a small addition
+when PALMA hires for one.
+
+### Feature flags
+
+`src/domain/features.ts` declares the catalogue; the database holds the state.
+The split is deliberate — the set of things PALMA is capable of selling should
+be readable in one file and impossible to invent by inserting a row, while
+whether any of them is running today is an operator's decision rather than a
+deployment.
+
+Eleven rails, all off at launch: category sponsorship, partner programme, event
+ticketing, VIP and hospitality, winner kits, physical awards, award mark
+licensing, sponsored editorial, creator opportunities, partner offers, insights.
+
+Each carries a **prerequisite** shown beside its switch, because a feature
+turned on before the thing it needs is how a public page ends up advertising
+something that does not exist.
+
+**Season scoping.** A setting attached to an award year beats the global one,
+in both directions. Turning category sponsorship on for 2028 does not reach
+back and change what 2027 says happened — historical records stay accurate, and
+a season can say "not here" whatever PALMA sells today.
+
+**Turning something on requires a reason**; turning it off never does. The
+reason is recorded with the actor against the moment PALMA started selling the
+thing. Stopping is always allowed and never needs justifying.
+
+Everything resolves to **off** when unset, unreadable, or outside its window. A
+commercial feature failing closed is correct: a page that cannot read the
+settings shows the institution, not the shop.
+
+### Where it lives
+
+`/admin/business` — inventory, sponsors, packages, audience, and which rails
+are live. Inventory is _derived_ from what exists and what is switched on
+rather than typed into a page, so a placement reading `off` is not for sale at
+any price.
+
+`/admin/settings/features` — the switches. Super administrator only.
+
+Sponsor contacts, agreement state and internal notes never render on a public
+page, and a sponsor appears publicly only once the relationship is active _and_
+the agreement is signed. A conversation with a brand is not a partnership.
+
 ## What PALMA sends
 
 Every message goes through one dispatcher (`src/server/email/dispatch.ts`).
@@ -571,27 +644,60 @@ Filing an entry away is not deleting it, and an unread consequential entry
 cannot be filed at all. PALMA does not offer a way to destroy the notice that
 it did something to you.
 
-### The Gazette
+### The five lists
 
-`/gazette`, and in the footer of every page. Double opt-in without exception:
-single opt-in means anyone can sign up anybody, which is how a mailing list
-becomes a way to harass somebody with a newsletter. Nothing is sent to an
-address that has not opened the confirmation.
+| List                 | What                                                          | Gated by                |
+| -------------------- | ------------------------------------------------------------- | ----------------------- |
+| PALMA Awards         | Nominations opening, finalists, winners, the season in review | —                       |
+| PALMA Journal        | Interviews, profiles, creator-culture features                | —                       |
+| PALMA Events         | Ceremony announcements, ticket releases, invitations          | —                       |
+| PALMA Opportunities  | Curated creator opportunities                                 | `creator_opportunities` |
+| PALMA Partner Offers | Commercial messages from partners                             | `partner_offers`        |
 
-Leaving is one click from any issue — no sign-in, no confirmation screen, no
-survey. The unsubscribe link is an HMAC of the subscription id under the
-signing secret rather than a stored column: stable for the life of the
-subscription, unguessable without the secret, and no second column to keep in
-step with the first.
+Each is **separately opt-in and separately opt-out**. Leaving one leaves exactly
+one: somebody who no longer wants partner offers has not asked to stop being
+told who won. Nothing is pre-ticked, nothing is bundled into accepting the
+Terms, and registering, nominating, claiming a record or completing
+verification subscribes you to nothing.
 
-Issues go one message per subscriber rather than one BCC. A single message to
-hundreds of addresses leaks the whole list to every recipient.
+Double opt-in without exception for anyone not signed in. Single opt-in means
+anybody can sign up anybody, which is how a mailing list becomes a way to
+harass somebody with a newsletter. From inside an account PALMA skips the
+confirmation honestly — the address is already proven by signing in with it —
+and records that the consent came from the preference centre.
 
-Every issue is also **kept**, numbered, and published at `/gazette/<slug>`.
-Sent issues used to exist only in other people's inboxes, which meant a reader
-who joined today could not read the last one and PALMA had no record of what it
-had said. An institution that keeps a permanent record of everybody else's
-achievements can keep its own letters.
+PALMA stores what it has to be able to demonstrate: the list, the status, the
+consent version, when, and where from. Not that somebody ticked something once.
+
+**Partner offers are structurally separate.** A partner message can only go to
+that list, says so in its subject line, and declares itself above the first
+paragraph. The sender refuses outright to attach a sponsor to any other list —
+folding commercial content into an awards announcement is exactly what that
+list exists to prevent.
+
+Leaving is one click from any message — no sign-in, no confirmation screen, no
+survey. The link is an HMAC of the subscription id under the signing secret
+rather than a stored column: stable, unguessable, and no second column to keep
+in step with the first.
+
+Issues go one message per subscriber rather than one BCC — a single message to
+hundreds of addresses leaks the whole list to every recipient — and each is
+kept, numbered within its list, and published at `/lists/<list>/<slug>`.
+
+### The preference centre
+
+`/account/email-preferences`, in two halves, and the line between them is the
+point.
+
+Above it: mail PALMA owes you. A decision on your own record, a security
+notice, something you asked for thirty seconds ago. No switches, because an
+account that could mute the news that its honour was revoked is not being kept
+informed.
+
+Below it: the five lists, each showing what you chose, when, and from where —
+PALMA has to be able to demonstrate that, and you are entitled to see the same
+record. Plus one button that leaves everything, because making somebody hunt
+through five screens to withdraw is a dark pattern whatever it is called.
 
 ### Getting the provider to accept it
 

@@ -62,7 +62,7 @@ export async function suppress(input: {
  *
  * Two routes, and both are legitimate: an operator who has spoken to the
  * person, or the person themselves proving the address still works — which
- * confirming a Gazette subscription or a password reset already does.
+ * confirming a subscription or a password reset already does.
  */
 export async function clearSuppression(email: string, clearedById?: string | null): Promise<void> {
   await prisma.suppressedAddress.updateMany({

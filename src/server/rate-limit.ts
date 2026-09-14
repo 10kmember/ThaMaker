@@ -26,8 +26,8 @@ export const RATE_LIMITS = {
   passwordReset: { bucket: 'auth:password-reset', limit: 5, windowSeconds: 15 * 60 },
   /** Presenting a reset token. Guessing is the only reason to repeat. */
   passwordResetSubmit: { bucket: 'auth:password-reset-submit', limit: 10, windowSeconds: 15 * 60 },
-  /** Joining the Gazette. One address per person; the rest is a script. */
-  gazette: { bucket: 'gazette:subscribe', limit: 5, windowSeconds: 60 * 60 },
+  /** Joining a list. One address per person; the rest is a script. */
+  subscribe: { bucket: 'list:subscribe', limit: 5, windowSeconds: 60 * 60 },
   /** Objecting to an unclaimed record. Generous — this is somebody exercising
    *  a right, and being rate-limited out of it would be the wrong failure. */
   objection: { bucket: 'record:objection', limit: 20, windowSeconds: 60 * 60 },

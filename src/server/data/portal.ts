@@ -65,8 +65,8 @@ export type CreatorPortal = {
   };
   /** What is waiting in the Dossier, for the badge on the portal. */
   dossier: { unread: number; important: number };
-  /** Whether this account's address is on the Gazette. */
-  gazette: boolean;
+  /** Which PALMA lists this account's address is confirmed on. */
+  subscriptions: string[];
   /** Where the creator's portrait has got to. */
   portrait: {
     status: 'none' | 'pending' | 'approved' | 'rejected';
@@ -102,11 +102,11 @@ export async function getCreatorPortal(userId: string): Promise<CreatorPortal | 
 
   if (!user) return null;
 
-  const [dossier, gazette] = await Promise.all([
+  const [dossier, subscriptions] = await Promise.all([
     getDossierBadge(userId),
-    db.gazetteSubscription.findUnique({
-      where: { email: user.email },
-      select: { status: true },
+    db.emailSubscription.findMany({
+      where: { email: user.email, status: 'confirmed' },
+      select: { type: true },
     }),
   ]);
 
@@ -167,7 +167,7 @@ export async function getCreatorPortal(userId: string): Promise<CreatorPortal | 
       journalDigest: user.notificationPrefs?.journalDigest ?? false,
     },
     dossier,
-    gazette: gazette?.status === 'confirmed',
+    subscriptions: subscriptions.map((row) => row.type),
     portrait: {
       status: (user.creator?.portrait?.status ?? 'none') as
         'none' | 'pending' | 'approved' | 'rejected',

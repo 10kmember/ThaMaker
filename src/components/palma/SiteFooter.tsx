@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { PalmMark } from '@/components/brand/PalmMark';
 import { Container } from './layout';
-import { GazetteForm } from './GazetteForm';
+import { SubscribeForm } from './SubscribeForm';
 import { FOOTER_NAV, LEGAL_NAV } from '@/lib/navigation';
 
 export function SiteFooter() {
@@ -42,21 +42,24 @@ export function SiteFooter() {
           </div>
         </div>
 
-        {/* The Gazette sits above the register rather than in a nav column:
-            it is the one thing in the footer a reader does rather than reads. */}
+        {/* The one thing in the footer a reader does rather than reads. */}
         <div className="border-ivory/12 mt-16 flex flex-col gap-8 border-t pt-10 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-90">
-            <h2 className="palma-label text-champagne">The Gazette</h2>
+            <h2 className="palma-label text-champagne">PALMA Awards</h2>
             <p className="text-ivory/55 mt-4 text-sm leading-relaxed">
-              PALMA’s letter on the season — when nominations open, when the panel confers, and what
-              the institution is thinking while it does.
+              When nominations open, when the panel confers, and the season in review. One of five
+              separate lists —{' '}
+              <Link href="/account/email-preferences" className="palma-quiet-link hover:text-ivory">
+                choose which reach you
+              </Link>
+              .
             </p>
           </div>
           {/* A light plate on the dark footer. The form's own controls are
               designed for paper, and a panel is more honest than restyling
               every field for one placement. */}
           <div className="bg-ivory-bright border-stone-deep text-ink w-full max-w-110 border p-6">
-            <GazetteForm source="footer" compact />
+            <SubscribeForm type="awards" source="footer" compact label="Subscribe" />
           </div>
         </div>
 

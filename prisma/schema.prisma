@@ -221,12 +221,6 @@ enum EmailDeliveryStatus {
   suppressed
 }
 
-enum GazetteSubscriptionStatus {
-  pending
-  confirmed
-  unsubscribed
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Identity & access
 // ─────────────────────────────────────────────────────────────────────────────
@@ -262,6 +256,7 @@ model User {
   passwordResets           PasswordResetToken[]
   emailChanges             EmailChangeRequest[]
   emailDeliveries          EmailDelivery[]
+  emailSubscriptions       EmailSubscription[]
 
   @@index([role])
 }
@@ -405,11 +400,13 @@ model AwardYear {
   createdAt          DateTime    @default(now())
   updatedAt          DateTime    @updatedAt
 
-  categories   Category[]
-  candidacies  Candidacy[]
-  honours      Honour[]
-  judges       JudgePanelMembership[]
-  sponsorships Sponsorship[]
+  categories      Category[]
+  candidacies     Candidacy[]
+  honours         Honour[]
+  judges          JudgePanelMembership[]
+  sponsorships    Sponsorship[]
+  featureSettings FeatureSetting[]
+  events          PalmaEvent[]
 
   @@index([stage])
 }
@@ -729,6 +726,8 @@ model Achievement {
   honour              Honour               @relation(fields: [honourId], references: [id], onDelete: Cascade)
   creator             Creator              @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   verificationRecords VerificationRecord[]
+  physicalItem        AwardPhysicalItem?
+  markLicences        AwardMarkLicence[]
 
   @@index([creatorId])
   @@index([year])
@@ -755,36 +754,74 @@ model VerificationRecord {
 // Sponsors — deliberately isolated from judging
 // ─────────────────────────────────────────────────────────────────────────────
 
+/// A commercial partner.
+///
+/// Everything below the public fields is internal and never rendered on a
+/// public page: contact names, agreement state and notes are PALMA's side of a
+/// business relationship, not part of the record.
 model Sponsor {
-  id         String   @id @default(cuid())
-  slug       String   @unique
+  id         String  @id @default(cuid())
+  slug       String  @unique
+  /// Shown publicly.
   name       String
-  summary    String?  @db.Text
+  summary    String? @db.Text
   websiteUrl String?
   logoUrl    String?
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  isActive   Boolean @default(true)
 
-  sponsorships Sponsorship[]
+  /// Internal, commercial. Never public.
+  legalName       String?
+  tradingName     String?
+  status          SponsorStatus   @default(prospect)
+  relationship    String?
+  contactName     String?
+  contactEmail    String?
+  contactPhone    String?
+  internalNotes   String?         @db.Text
+  agreementStatus AgreementStatus @default(none)
+  startsAt        DateTime?
+  endsAt          DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sponsorships  Sponsorship[]
+  campaigns     Campaign[]
+  opportunities Opportunity[]
+
+  @@index([status])
 }
 
+/// One sponsor's association with a season, and optionally one category.
+///
+/// A category sponsorship buys the association and nothing else. It cannot
+/// touch nomination eligibility, weighting, judging, assignment, scores or
+/// selection — see OUTCOME_PERMISSIONS and the firewall tests.
 model Sponsorship {
   id          String      @id @default(cuid())
   sponsorId   String
   awardYearId String
   categoryId  String?
+  packageId   String?
   tier        SponsorTier @default(supporting)
   billing     String?
   startsAt    DateTime?
   endsAt      DateTime?
-  createdAt   DateTime    @default(now())
 
-  sponsor   Sponsor   @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
-  awardYear AwardYear @relation(fields: [awardYearId], references: [id], onDelete: Cascade)
-  category  Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  /// An association is not live until an administrator approves it.
+  isApproved   Boolean   @default(false)
+  approvedById String?
+  approvedAt   DateTime?
+
+  createdAt DateTime @default(now())
+
+  sponsor   Sponsor             @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
+  awardYear AwardYear           @relation(fields: [awardYearId], references: [id], onDelete: Cascade)
+  category  Category?           @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  package   SponsorshipPackage? @relation(fields: [packageId], references: [id], onDelete: SetNull)
 
   @@unique([sponsorId, awardYearId, categoryId])
+  @@index([isApproved])
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -974,6 +1011,13 @@ model Article {
 
   category ArticleCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   author   User?            @relation("ArticleAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+
+  /// Set only on partner content, which must say so on its face. Sponsors
+  /// never publish: an editor approves, and the association is recorded.
+  sponsorId           String?
+  sponsoredLabel      String?
+  sponsorApprovedAt   DateTime?
+  sponsorApprovedById String?
 
   @@index([status, publishedAt])
 }
@@ -1181,43 +1225,89 @@ model EmailChangeRequest {
   @@index([userId])
 }
 
-/// The Gazette — PALMA's mailing list, open to anyone.
+/// One person's subscription to one PALMA list.
 ///
-/// Double opt-in, keyed by address rather than by account, because most of the
-/// people who want the season are not creators and never will be.
-model GazetteSubscription {
-  id     String                    @id @default(cuid())
-  email  String                    @unique
-  status GazetteSubscriptionStatus @default(pending)
+/// Keyed by address rather than by account, because most of the people who
+/// want to follow a season are not creators and never will be — and because
+/// one address must have one answer per list, whether or not it also has an
+/// account. Where the address does belong to an account, `userId` links them
+/// so the preference centre and the public footer are the same subscription.
+///
+/// Every list is independently opt-in, and leaving one never touches another:
+/// somebody who no longer wants partner offers has not asked to stop being
+/// told who won.
+model EmailSubscription {
+  id     String        @id @default(cuid())
+  email  String
+  type   EmailListType
+  userId String?
+
+  status SubscriptionStatus @default(pending)
 
   /// Confirmation and unsubscribe both ride this one hash.
   tokenHash String @unique
-  /// Where the subscription came from — the footer, the Dossier, an import.
+  /// Where it came from — the footer, the preference centre, an event.
   source    String @default("site")
+
+  /// What PALMA has to be able to demonstrate: what was agreed, and when.
+  consentVersion String?
+  consentAt      DateTime?
+  /// Coarse origin of the consent. Never a raw address.
+  consentHash    String?
 
   confirmedAt    DateTime?
   unsubscribedAt DateTime?
   createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  @@index([status])
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([email, type])
+  @@index([type, status])
+  @@index([userId])
 }
 
-/// An issue of the Gazette, kept.
+enum EmailListType {
+  /// Nominations opening, finalists, winners, the season in review.
+  awards
+  /// Editorial: interviews, profiles, creator-culture features.
+  journal
+  /// Ticket releases, invitations, event information.
+  events
+  /// Curated creator opportunities.
+  opportunities
+  /// Commercial messages from PALMA partners, labelled as such.
+  partner_offers
+}
+
+enum SubscriptionStatus {
+  pending
+  confirmed
+  unsubscribed
+}
+
+/// An issue sent to one of PALMA's lists, kept.
 ///
-/// Sent issues used to exist only in other people's inboxes, so a reader who
-/// joined today could not read the last one and PALMA had no record of what it
-/// had said. An institution that keeps a permanent record of everybody else's
-/// achievements can keep its own letters.
-model GazetteIssue {
-  id         String  @id @default(cuid())
-  /// Sequential, human-readable: "No. 4".
-  number     Int     @unique
-  slug       String  @unique
+/// Sent mail used to exist only in other people's inboxes, so a reader who
+/// joined today could not read the last one and PALMA had no record of what
+/// it had said. An institution that keeps a permanent record of everybody
+/// else's achievements can keep its own letters.
+model Dispatch {
+  id     String        @id @default(cuid())
+  /// Which list it went to. Targeting is by list, always.
+  type   EmailListType @default(journal)
+  /// Sequential within its list: "No. 4".
+  number Int
+  slug   String        @unique
+
   subject    String
   standfirst String  @db.Text
   body       String  @db.Text
   linkLabel  String?
   linkUrl    String?
+
+  /// Set on partner content, which must say so on its face.
+  sponsorId String?
 
   /// How many confirmed subscribers it went to, and how many did not take it.
   sentCount   Int @default(0)
@@ -1226,6 +1316,7 @@ model GazetteIssue {
   sentById String?
   sentAt   DateTime @default(now())
 
+  @@unique([type, number])
   @@index([sentAt])
 }
 
@@ -1320,6 +1411,307 @@ enum RecordObjectionStatus {
   /// exemption applies. Always explained, always appealable.
   refused
   /// Withdrawn by the person who raised it.
+  withdrawn
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Commercial rails
+//
+// PALMA's monetisation principle, in one line: never sell the recognition,
+// sell the ecosystem around it. Everything in this section is arranged so that
+// a commercial relationship can never reach a judging decision — the firewall
+// is enforced in `src/lib/auth/rbac.ts` and asserted by tests, not merely
+// hidden in the interface.
+//
+// Almost all of it ships switched off. The rails are laid now so that turning
+// a train on later is a configuration change rather than a rewrite.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/// The state of one commercial capability, globally or for one season.
+///
+/// The *catalogue* of features lives in code (`src/domain/features.ts`) so that
+/// the set is typed, documented and impossible to invent by inserting a row.
+/// This table holds only the state, and a row scoped to an award year beats the
+/// global one — turning category sponsorship on for 2028 must not reach back
+/// and change what 2027 says happened.
+model FeatureSetting {
+  id  String @id @default(cuid())
+  key String
+
+  /// Null means the global default for this feature.
+  awardYearId String?
+
+  enabled Boolean @default(false)
+  /// Feature-specific values: prices, limits, copy. Shape declared in code.
+  config  Json?
+
+  /// Optional window. Outside it the feature reads as off however `enabled` sits.
+  launchAt DateTime?
+  endAt    DateTime?
+
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+
+  awardYear AwardYear? @relation(fields: [awardYearId], references: [id], onDelete: Cascade)
+
+  @@unique([key, awardYearId])
+  @@index([key])
+}
+
+/// What PALMA sells, at prices an administrator sets rather than a developer.
+model SponsorshipPackage {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  name        String
+  description String? @db.Text
+
+  /// Minor units — pence — because money in a float is a bug waiting.
+  priceMinor Int     @default(0)
+  currency   String  @default("GBP")
+  /// "One season", "One event", "Twelve months".
+  duration   String?
+
+  /// What the buyer receives. Visibility, association, hospitality — never
+  /// anything that touches a nomination, a score or an outcome.
+  benefits   String[] @default([])
+  /// Where it may appear: category, event, journal, newsletter.
+  placements String[] @default([])
+
+  /// Null means unlimited. Used by the inventory view.
+  maxQuantity Int?
+  isAvailable Boolean @default(false)
+  isPublic    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sponsorships Sponsorship[]
+
+  @@index([isAvailable])
+}
+
+/// A commercial campaign: a sponsor's activity within a season.
+model Campaign {
+  id        String  @id @default(cuid())
+  sponsorId String?
+  name      String
+  reference String  @unique
+
+  status   CampaignStatus @default(draft)
+  startsAt DateTime?
+  endsAt   DateTime?
+  notes    String?        @db.Text
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sponsor Sponsor? @relation(fields: [sponsorId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+}
+
+enum CampaignStatus {
+  draft
+  scheduled
+  live
+  completed
+  cancelled
+}
+
+enum SponsorStatus {
+  prospect
+  active
+  paused
+  expired
+  terminated
+}
+
+enum AgreementStatus {
+  none
+  drafted
+  sent
+  signed
+  expired
+}
+
+/// An event PALMA runs. Data model only until EVENT_TICKETING is switched on.
+model PalmaEvent {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  name        String
+  awardYearId String?
+
+  venue       String?
+  /// Never more precise than PALMA needs to publish.
+  city        String?
+  startsAt    DateTime?
+  endsAt      DateTime?
+  description String?   @db.Text
+
+  status      EventStatus @default(planned)
+  capacity    Int?
+  isPublished Boolean     @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  awardYear   AwardYear?   @relation(fields: [awardYearId], references: [id], onDelete: SetNull)
+  ticketTypes TicketType[]
+
+  @@index([status])
+}
+
+enum EventStatus {
+  planned
+  announced
+  on_sale
+  sold_out
+  held
+  cancelled
+}
+
+/// A kind of admission. No orders, no payments, no attendees until PALMA sells.
+model TicketType {
+  id      String @id @default(cuid())
+  eventId String
+
+  name        String
+  description String?    @db.Text
+  priceMinor  Int        @default(0)
+  currency    String     @default("GBP")
+  capacity    Int?
+  /// VIP, table, hospitality — shapes what the ticket admits to.
+  kind        TicketKind @default(general)
+
+  isAvailable Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event PalmaEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+}
+
+enum TicketKind {
+  general
+  premium
+  vip
+  table
+  hospitality
+  industry
+}
+
+/// A physical trophy, tracked against an achievement that already exists.
+///
+/// Deliberately downstream of the award: a row here records the manufacture of
+/// an object commemorating a decision, and can never be the decision.
+model AwardPhysicalItem {
+  id            String @id @default(cuid())
+  achievementId String @unique
+
+  itemType          String             @default("trophy")
+  status            PhysicalItemStatus @default(not_ordered)
+  productionStatus  String?
+  shippingStatus    String?
+  trackingReference String?
+  notes             String?            @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+}
+
+enum PhysicalItemStatus {
+  not_ordered
+  ordered
+  in_production
+  ready
+  shipped
+  delivered
+  replacement
+  cancelled
+}
+
+/// Permission to use the PALMA mark, granted against an achievement.
+///
+/// This is what eventually stops somebody putting a fabricated "PALMA Winner"
+/// badge on their site: the licence points at a real achievement, and the
+/// verification record is still the canonical proof.
+model AwardMarkLicence {
+  id            String @id @default(cuid())
+  achievementId String
+
+  status        LicenceStatus @default(granted)
+  permittedUses String[]      @default([])
+  startsAt      DateTime?
+  endsAt        DateTime?
+  revokedAt     DateTime?
+  revokedReason String?       @db.Text
+
+  grantedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@index([achievementId])
+  @@index([status])
+}
+
+enum LicenceStatus {
+  granted
+  suspended
+  revoked
+  expired
+}
+
+/// Something PALMA passes to creators. Curated, never an open marketplace.
+model Opportunity {
+  id      String  @id @default(cuid())
+  slug    String  @unique
+  title   String
+  summary String  @db.Text
+  body    String? @db.Text
+
+  kind      OpportunityKind @default(collaboration)
+  sponsorId String?
+
+  /// Where a creator goes to take it up. PALMA brokers nothing itself.
+  externalUrl String?
+  closesAt    DateTime?
+
+  status      OpportunityStatus @default(draft)
+  publishedAt DateTime?
+
+  createdById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sponsor Sponsor? @relation(fields: [sponsorId], references: [id], onDelete: SetNull)
+
+  @@index([status, publishedAt])
+}
+
+enum OpportunityKind {
+  collaboration
+  brand
+  application
+  programme
+  event
+  professional
+  partnership
+}
+
+enum OpportunityStatus {
+  draft
+  published
+  closed
   withdrawn
 }
 

@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { Stat } from '@/components/ui/stat';
 import { Table, TBody, THead } from '@/components/ui/table';
 import { EmptyState, Notice } from '@/components/ui/feedback';
-import { GazetteIssueForm } from '@/components/operations/GazetteIssueForm';
+import { DispatchForm } from '@/components/operations/DispatchForm';
 import { SuppressionList } from '@/components/operations/SuppressionList';
 import { buildMetadata } from '@/lib/seo';
 import { requirePermission } from '@/lib/auth/guards';
@@ -10,6 +10,7 @@ import { can } from '@/lib/auth/rbac';
 import { getCommunicationsOverview } from '@/server/data/communications';
 import { formatShortDate } from '@/lib/format';
 import { titleCase } from '@/lib/utils';
+import { EMAIL_LIST_VALUES } from '@/domain/email-lists';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +34,7 @@ const STATUS_TONE: Record<string, 'olive' | 'muted' | 'champagne' | 'default'> =
 export default async function CommunicationsPage() {
   const session = await requirePermission('admin:view_communications', '/admin/communications');
   const overview = await getCommunicationsOverview();
-  const maySend = can(session.user.role, 'admin:send_gazette');
+  const maySend = can(session.user.role, 'communications:send_list');
 
   return (
     <>
@@ -179,26 +180,62 @@ export default async function CommunicationsPage() {
       </section>
 
       <section className="mt-14">
-        <h2 className="palma-label text-taupe-deep mb-2">The Gazette</h2>
-        <div className="border-stone-deep mt-6 grid gap-8 border-y py-8 sm:grid-cols-4">
-          <Stat label="Confirmed" value={overview.gazette.confirmed} />
-          <Stat label="Awaiting confirmation" value={overview.gazette.pending} />
-          <Stat label="Left" value={overview.gazette.unsubscribed} />
-          <Stat
-            label="Last issue"
-            value={
-              overview.gazette.lastIssueAt ? formatShortDate(overview.gazette.lastIssueAt) : '—'
-            }
-          />
-        </div>
+        <h2 className="palma-label text-taupe-deep mb-2">The lists</h2>
+        <p className="text-taupe mb-6 max-w-160 text-xs leading-relaxed">
+          Five lists, each separately opt-in and separately opt-out. A campaign is targeted at one
+          of them and only one: there is no segment builder, because the moment an interface can
+          assemble an audience out of anything but consent, it will eventually assemble one that
+          includes somebody who opted out.
+        </p>
+
+        <Table>
+          <THead>
+            <tr>
+              <th scope="col">List</th>
+              <th scope="col">Subscribers</th>
+              <th scope="col">Awaiting</th>
+              <th scope="col">Left</th>
+              <th scope="col">Last sent</th>
+              <th scope="col">State</th>
+            </tr>
+          </THead>
+          <TBody>
+            {overview.lists.map((row) => {
+              const meta = EMAIL_LIST_VALUES.find((entry) => entry.key === row.key);
+              const available = overview.listAvailability[row.key] ?? true;
+              return (
+                <tr key={row.key}>
+                  <td>
+                    <span className="font-display text-base">{meta?.name ?? row.key}</span>
+                    <span className="text-taupe mt-1 block max-w-100 text-xs leading-relaxed">
+                      {meta?.description}
+                    </span>
+                  </td>
+                  <td className="text-taupe-deep">{row.confirmed}</td>
+                  <td className="text-taupe-deep">{row.pending}</td>
+                  <td className="text-taupe-deep">{row.unsubscribed}</td>
+                  <td className="text-taupe-deep whitespace-nowrap">
+                    {row.lastIssueAt ? formatShortDate(row.lastIssueAt) : '—'}
+                  </td>
+                  <td>
+                    <Badge variant={available ? 'olive' : 'muted'}>
+                      {available ? 'Open' : 'Switched off'}
+                    </Badge>
+                  </td>
+                </tr>
+              );
+            })}
+          </TBody>
+        </Table>
 
         {maySend ? (
           <div className="mt-10 max-w-160">
-            <GazetteIssueForm recipients={overview.gazette.confirmed} />
+            <h3 className="palma-label text-taupe-deep mb-5">Write to a list</h3>
+            <DispatchForm lists={overview.listsForSending} sponsors={overview.activeSponsors} />
           </div>
         ) : (
           <p className="text-taupe mt-6 text-sm">
-            Composing an issue is a super administrator&rsquo;s action.
+            Writing to a list is a super administrator&rsquo;s action.
           </p>
         )}
       </section>

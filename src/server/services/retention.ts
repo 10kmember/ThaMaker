@@ -85,11 +85,11 @@ export async function runRetentionSweep(actor?: AuditActor): Promise<RetentionRe
     })
   ).count;
 
-  removed.gazette_left = (
-    await prisma.gazetteSubscription.deleteMany({
+  removed.subscriptions_left = (
+    await prisma.emailSubscription.deleteMany({
       where: {
         status: 'unsubscribed',
-        unsubscribedAt: { lt: cutoff(ruleDays('gazette_left')) },
+        unsubscribedAt: { lt: cutoff(ruleDays('subscriptions_left')) },
       },
     })
   ).count;

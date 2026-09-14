@@ -22,7 +22,8 @@ export type PreferenceGate =
   | 'nominationUpdates'
   | 'honourAnnouncements'
   | 'journalDigest'
-  | 'gazette';
+  /** Gated by the subscription itself rather than by a preference row. */
+  | 'subscription';
 
 export type TemplateMeta = {
   key: string;
@@ -192,29 +193,30 @@ export const TEMPLATES = {
     dossier: false,
   },
 
-  /* ── the Gazette ──────────────────────────────────────────────────────── */
-  gazette_confirm: {
-    key: 'gazette_confirm',
-    name: 'Gazette — confirm subscription',
+  /* ── the lists ────────────────────────────────────────────────────────── */
+  list_confirm: {
+    key: 'list_confirm',
+    name: 'List — confirm subscription',
     mailbox: 'laurels',
     purpose: 'Double opt-in. Nothing is sent to an address that has not opened this.',
     gate: 'always',
     dossier: false,
   },
-  gazette_welcome: {
-    key: 'gazette_welcome',
-    name: 'Gazette — welcome',
+  list_welcome: {
+    key: 'list_welcome',
+    name: 'List — welcome',
     mailbox: 'laurels',
-    purpose: 'Confirms the subscription and says what the Gazette is and how often it comes.',
+    purpose: 'Confirms a subscription and says what the list is, how often, and how to leave.',
     gate: 'always',
     dossier: false,
   },
-  gazette_issue: {
-    key: 'gazette_issue',
-    name: 'Gazette — issue',
+  list_issue: {
+    key: 'list_issue',
+    name: 'List — issue',
     mailbox: 'laurels',
-    purpose: 'An issue of the Gazette, sent to confirmed subscribers only.',
-    gate: 'gazette',
+    purpose:
+      'An issue sent to confirmed subscribers of one list. Targeting is by list, always — never a merged audience.',
+    gate: 'subscription',
     dossier: false,
   },
 } as const satisfies Record<string, TemplateMeta>;

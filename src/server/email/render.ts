@@ -165,7 +165,7 @@ export function shell(input: ShellInput): string {
   const manage =
     input.footnote ??
     (input.unsubscribeUrl
-      ? `You are receiving the Gazette because someone confirmed this address. <a href="${escapeHtml(input.unsubscribeUrl)}" style="color:${PALETTE.olive};">Unsubscribe</a> and it stops at once.`
+      ? `You are receiving this because someone confirmed this address for a PALMA list. <a href="${escapeHtml(input.unsubscribeUrl)}" style="color:${PALETTE.olive};">Unsubscribe</a> and that list stops at once — every other PALMA subscription is separate.`
       : `This message is part of your PALMA record and is kept in your Dossier at <a href="${siteUrl}/dossier" style="color:${PALETTE.olive};">palmaawards.com</a>.`);
 
   return `<!doctype html>

@@ -62,7 +62,7 @@ describe('what a person may switch off', () => {
   it('lets the announcements be switched off', () => {
     expect(isSuppressible('honour_conferred')).toBe(true);
     expect(isSuppressible('candidacy_update')).toBe(true);
-    expect(isSuppressible('gazette_issue')).toBe(true);
+    expect(isSuppressible('list_issue')).toBe(true);
   });
 
   it('sends security mail from the security mailbox, always', () => {

@@ -65,8 +65,8 @@ export function SuppressionList({
       <p className="text-taupe text-xs leading-relaxed">
         Suppression governs one thing: whether an envelope is worth posting. It blocks no account,
         refuses no claim and touches no record. An address clears itself the moment its holder
-        proves it works — by spending a reset link, confirming a Gazette subscription, or confirming
-        a change of address.
+        proves it works — by spending a reset link, confirming a subscription, or confirming a
+        change of address.
       </p>
     </div>
   );
