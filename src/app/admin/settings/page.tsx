@@ -212,6 +212,12 @@ export default async function SettingsPage() {
           note="Who PALMA is, in law and on the wire."
           rows={[
             { label: 'Registered name', value: ENTITY.name, source: 'code' },
+            { label: 'Parent company', value: ENTITY.parent.name, source: 'code' },
+            {
+              label: 'Parent company number',
+              value: ENTITY.parent.companyNumber ?? 'Not yet supplied',
+              source: 'code',
+            },
             { label: 'Jurisdiction', value: ENTITY.jurisdiction, source: 'code' },
             { label: 'Public site', value: siteUrl, source: 'env' },
             { label: 'Environment', value: env.NODE_ENV, source: 'env' },

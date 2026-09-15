@@ -3,6 +3,7 @@ import { Wordmark } from '@/components/brand/Wordmark';
 import { PalmMark } from '@/components/brand/PalmMark';
 import { Container } from './layout';
 import { FOOTER_NAV, LEGAL_NAV, type FooterBranch } from '@/lib/navigation';
+import { ENTITY } from '@/lib/legal';
 
 /**
  * The footer as a tree that opens rather than a list that runs on.
@@ -133,7 +134,10 @@ export function SiteFooter() {
         </nav>
 
         <div className="border-ivory/12 text-ivory/45 mt-7 flex flex-col gap-4 border-t pt-7 text-xs sm:flex-row sm:items-center sm:justify-between">
-          <p>© {year} PALMA. The Creator Honours. Palma Awards Ltd, United Kingdom.</p>
+          <p>
+            © {year} PALMA. The Creator Honours. {ENTITY.name}, United Kingdom. A{' '}
+            {ENTITY.parent.name} company.
+          </p>
           <p className="text-ivory/35">
             Nominations are free. Honours cannot be bought. Scores are never published.
           </p>

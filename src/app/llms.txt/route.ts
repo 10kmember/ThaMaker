@@ -1,4 +1,5 @@
 import { siteUrl } from '@/lib/env';
+import { ENTITY } from '@/lib/legal';
 import {
   getCurrentSeason,
   listArticles,
@@ -36,6 +37,10 @@ export async function GET() {
 PALMA is not a content platform, a social network, a subscription service or a
 marketplace. It hosts no creator work and brokers no services. Its public pages
 are suitable for every audience.
+
+Operated by ${ENTITY.name} (${ENTITY.jurisdiction}), a subsidiary of
+${ENTITY.parent.name}. Company number: ${ENTITY.companyNumber ?? 'not yet registered'}.
+Parent company number: ${ENTITY.parent.companyNumber ?? 'not yet supplied'}.
 
 ## How PALMA works
 

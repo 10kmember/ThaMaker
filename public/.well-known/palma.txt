@@ -5,6 +5,8 @@
 
 Name: PALMA — The Creator Honours
 Operator: Palma Awards Ltd
+Parent: One Cō Ltd
+Parent-company-number: not yet supplied
 Jurisdiction: England and Wales
 Canonical: https://palmaawards.com/.well-known/palma.txt
 Site: https://palmaawards.com

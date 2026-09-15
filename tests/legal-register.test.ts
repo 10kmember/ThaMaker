@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { CONTACTS, LEGAL_DOCUMENTS, legalDocument } from '@/lib/legal';
+import { CONTACTS, ENTITY, LEGAL_DOCUMENTS, legalDocument } from '@/lib/legal';
 import { LEGAL_NAV } from '@/lib/navigation';
 
 /**
@@ -66,5 +66,35 @@ describe('the legal register', () => {
     for (const address of Object.values(CONTACTS)) {
       expect(address.endsWith('@palmaawards.com'), address).toBe(true);
     }
+  });
+});
+
+/**
+ * The parent company.
+ *
+ * PALMA is a One Cō Ltd company, and that fact appears in the footer, the
+ * legal register, the settings screen, `llms.txt` and `.well-known/palma.txt`.
+ * Every one of those reads `ENTITY.parent`, so these assertions are about the
+ * one place the name is written rather than the five places it is shown.
+ */
+describe('the parent company', () => {
+  it('is spelled with the macron', () => {
+    // "One Co Ltd" is a different company name. The macron is part of it, and
+    // it is the kind of character that gets quietly normalised by a keyboard,
+    // a spellchecker or somebody retyping it from a screenshot.
+    expect(ENTITY.parent.name).toBe('One Cō Ltd');
+    expect(ENTITY.parent.name).toContain('ō');
+  });
+
+  it('admits the registration number is outstanding rather than omitting it', () => {
+    // Until a number is supplied this is null, and the surfaces print "not yet
+    // supplied". An ownership claim with a blank where its registration should
+    // be is worse than one that says the registration is outstanding.
+    expect(ENTITY.parent.companyNumber).toBeNull();
+  });
+
+  it('is not confused with the operating company', () => {
+    expect(ENTITY.parent.name).not.toBe(ENTITY.name);
+    expect(ENTITY.name).toBe('Palma Awards Ltd');
   });
 });

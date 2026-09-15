@@ -11,6 +11,7 @@
 /* TEAM */
 
    Institution: PALMA (Palma Awards Ltd)
+   Parent: One Cō Ltd
    Location: United Kingdom
    Contact: concierge [at] palmaawards.com
 

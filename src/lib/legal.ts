@@ -163,4 +163,21 @@ export const ENTITY = {
   companyNumber: null as string | null,
   registeredOffice: null as string | null,
   icoRegistration: null as string | null,
+  /**
+   * The parent.
+   *
+   * Named here rather than in the pages that mention it, because who owns
+   * PALMA is a fact about the institution and appears in the footer, the legal
+   * register, the machine-readable files and the metadata. One spelling, in
+   * one place, with the macron on the o: One Cō Ltd, not One Co Ltd.
+   *
+   * The number is null until it is supplied, and every surface that shows it
+   * says "not yet supplied" rather than quietly omitting the row. An ownership
+   * claim with a blank space where its registration should be is worse than one
+   * that admits the registration is outstanding.
+   */
+  parent: {
+    name: 'One Cō Ltd',
+    companyNumber: null as string | null,
+  },
 } as const;

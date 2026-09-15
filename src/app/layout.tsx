@@ -10,6 +10,7 @@ import { THEME_BOOTSTRAP } from '@/lib/theme';
 import { JsonLd, organisationJsonLd, SITE_DESCRIPTOR, SITE_NAME } from '@/lib/seo';
 import { siteUrl } from '@/lib/env';
 import './globals.css';
+import { ENTITY } from '@/lib/legal';
 
 const display = Fraunces({
   subsets: ['latin'],
@@ -50,7 +51,7 @@ export const metadata: Metadata = {
   keywords: ['PALMA', 'Palma Awards', 'creator awards', 'The Creator Honours', 'creator industry'],
   authors: [{ name: SITE_NAME }],
   creator: SITE_NAME,
-  publisher: 'Palma Awards Ltd',
+  publisher: `${ENTITY.name}, a ${ENTITY.parent.name} company`,
   formatDetection: { telephone: false },
   openGraph: {
     type: 'website',

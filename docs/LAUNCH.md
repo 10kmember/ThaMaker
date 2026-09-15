@@ -104,6 +104,14 @@ nothing about PALMA waits on it beyond the fifteen minutes it takes.
 A data controller also has to be identifiable, which is what the registered
 name, office and company number on the register are for.
 
+**Outstanding, and named as outstanding wherever it appears.** PALMA is a
+**One Cō Ltd** company. The parent's registration number has not been supplied
+yet, so `ENTITY.parent.companyNumber` is `null` and every surface that shows it
+prints "not yet supplied" rather than dropping the row. Fill that one constant
+in `src/lib/legal.ts` and the legal register, the settings screen, `llms.txt`
+and `.well-known/palma.txt` all carry it, because they read it rather than
+restate it.
+
 **The legal register itself is settled.** The terms and the privacy notice are
 the solicitor-drafted documents, in force as written, and the rest of the
 register is consistent with them. Superseded versions stay at their own address

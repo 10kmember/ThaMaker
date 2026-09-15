@@ -88,10 +88,20 @@ export default function LegalIndexPage() {
                         {ENTITY.companyNumber ?? 'Not yet registered'}
                       </dd>
                     </div>
-                    <div className="flex justify-between gap-6">
+                    <div className="border-stone-deep/60 flex justify-between gap-6 border-b pb-3">
                       <dt className="text-taupe-deep">ICO registration</dt>
                       <dd className="text-taupe text-right">
                         {ENTITY.icoRegistration ?? 'Application pending'}
+                      </dd>
+                    </div>
+                    <div className="border-stone-deep/60 flex justify-between gap-6 border-b pb-3">
+                      <dt className="text-taupe-deep">Parent company</dt>
+                      <dd className="text-right">{ENTITY.parent.name}</dd>
+                    </div>
+                    <div className="flex justify-between gap-6">
+                      <dt className="text-taupe-deep">Parent company number</dt>
+                      <dd className="text-taupe text-right">
+                        {ENTITY.parent.companyNumber ?? 'Not yet supplied'}
                       </dd>
                     </div>
                   </dl>
