@@ -11,7 +11,8 @@ import { scoreCorrectionSchema } from '@/lib/validation/judging';
 import { recordAudit } from '@/server/audit';
 import { sendCandidacyUpdate, sendPanelAssignment } from '@/server/email/messages';
 import { requireDb } from '@/server/db';
-import { conferHonour, revokeHonour } from '@/server/services/honours';
+import { conferHonour, conferThePalma, revokeHonour } from '@/server/services/honours';
+import { nameObjections } from '@/domain/the-palma';
 
 export type AdminState = { status: 'idle' | 'error' | 'success'; message?: string };
 
@@ -528,5 +529,65 @@ export async function advanceSeason(
   return {
     status: 'success',
     message: `${season.title} advanced to ${target.replace(/_/g, ' ')}.`,
+  };
+}
+
+/**
+ * Confer THE PALMA.
+ *
+ * Its own action, its own permission and its own screen. THE PALMA is not
+ * selected from a shortlist and has no proposal to accept: an administrator
+ * names a creator from the whole record and writes the citation, and the
+ * domain decides whether that is allowed.
+ *
+ * `admin:confer_the_palma` is held by super administrators alone. Every other
+ * outcome permission is held by administrators too; this one is not, because
+ * there is one a year and no way to un-confer it that leaves the record clean.
+ */
+export async function conferThePalmaAction(
+  _previous: AdminState,
+  formData: FormData,
+): Promise<AdminState> {
+  await assertSameOrigin();
+
+  let session;
+  try {
+    session = await authorise('admin:confer_the_palma');
+  } catch {
+    return { status: 'error', message: 'You are not authorised to confer THE PALMA.' };
+  }
+
+  const awardYearId = String(formData.get('awardYearId') ?? '').trim();
+  const creatorId = String(formData.get('creatorId') ?? '').trim();
+  const citation = String(formData.get('citation') ?? '').trim();
+
+  if (!awardYearId) return { status: 'error', message: 'Choose a season.' };
+  if (!creatorId) return { status: 'error', message: 'Name a creator.' };
+
+  // The copy is checked before the honour is written. A citation that calls it
+  // a lifetime achievement award, or "the PALMA Award", is the name eroding in
+  // the institution's own records, which is the one place it must not.
+  const naming = nameObjections(citation);
+  if (naming.length > 0) {
+    return { status: 'error', message: naming.join(' ') };
+  }
+
+  const result = await conferThePalma({
+    awardYearId,
+    creatorId,
+    citation,
+    actor: { id: session.user.id, role: session.user.role, label: session.user.email },
+  });
+
+  if (!result.ok) return { status: 'error', message: result.reason };
+
+  revalidatePath('/admin/the-palma');
+  revalidatePath('/the-palma');
+  revalidatePath('/winners');
+  revalidatePath('/paroh');
+
+  return {
+    status: 'success',
+    message: `THE PALMA conferred. Verification code ${result.code}.`,
   };
 }

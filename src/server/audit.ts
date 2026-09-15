@@ -28,6 +28,7 @@ export const AUDIT_ACTIONS = [
   'honour.shortlisted',
   'honour.finalist_selected',
   'honour.winner_selected',
+  'honour.the_palma_conferred',
   'honour.revoked',
   'achievement.issued',
   'creator.record_created',

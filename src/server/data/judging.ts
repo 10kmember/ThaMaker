@@ -1,6 +1,7 @@
 import 'server-only';
 import { prisma } from '@/server/db';
 import { prepareEligibility, caseIsClear, type EligibilityCheck } from '@/domain/case-file';
+import { honourCategoryName } from '@/domain/honours';
 
 /**
  * The judging room's read layer.
@@ -336,12 +337,13 @@ export async function getJudgingCase(
       palmaRecord: creator.honours.map((honour) => ({
         year: honour.awardYear.year,
         kind: honour.kind,
-        categoryName: honour.category.name,
+        categoryName: honourCategoryName(honour.kind, honour.category?.name ?? null),
         code:
           creator.achievements.find(
             (achievement) =>
               achievement.year === honour.awardYear.year &&
-              achievement.categoryName === honour.category.name,
+              achievement.categoryName ===
+                honourCategoryName(honour.kind, honour.category?.name ?? null),
           )?.code ?? null,
       })),
     },

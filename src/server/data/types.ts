@@ -85,6 +85,22 @@ export type CategoryOutcome = {
   winner: (FinalistView & { code: string | null }) | null;
 };
 
+/**
+ * THE PALMA of a season.
+ *
+ * Its own type rather than a `CategoryOutcome` with a null category. A
+ * laureate has a citation that is always present and never has finalists
+ * behind it, and giving it a shape of its own means a surface cannot render it
+ * through the category path by accident.
+ */
+export type PalmaLaureate = {
+  year: number;
+  creator: CreatorSummary;
+  citation: string;
+  code: string | null;
+  announcedAt: string | null;
+};
+
 export type RollOfHonourEntry = {
   year: number;
   categoryName: string;
@@ -97,6 +113,8 @@ export type RollOfHonourEntry = {
 export type RollOfHonourYear = {
   year: number;
   title: string;
+  /** THE PALMA of that year, held apart from the category winners below it. */
+  laureate: PalmaLaureate | null;
   entries: RollOfHonourEntry[];
 };
 

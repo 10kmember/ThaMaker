@@ -55,7 +55,12 @@ export default async function CreatorPage({ params }: Params) {
   const creator = await getCreator(slug);
   if (!creator) notFound();
 
-  const active = creator.record.filter((entry) => entry.state === 'active');
+  const allActive = creator.record.filter((entry) => entry.state === 'active');
+  // Taken out of the list before the list is drawn. A creator who holds THE
+  // PALMA should not have it appear as the fourth row of a table, sorted
+  // between two category finalists.
+  const palmas = allActive.filter((entry) => entry.kind === 'the_palma');
+  const active = allActive.filter((entry) => entry.kind !== 'the_palma');
   const wins = active.filter((entry) => entry.kind === 'winner');
   const profileUrl = absoluteUrl(`/creators/${creator.slug}`);
 
@@ -137,9 +142,44 @@ export default async function CreatorPage({ params }: Params) {
               <div className="border-ink/20 flex items-end justify-between gap-6 border-b pb-5">
                 <h2 className="text-3xl sm:text-4xl">PALMA record</h2>
                 <span className="palma-label text-taupe-deep">
-                  {active.length} {pluralise(active.length, 'honour')}
+                  {allActive.length} {pluralise(allActive.length, 'honour')}
                 </span>
               </div>
+
+              {palmas.map((entry) => (
+                <div key={entry.id} className="on-ink bg-ink text-ivory relative isolate mt-8">
+                  <div
+                    aria-hidden="true"
+                    className="border-champagne/30 pointer-events-none absolute inset-2 border"
+                  />
+                  <div className="relative flex flex-col gap-4 p-7 sm:p-9">
+                    <span className="palma-label text-champagne text-[0.75rem] tracking-[0.28em]">
+                      THE PALMA
+                    </span>
+                    <span className="font-display text-[clamp(2rem,7vw,3.25rem)] leading-[0.95] tabular-nums">
+                      {entry.year}
+                    </span>
+                    {entry.citation ? (
+                      <p className="font-display text-ivory/70 max-w-140 leading-relaxed text-balance">
+                        {entry.citation}
+                      </p>
+                    ) : null}
+                    <div className="border-champagne/20 flex flex-wrap items-center gap-x-6 gap-y-2 border-t pt-4">
+                      <span className="text-ivory/40 text-xs tracking-[0.18em] uppercase">
+                        One recipient a year
+                      </span>
+                      {entry.code ? (
+                        <Link
+                          href={`/verify/${entry.code}`}
+                          className="text-champagne/90 hover:text-champagne font-mono text-xs tracking-wider"
+                        >
+                          {entry.code}
+                        </Link>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              ))}
 
               {active.length === 0 ? (
                 <EmptyState

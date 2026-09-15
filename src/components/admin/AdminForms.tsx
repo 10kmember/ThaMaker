@@ -1,12 +1,13 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input, Select, Textarea, Label } from '@/components/ui/form';
 import { Notice } from '@/components/ui/feedback';
 import {
   advanceSeason,
   assignJudges,
+  conferThePalmaAction,
   confirmFinalists,
   confirmWinner,
   reviewCandidacy,
@@ -144,6 +145,112 @@ export function AdvanceSeasonForm({ year, stage }: { year: number; stage: Season
           {pending ? 'Advancing…' : `Advance to ${STAGE_LABEL[next]}`}
         </Button>
       </div>
+      <Feedback state={state} />
+    </form>
+  );
+}
+
+/**
+ * Conferring THE PALMA.
+ *
+ * Deliberately unlike every other form in this file. There is no ranking to
+ * accept and no proposal to confirm: a creator is named from the whole record
+ * and a citation is written by hand.
+ *
+ * So the form asks for the recipient's name to be typed back before it will
+ * submit. Not a modal and not an "are you sure", which people click through.
+ * Writing the name is a deliberate act, and it is the same standard the
+ * citation itself is held to. This happens once a year.
+ */
+export function ThePalmaForm({
+  seasons,
+  creators,
+}: {
+  seasons: { id: string; title: string }[];
+  creators: { id: string; displayName: string }[];
+}) {
+  const [state, action, pending] = useActionState(conferThePalmaAction, initial);
+  const [creatorId, setCreatorId] = useState('');
+  const [confirmation, setConfirmation] = useState('');
+
+  const chosen = creators.find((creator) => creator.id === creatorId);
+  const confirmed = Boolean(chosen) && confirmation.trim() === chosen?.displayName;
+
+  return (
+    <form action={action} className="flex flex-col gap-6">
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="the-palma-season">Season</Label>
+        <Select id="the-palma-season" name="awardYearId" required defaultValue="">
+          <option value="" disabled>
+            Choose a season
+          </option>
+          {seasons.map((season) => (
+            <option key={season.id} value={season.id}>
+              {season.title}
+            </option>
+          ))}
+        </Select>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="the-palma-creator">Recipient</Label>
+        <Select
+          id="the-palma-creator"
+          name="creatorId"
+          required
+          value={creatorId}
+          onChange={(event) => setCreatorId(event.target.value)}
+        >
+          <option value="" disabled>
+            Choose a creator
+          </option>
+          {creators.map((creator) => (
+            <option key={creator.id} value={creator.id}>
+              {creator.displayName}
+            </option>
+          ))}
+        </Select>
+        <p className="text-taupe-deep text-xs leading-relaxed">
+          Any creator on the record, whether or not they were nominated this season. THE PALMA is
+          not drawn from the finalists.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="the-palma-citation">Citation</Label>
+        <Textarea
+          id="the-palma-citation"
+          name="citation"
+          className="min-h-32"
+          minLength={120}
+          maxLength={600}
+          required
+          placeholder="What the panel decided, and why. At least 120 characters."
+        />
+        <p className="text-taupe-deep text-xs leading-relaxed">
+          Published with the honour. It must not call THE PALMA a lifetime achievement award, and it
+          must not call it an award for anything.
+        </p>
+      </div>
+
+      <div className="border-stone-deep flex flex-col gap-2 border-t pt-6">
+        <Label htmlFor="the-palma-confirm">Type the recipient&rsquo;s name to confirm</Label>
+        <Input
+          id="the-palma-confirm"
+          value={confirmation}
+          onChange={(event) => setConfirmation(event.target.value)}
+          placeholder={chosen?.displayName ?? 'Choose a recipient first'}
+          disabled={!chosen}
+          autoComplete="off"
+        />
+        <p className="text-taupe-deep text-xs leading-relaxed">
+          One a year, never shared and never repeated. The database refuses a second.
+        </p>
+      </div>
+
+      <Button type="submit" size="md" disabled={pending || !confirmed}>
+        {pending ? 'Conferring…' : 'Confer THE PALMA'}
+      </Button>
       <Feedback state={state} />
     </form>
   );

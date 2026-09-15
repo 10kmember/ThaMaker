@@ -17,6 +17,7 @@ import {
   listSeasons,
 } from '@/server/data/queries';
 import { countSearch } from '@/server/services/measurement';
+import { LaureatePlate } from '@/components/palma/TheLaureate';
 
 export const revalidate = 900;
 
@@ -237,6 +238,8 @@ export default async function ParohPage({ searchParams }: Props) {
                       Class of {group.year} →
                     </Link>
                   </div>
+
+                  {group.laureate ? <LaureatePlate laureate={group.laureate} /> : null}
 
                   <ul className="mt-2">
                     {group.entries.map((entry) => (

@@ -7,6 +7,8 @@ import { requireDb } from '@/server/db';
 import { sendHonourConferred, sendHonourRevoked } from '@/server/email/messages';
 
 export type { HonourKind } from '@/domain/honours';
+import { honourCategoryName, HONOUR_LABEL } from '@/domain/honours';
+import { conferralObjections } from '@/domain/the-palma';
 import type { HonourKind } from '@/domain/honours';
 
 export type ConferInput = {
@@ -231,7 +233,7 @@ export async function revokeHonour(input: {
     entityType: 'Honour',
     entityId: honour.id,
     actor: input.actor,
-    summary: `${honour.creator.displayName} — ${honour.category.name} (${honour.awardYear.year})`,
+    summary: `${honour.creator.displayName} — ${honourCategoryName(honour.kind, honour.category?.name ?? null)} (${honour.awardYear.year})`,
     before: { state: 'active' },
     after: { state: 'revoked', reason: input.reason },
   });
@@ -249,7 +251,7 @@ export async function revokeHonour(input: {
         userId: holder.id,
         creatorId: honour.creatorId,
         creatorName: honour.creator.displayName,
-        categoryName: honour.category.name,
+        categoryName: honourCategoryName(honour.kind, honour.category?.name ?? null),
         year: honour.awardYear.year,
         reason: input.reason,
       });
@@ -257,4 +259,157 @@ export async function revokeHonour(input: {
   }
 
   return { ok: true };
+}
+
+/**
+ * Confer THE PALMA.
+ *
+ * Its own function, because it is not a category honour with a flag set. There
+ * is no candidacy to read, no category to write, no shortlist it came through
+ * and no position in a list. Routing it through `conferHonour` would have meant
+ * threading nulls through every step of that function and trusting a caller to
+ * pass the right ones, which is how a second PALMA eventually gets conferred in
+ * a season.
+ *
+ * The database holds the two rules that matter even if this function is wrong:
+ * a partial unique index allows one active PALMA a season, and a check
+ * constraint refuses one that carries a category.
+ */
+export async function conferThePalma(input: {
+  awardYearId: string;
+  creatorId: string;
+  citation: string;
+  actor: AuditActor;
+}): Promise<ConferResult> {
+  const db = requireDb();
+
+  const [awardYear, creator] = await Promise.all([
+    db.awardYear.findUnique({
+      where: { id: input.awardYearId },
+      select: { id: true, year: true },
+    }),
+    db.creator.findUnique({
+      where: { id: input.creatorId },
+      include: { verification: true, user: { select: { id: true, email: true } } },
+    }),
+  ]);
+
+  if (!awardYear) return { ok: false, reason: 'That season does not exist.' };
+  if (!creator) return { ok: false, reason: 'That creator does not exist.' };
+
+  const standing = canReceiveHonour({
+    creatorIsSuspended: creator.isSuspended,
+    creatorVerificationStatus: creator.verification?.status ?? 'unverified',
+  });
+  if (!standing.ok) return { ok: false, reason: standing.reason! };
+
+  // Everything the rules need, read once and handed to the domain. The domain
+  // decides; this function only gathers and writes.
+  const [existingThisSeason, held] = await Promise.all([
+    db.honour.count({
+      where: { awardYearId: awardYear.id, kind: 'the_palma', state: 'active' },
+    }),
+    db.honour.findMany({
+      where: { creatorId: creator.id, kind: 'the_palma', state: 'active' },
+      select: { awardYear: { select: { year: true } } },
+    }),
+  ]);
+
+  const objections = conferralObjections({
+    existingThisSeason,
+    creatorHeldIn: held.map((honour) => honour.awardYear.year),
+    creatorIsVerified: creator.verification?.status === 'verified',
+    creatorIsPublished: creator.isPublished,
+    citation: input.citation,
+  });
+
+  if (objections.length > 0) return { ok: false, reason: objections.join(' ') };
+
+  const issuedAt = new Date();
+  const categoryName = HONOUR_LABEL.the_palma;
+
+  const result = await db.$transaction(async (tx) => {
+    const honour = await tx.honour.create({
+      data: {
+        awardYearId: awardYear.id,
+        categoryId: null,
+        creatorId: creator.id,
+        candidacyId: null,
+        kind: 'the_palma',
+        position: 0,
+        citation: input.citation.trim(),
+        announcedAt: issuedAt,
+      },
+    });
+
+    await tx.creator.update({ where: { id: creator.id }, data: { isPublished: true } });
+
+    const code = deriveCode(signingSecret(), awardYear.year, honour.id);
+    const payload = {
+      code,
+      creatorSlug: creator.slug,
+      creatorName: creator.displayName,
+      categoryName,
+      year: awardYear.year,
+      kind: 'the_palma' as const,
+      issuedAt: issuedAt.toISOString(),
+    };
+
+    const achievement = await tx.achievement.create({
+      data: {
+        honourId: honour.id,
+        creatorId: creator.id,
+        code,
+        kind: 'the_palma',
+        year: awardYear.year,
+        categoryName,
+        creatorName: creator.displayName,
+        issuedAt,
+      },
+    });
+
+    await tx.verificationRecord.create({
+      data: {
+        achievementId: achievement.id,
+        code,
+        signature: signAchievement(signingSecret(), payload),
+        payloadDigest: payloadDigest(payload),
+        issuedAt,
+      },
+    });
+
+    return { honourId: honour.id, code };
+  });
+
+  await recordAudit({
+    action: 'honour.the_palma_conferred',
+    entityType: 'Honour',
+    entityId: result.honourId,
+    actor: input.actor,
+    summary: `THE PALMA ${awardYear.year} — ${creator.displayName}`,
+    after: { kind: 'the_palma', code: result.code, citation: input.citation.trim() },
+  });
+
+  await recordAudit({
+    action: 'achievement.issued',
+    entityType: 'Achievement',
+    entityId: result.code,
+    actor: input.actor,
+    summary: `Verification record issued for ${creator.displayName}`,
+  });
+
+  if (creator.user) {
+    await sendHonourConferred({
+      to: creator.user.email,
+      userId: creator.user.id,
+      creatorId: creator.id,
+      creatorName: creator.displayName,
+      kind: 'the_palma',
+      categoryName,
+      year: awardYear.year,
+      verificationCode: result.code,
+    });
+  }
+
+  return { ok: true, honourId: result.honourId, code: result.code };
 }

@@ -358,6 +358,14 @@ export type SeasonSeed = {
    */
   categorySlugs: string[];
   /**
+   * THE PALMA for this season, if it was conferred.
+   *
+   * Outside `results` on purpose. It is not a category result, it has no
+   * finalists behind it, and putting it in that map would make it the
+   * thirteenth key in a list of twelve.
+   */
+  thePalma?: { creatorSlug: string; citation: string };
+  /**
    * category slug → [winner, ...finalists] creator slugs.
    *
    * A category absent from this map, or present with an empty list, was
@@ -400,6 +408,11 @@ export const seasonSeeds: SeasonSeed[] = [
       'clip-creator-of-the-year': [],
       'rising-creator-of-the-year': ['noor-haddad', 'jordan-smith'],
     },
+    thePalma: {
+      creatorSlug: 'maya-rivers',
+      citation:
+        'For a body of work that changed what the industry believed an independent creator could build alone, and for insisting on terms that others have since been able to ask for.',
+    },
   },
   {
     year: 2026,
@@ -438,6 +451,11 @@ export const seasonSeeds: SeasonSeed[] = [
       // A second declined honour. Two across three seasons is the standard
       // being real rather than decorative.
       'rising-creator-of-the-year': [],
+    },
+    thePalma: {
+      creatorSlug: 'jordan-smith',
+      citation:
+        'For fifteen years of work that never once coasted, and for a standard of production that quietly became the one everyone else is measured against.',
     },
   },
   {

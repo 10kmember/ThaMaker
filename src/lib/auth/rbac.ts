@@ -65,6 +65,7 @@ export const PERMISSIONS = [
   'admin:resolve_conflicts',
   'admin:select_finalists',
   'admin:select_winners',
+  'admin:confer_the_palma',
   'admin:revoke_honour',
   'admin:correct_score',
   'admin:manage_sponsors',
@@ -240,6 +241,7 @@ export function canAny(role: Role | null | undefined, permissions: Permission[])
 export const OUTCOME_PERMISSIONS: readonly Permission[] = [
   'admin:select_finalists',
   'admin:select_winners',
+  'admin:confer_the_palma',
   'admin:revoke_honour',
   'admin:correct_score',
   'admin:assign_judging',

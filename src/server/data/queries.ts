@@ -3,11 +3,13 @@ import { cache } from 'react';
 import { prisma } from '@/server/db';
 import type { SeasonStage } from '@/domain/season';
 import { finalistsArePublic, winnersArePublic } from '@/domain/season';
+import { honourCategoryName, honourCategorySlug } from '@/domain/honours';
 import type {
   AchievementRecord,
   ArticleDetail,
   ArticleSummary,
   CategoryOutcome,
+  PalmaLaureate,
   CategoryView,
   CreatorProfile,
   CreatorSummary,
@@ -208,8 +210,8 @@ export const getCreator = cache(async (slug: string): Promise<CreatorProfile | n
       kind: honour.kind as HonourEntry['kind'],
       state: honour.state as HonourEntry['state'],
       year: honour.awardYear.year,
-      categoryName: honour.category.name,
-      categorySlug: honour.category.slug,
+      categoryName: honourCategoryName(honour.kind, honour.category?.name ?? null),
+      categorySlug: honourCategorySlug(honour.kind, honour.category?.slug ?? null),
       citation: honour.citation,
       announcedAt: iso(honour.announcedAt),
       code: honour.achievement?.code ?? null,
@@ -276,8 +278,8 @@ async function honourRows(year?: number, kind?: HonourEntry['kind']): Promise<Ho
     .map((row) => ({
       kind: row.kind as HonourEntry['kind'],
       year: row.awardYear.year,
-      categorySlug: row.category.slug,
-      categoryName: row.category.name,
+      categorySlug: honourCategorySlug(row.kind, row.category?.slug ?? null),
+      categoryName: honourCategoryName(row.kind, row.category?.name ?? null),
       creatorSlug: row.creator.slug,
       citation: row.citation,
       code: row.achievement?.code ?? null,
@@ -290,6 +292,30 @@ async function creatorIndex(): Promise<Map<string, CreatorSummary>> {
   const all = await listCreators({ limit: 500 });
   return new Map(all.map((creator) => [creator.slug, creator]));
 }
+
+/**
+ * THE PALMA of a season, if it has been conferred.
+ *
+ * Deliberately not part of `listSeasonOutcomes`. That function returns the
+ * categories of a season, and THE PALMA is not one of them: a surface that
+ * wants it has to ask for it, which is what stops it being rendered through
+ * the same loop as the twelve and coming out looking like the thirteenth.
+ */
+export const getThePalma = cache(async (year: number): Promise<PalmaLaureate | null> => {
+  const row = (await honourRows(year)).find((entry) => entry.kind === 'the_palma');
+  if (!row) return null;
+
+  const creator = (await creatorIndex()).get(row.creatorSlug);
+  if (!creator) return null;
+
+  return {
+    year,
+    creator,
+    citation: row.citation ?? '',
+    code: row.code,
+    announcedAt: row.announcedAt,
+  };
+});
 
 export const getCategoryOutcome = cache(
   async (year: number, categorySlug: string): Promise<CategoryOutcome | null> => {
@@ -364,6 +390,7 @@ export const getRollOfHonour = cache(
       const bucket = byYear.get(row.year) ?? {
         year: row.year,
         title: season?.title ?? `PALMA ${row.year}`,
+        laureate: null,
         entries: [],
       };
       bucket.entries.push({
@@ -377,7 +404,25 @@ export const getRollOfHonour = cache(
       byYear.set(row.year, bucket);
     }
 
-    return [...byYear.values()]
+    // THE PALMA is attached to its year rather than pushed into `entries`.
+    // The PaROH is the permanent record and it belongs there, but a laureate
+    // listed among the category winners is exactly the flattening this honour
+    // is not supposed to suffer: the page renders it above them, not among
+    // them. Filters that narrow to a category or a search term drop it, because
+    // it is in no category and a filtered list should not carry a row that does
+    // not match.
+    const unfiltered = !filter.category && !filter.query && !filter.country;
+
+    const years = [...byYear.values()];
+    if (unfiltered) {
+      await Promise.all(
+        years.map(async (entry) => {
+          entry.laureate = await getThePalma(entry.year);
+        }),
+      );
+    }
+
+    return years
       .map((entry) => ({
         ...entry,
         entries: entry.entries.sort((a, b) => a.categoryName.localeCompare(b.categoryName)),
@@ -432,7 +477,10 @@ export const getAchievementByCode = cache(
       state: achievement.state as AchievementRecord['state'],
       year: achievement.year,
       categoryName: achievement.categoryName,
-      categorySlug: achievement.honour.category.slug,
+      categorySlug: honourCategorySlug(
+        achievement.honour.kind,
+        achievement.honour.category?.slug ?? null,
+      ),
       creatorName: achievement.creatorName,
       creatorSlug: achievement.creator.slug,
       creatorCountry: achievement.creator.countryCode,

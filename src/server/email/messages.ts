@@ -541,7 +541,7 @@ export function sendHonourConferred(input: {
   userId: string;
   creatorId: string;
   creatorName: string;
-  kind: 'shortlist' | 'finalist' | 'winner';
+  kind: 'shortlist' | 'finalist' | 'winner' | 'the_palma';
   categoryName: string;
   year: number;
   verificationCode?: string | null;
@@ -560,10 +560,19 @@ export function sendHonourConferred(input: {
       body: 'The panel has selected the finalists in your category, and you are among them. Whatever happens at the ceremony, this is now permanently on your record.',
     },
     winner: {
-      eyebrow: 'The PALMA',
-      subject: `You have won a PALMA — ${input.categoryName} ${input.year}`,
+      // Not "The PALMA". That name now belongs to one honour a year, and a
+      // category winner being told they have won THE PALMA is the exact
+      // confusion the naming rules exist to prevent.
+      eyebrow: 'Winner',
+      subject: `You have won a PALMA: ${input.categoryName} ${input.year}`,
       lede: 'You have won.',
-      body: 'The panel has conferred the PALMA in your category. It is on your record permanently, with a verification link anyone can check.',
+      body: 'The panel has conferred a PALMA in your category. It is on your record permanently, with a verification link anyone can check.',
+    },
+    the_palma: {
+      eyebrow: 'THE PALMA',
+      subject: `You have been awarded THE PALMA ${input.year}`,
+      lede: 'You have been awarded THE PALMA.',
+      body: 'One creator receives THE PALMA each year, and this year it is you. It was not nominated for and not campaigned for: the panel considered the whole record and named you. It is conferred once, so there is nothing above this and nothing after it.',
     },
   }[input.kind];
 

@@ -445,7 +445,12 @@ export async function getAwardsAnalytics(): Promise<AwardsAnalytics> {
 
   const byCategory = new Map<string, number>();
   for (const winner of winners) {
-    byCategory.set(winner.category.name, (byCategory.get(winner.category.name) ?? 0) + 1);
+    // Winners only, so every row has a category. THE PALMA is not counted
+    // here and should not be: it is not won in a category, and adding it to a
+    // per-category breakdown would invent a thirteenth column.
+    const name = winner.category?.name;
+    if (!name) continue;
+    byCategory.set(name, (byCategory.get(name) ?? 0) + 1);
   }
 
   return {

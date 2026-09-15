@@ -505,9 +505,74 @@ async function main() {
     }
   }
 
+  // ── THE PALMA ─────────────────────────────────────────────────────────────
+  //
+  // Written separately from the loop above because it is not a category result.
+  // No candidacy, no category, no finalists behind it: one creator a season,
+  // named by the panel from the whole record.
+  let palmas = 0;
+  for (const season of seasonSeeds) {
+    if (!season.thePalma) continue;
+
+    const awardYearId = seasonIds.get(season.year)!;
+    const creatorId = creatorIds.get(season.thePalma.creatorSlug)!;
+    const issuedAt = new Date(season.ceremonyAt!);
+
+    const honour = await prisma.honour.create({
+      data: {
+        awardYearId,
+        categoryId: null,
+        creatorId,
+        candidacyId: null,
+        kind: 'the_palma',
+        position: 0,
+        citation: season.thePalma.citation,
+        announcedAt: issuedAt,
+      },
+    });
+
+    const code = deriveCode(season.year, honour.id);
+    const categoryName = 'THE PALMA';
+    const { signature, canonical } = signAchievement({
+      code,
+      creatorSlug: season.thePalma.creatorSlug,
+      creatorName: creatorName(season.thePalma.creatorSlug),
+      categoryName,
+      year: season.year,
+      kind: 'the_palma',
+      issuedAt: issuedAt.toISOString(),
+    });
+
+    const achievement = await prisma.achievement.create({
+      data: {
+        honourId: honour.id,
+        creatorId,
+        code,
+        kind: 'the_palma',
+        year: season.year,
+        categoryName,
+        creatorName: creatorName(season.thePalma.creatorSlug),
+        issuedAt,
+      },
+    });
+
+    await prisma.verificationRecord.create({
+      data: {
+        achievementId: achievement.id,
+        code,
+        signature,
+        payloadDigest: createHmac('sha256', 'digest').update(canonical).digest('hex'),
+        issuedAt,
+      },
+    });
+
+    palmas += 1;
+  }
+
   console.log(
     `  judged: ${candidacyCount} candidacies, ${nominationCount} nominations, ${honourCount} honours, ${declined} category declined`,
   );
+  console.log(`  THE PALMA: ${palmas} conferred, one a season`);
 
   // ── Journal ───────────────────────────────────────────────────────────────
   const editorId = accounts.get('tom@palmaawards.com')!;

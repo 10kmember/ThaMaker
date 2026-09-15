@@ -91,6 +91,9 @@ export const ADMIN_NAV: AdminGroup[] = [
         label: 'Finalists & winners',
         permission: 'admin:select_finalists',
       },
+      // Its own destination, not a panel inside the standings screen. Only
+      // super administrators see it, because only they can confer it.
+      { href: '/admin/the-palma', label: 'THE PALMA', permission: 'admin:confer_the_palma' },
       { href: '/paroh', label: 'PaROH', permission: 'admin:view_dashboard' },
     ],
   },

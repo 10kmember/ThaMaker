@@ -8,9 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Reveal } from '@/components/palma/Reveal';
 import { buildMetadata } from '@/lib/seo';
 import { winnersArePublic } from '@/domain/season';
+import { TheLaureate } from '@/components/palma/TheLaureate';
 import {
   getCurrentSeason,
   getSeason,
+  getThePalma,
   listSeasonOutcomes,
   listSeasons,
 } from '@/server/data/queries';
@@ -34,6 +36,10 @@ export default async function WinnersPage({ searchParams }: Props) {
   const season = requested ?? announced ?? (await getCurrentSeason());
 
   const outcomes = winnersArePublic(season.stage) ? await listSeasonOutcomes(season.year) : [];
+  // Asked for separately, and rendered before the grid rather than inside it.
+  // THE PALMA is not one of the twelve and must never arrive through the same
+  // loop that draws them.
+  const laureate = winnersArePublic(season.stage) ? await getThePalma(season.year) : null;
   const winners = outcomes.filter((outcome) => outcome.winner);
   // A category that was contested and judged but not conferred. PALMA's rules
   // permit declining rather than lowering the standard, and a record that
@@ -93,8 +99,19 @@ export default async function WinnersPage({ searchParams }: Props) {
         </Container>
       </div>
 
+      {laureate ? <TheLaureate laureate={laureate} seasonTitle={season.title} /> : null}
+
       <Section>
         <Container>
+          {laureate && winners.length > 0 ? (
+            <div className="mb-16 flex flex-col gap-3">
+              <h2 className="palma-label text-taupe-deep">The Creator PALMAs</h2>
+              <p className="text-taupe-deep max-w-160 text-sm leading-relaxed">
+                Twelve, conferred in category by the panel.
+              </p>
+            </div>
+          ) : null}
+
           {winners.length === 0 ? (
             <EmptyState
               title="Winners not yet announced"

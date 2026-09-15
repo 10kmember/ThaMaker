@@ -132,6 +132,8 @@ enum HonourKind {
   finalist
   winner
   special_recognition
+  /// THE PALMA. One a year, no category, no candidacy behind it.
+  the_palma
 }
 
 enum HonourState {
@@ -705,9 +707,15 @@ model JudgingScore {
 /// A single table carries shortlist, finalist and winner states so that the
 /// Roll of Honour has one authoritative source per (year, category, creator).
 model Honour {
-  id            String      @id @default(cuid())
+  id String @id @default(cuid())
+
   awardYearId   String
-  categoryId    String
+  /// Null for THE PALMA only. Every other honour belongs to a category; THE
+  /// PALMA is conferred on a career rather than in a contest, so there is no
+  /// category to point at. The partial unique index below is what keeps it to
+  /// one a season, because a null category cannot be held unique by the
+  /// composite key (Postgres treats nulls as distinct).
+  categoryId    String?
   creatorId     String
   candidacyId   String?
   kind          HonourKind
@@ -721,7 +729,7 @@ model Honour {
   updatedAt     DateTime    @updatedAt
 
   awardYear   AwardYear    @relation(fields: [awardYearId], references: [id], onDelete: Cascade)
-  category    Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  category    Category?    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   creator     Creator      @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   candidacy   Candidacy?   @relation(fields: [candidacyId], references: [id], onDelete: SetNull)
   achievement Achievement?

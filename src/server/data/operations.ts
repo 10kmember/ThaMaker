@@ -2,6 +2,7 @@ import 'server-only';
 import { prisma } from '@/server/db';
 import { assessClaim, type ClaimCheck } from '@/domain/claim';
 import type { VerificationCaseReason, VerificationCaseStatus } from '@/domain/verification-case';
+import { honourCategoryName } from '@/domain/honours';
 
 /**
  * The operations read layer.
@@ -196,7 +197,7 @@ export async function getClaimCase(id: string): Promise<ClaimCase | null> {
       honours: creator.honours.map((honour) => ({
         year: honour.awardYear.year,
         kind: honour.kind,
-        categoryName: honour.category.name,
+        categoryName: honourCategoryName(honour.kind, honour.category?.name ?? null),
       })),
     },
 
@@ -405,7 +406,7 @@ export async function getCreatorRecord(slug: string): Promise<StaffCreatorRecord
     honours: creator.honours.map((honour) => ({
       year: honour.awardYear.year,
       kind: honour.kind,
-      categoryName: honour.category.name,
+      categoryName: honourCategoryName(honour.kind, honour.category?.name ?? null),
       state: honour.state,
     })),
 

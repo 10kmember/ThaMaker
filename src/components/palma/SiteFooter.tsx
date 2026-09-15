@@ -110,11 +110,20 @@ export function SiteFooter() {
           </div>
         </div>
 
+        {/* The register, set as a register.
+
+            Nine links of very different lengths, which is why a wrapping row
+            falls apart on a phone: it breaks three, three and three at
+            whatever widths the labels happen to be, and the ragged right edge
+            reads as an accident rather than a list. Two ruled columns give it
+            a left edge, a right edge and an even rhythm, which is what a legal
+            index looks like on paper. From `sm` the row has enough width to
+            behave, so it goes back to flowing. */}
         <nav aria-label="Legal register" className="mt-10 sm:mt-12">
           <h2 className="palma-label text-champagne">The register</h2>
-          <ul className="text-ivory/55 mt-4 flex flex-wrap gap-x-7 gap-y-3 text-xs">
+          <ul className="text-ivory/55 mt-4 grid grid-cols-2 gap-x-6 text-xs sm:mt-4 sm:flex sm:flex-wrap sm:gap-x-7 sm:gap-y-3">
             {LEGAL_NAV.map((item) => (
-              <li key={item.href}>
+              <li key={item.href} className="border-ivory/10 border-t py-2.5 sm:border-0 sm:py-0">
                 <Link href={item.href} className="palma-quiet-link hover:text-ivory">
                   {item.label}
                 </Link>
