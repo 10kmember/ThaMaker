@@ -9,24 +9,36 @@ const CHAMPAGNE = '#C9B58A';
 const CHAMPAGNE_HI = '#EFE4C9';
 const BRONZE_DARK = '#5A4C36';
 const BRONZE_MID = '#9C8862';
+const BRONZE_BACK = '#3E3527';
 const OAK = '#7B6647';
 const OAK_DARK = '#4A3D2B';
 const TAUPE = '#8C8478';
 const RULE = '#2E3136';
 
-function tapered(d, { base, tip, colour, steps = 34, dy = 0, dx = 0 }) {
+function tapered(d, { base, tip, colour, steps = 34, dy = 0, dx = 0, scaleX = 1 }) {
   const out = [];
   for (let i = 0; i < steps; i += 1) {
     const t = i / (steps - 1);
     const width = tip + (base - tip) * t;
     const length = 100 - t * 100;
+    const tr = [];
+    if (dx || dy) tr.push(`translate(${dx} ${dy})`);
+    if (scaleX !== 1) tr.push(`translate(24 0) scale(${scaleX} 1) translate(-24 0)`);
     out.push(
       `<path d="${d}" pathLength="100" stroke-dasharray="${length.toFixed(2)} 100" stroke="${colour}" stroke-width="${width.toFixed(3)}"` +
-        (dx || dy ? ` transform="translate(${dx} ${dy})"` : '') +
+        (tr.length ? ` transform="${tr.join(' ')}"` : '') +
         `/>`,
     );
   }
   return out.join('');
+}
+
+/** The perpendicular set, foreshortened: what stops this reading as a pressing. */
+function frondBehind(d) {
+  return [
+    tapered(d, { base: 1.5, tip: 0.16, colour: BRONZE_BACK, scaleX: 0.1 }),
+    tapered(d, { base: 0.38, tip: 0.05, colour: BRONZE_DARK, dy: -0.26, scaleX: 0.1 }),
+  ].join('');
 }
 
 function frond(d) {
@@ -42,6 +54,7 @@ function frond(d) {
 function palm({ cx, baseY, height }) {
   const k = height / PALM_UNITS;
   const parts = [
+    ...FRONDS.flatMap(([a, b]) => [frondBehind(a), frondBehind(b)]),
     tapered(SPINE, { base: 3.0, tip: 0.6, colour: BRONZE_DARK, dx: 0.4 }),
     tapered(SPINE, { base: 2.62, tip: 0.5, colour: BRONZE_MID }),
     tapered(SPINE, { base: 0.78, tip: 0.16, colour: CHAMPAGNE, dx: -0.66 }),
@@ -69,8 +82,8 @@ const GROUND = 890;
 const CX = 640;
 const PALM_PX = 600;
 const PX_PER_MM = PALM_PX / 288;
-const BASE_H = Math.round(34 * PX_PER_MM);
-const BASE_W = Math.round(168 * PX_PER_MM);
+const BASE_H = Math.round(42 * PX_PER_MM);
+const BASE_W = Math.round(150 * PX_PER_MM);
 
 const baseTop = GROUND - BASE_H;
 const bx = CX - BASE_W / 2;
@@ -102,20 +115,20 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" 
   <text x="74" y="133" fill="${TAUPE}" font-size="11.5" font-family="Georgia, serif" letter-spacing="4.5">THE HIGHEST HONOUR · ONE A YEAR · 400 mm · 2.9 kg</text>
   <line x1="74" y1="156" x2="${W - 74}" y2="156" stroke="${RULE}" stroke-width="1"/>
 
-  <!-- The block -->
-  <path d="M ${bx} ${baseTop + ch} L ${bx + ch} ${baseTop} L ${bx + BASE_W - ch} ${baseTop} L ${bx + BASE_W} ${baseTop + ch} L ${bx + BASE_W} ${GROUND} L ${bx} ${GROUND} Z" fill="${OAK}"/>
-  <path d="M ${bx} ${baseTop + ch} L ${bx + ch} ${baseTop} L ${bx + BASE_W - ch} ${baseTop} L ${bx + BASE_W} ${baseTop + ch} Z" fill="${CHAMPAGNE}" opacity="0.18"/>
-  <rect x="${bx}" y="${GROUND - 5}" width="${BASE_W}" height="5" fill="${OAK_DARK}"/>
-  ${[1, 2, 3].map((i) => `<line x1="${bx + 12}" y1="${baseTop + ch + ((BASE_H - ch) / 4) * i}" x2="${bx + BASE_W - 12}" y2="${baseTop + ch + ((BASE_H - ch) / 4) * i}" stroke="${OAK_DARK}" stroke-width="0.8" opacity="0.4"/>`).join('')}
+  ${palm({ cx: CX, baseY: baseTop + BASE_H * 0.55, height: PALM_PX })}
 
-  <!-- The plate, let into the face -->
-  <rect x="${CX - 97}" y="${baseTop + 26}" width="194" height="32" fill="${OAK_DARK}"/>
-  <rect x="${CX - 96}" y="${baseTop + 27}" width="192" height="30" fill="${BRONZE_MID}"/>
-  <rect x="${CX - 96}" y="${baseTop + 27}" width="192" height="8" fill="${CHAMPAGNE}" opacity="0.5"/>
-  <text x="${CX}" y="${baseTop + 41}" fill="${INK}" font-size="11" text-anchor="middle" font-family="Georgia, serif" letter-spacing="3">THE PALMA · 2027</text>
-  <text x="${CX}" y="${baseTop + 53}" fill="${INK}" font-size="10" text-anchor="middle" font-family="Georgia, serif" letter-spacing="2">AMA OKONKWO</text>
+  <!-- The turned seal, drawn over the spine so it is socketed, not stood on -->
+  <path d="M ${bx} ${baseTop + BASE_H * 0.2 + BASE_H * 0.3} Q ${bx} ${baseTop + BASE_H * 0.2} ${bx + BASE_H * 0.3} ${baseTop + BASE_H * 0.2} Q ${CX} ${baseTop - BASE_H * 0.11} ${bx + BASE_W - BASE_H * 0.3} ${baseTop + BASE_H * 0.2} Q ${bx + BASE_W} ${baseTop + BASE_H * 0.2} ${bx + BASE_W} ${baseTop + BASE_H * 0.5} L ${bx + BASE_W} ${GROUND - 16} L ${bx} ${GROUND - 16} Z" fill="${BRONZE_MID}"/>
+  <path d="M ${bx + BASE_H * 0.3} ${baseTop + BASE_H * 0.2} Q ${CX} ${baseTop - BASE_H * 0.11} ${bx + BASE_W - BASE_H * 0.3} ${baseTop + BASE_H * 0.2} Q ${CX} ${baseTop + BASE_H * 0.18} ${bx + BASE_H * 0.3} ${baseTop + BASE_H * 0.2} Z" fill="${CHAMPAGNE}" opacity="0.55"/>
+  <rect x="${bx}" y="${GROUND - 26}" width="${BASE_W}" height="10" fill="${BRONZE_DARK}"/>
+  <rect x="${bx + BASE_W * 0.06}" y="${GROUND - 16}" width="${BASE_W * 0.88}" height="16" fill="${OAK}"/>
+  <rect x="${bx + BASE_W * 0.06}" y="${GROUND - 4}" width="${BASE_W * 0.88}" height="4" fill="${OAK_DARK}"/>
 
-  ${palm({ cx: CX, baseY: baseTop + 3, height: PALM_PX })}
+  <!-- The plate, let into the rim -->
+  <rect x="${CX - 97}" y="${baseTop + BASE_H * 0.5}" width="194" height="34" fill="${BRONZE_DARK}"/>
+  <rect x="${CX - 96}" y="${baseTop + BASE_H * 0.5 + 1}" width="192" height="32" fill="${CHAMPAGNE}" opacity="0.85"/>
+  <text x="${CX}" y="${baseTop + BASE_H * 0.5 + 15}" fill="${INK}" font-size="11" text-anchor="middle" font-family="Georgia, serif" letter-spacing="3">THE PALMA · 2027</text>
+  <text x="${CX}" y="${baseTop + BASE_H * 0.5 + 28}" fill="${INK}" font-size="10" text-anchor="middle" font-family="Georgia, serif" letter-spacing="2">AMA OKONKWO</text>
 
   ${callout({
     x1: CX + 2,

@@ -10,27 +10,37 @@ the object and the mark cannot drift apart.
 
 ## The idea the family rests on
 
-Three objects, one palm, and the hierarchy is **what you are given of it**:
+**Two objects**, one palm, and the hierarchy is the crown:
 
 |                    | What it carries                                      |
 | ------------------ | ---------------------------------------------------- |
 | **THE PALMA**      | The whole palm, four frond pairs, **and the crown**. |
 | **Category PALMA** | The same palm. **No crown.**                         |
-| **Finalist**       | **One frond.**                                       |
 
 That is the whole system, and it reads across a room in a photograph, which is
 where most people will ever see these. Nobody has to be told which is which.
+
+There is no third object. A finalist is recognised by being named, and a family
+of three was one thing too many to hold in the head.
 
 The crown matters because on the mark it is not a leaf: it is a struck dot held
 clear above the spine. Making it the thing only the highest honour carries turns
 a drawing convention into the most valuable 16 mm of bronze in the institution.
 
-### What the first version got wrong
+### It is a cross in plan, not a pressing
 
-It was a figure on a plinth, which is what every corporate award has been for
-thirty years, and the hierarchy between the two trophies was a materials
-difference (full round against half relief) that nobody would notice and no
-photograph would show. Both are gone.
+One set of fronds sits in the plane of the mark; a second set sits at ninety
+degrees to it. Head-on you see the logo exactly. From anywhere else you see a
+palm rather than a cutout of one, which is the difference between an object and
+a silhouette on a stick.
+
+### What earlier versions got wrong
+
+A figure on a tiered plinth, which is what every corporate award has been for
+thirty years. The hierarchy carried by a materials difference (full round
+against half relief) nobody would notice. Almost half the palm left as bare
+stalk below the lowest fronds. All three are gone: the palm is socketed deep
+into the seal, so what shows below the lowest fronds is a hand's width.
 
 ---
 
@@ -72,21 +82,25 @@ Patina: warm mid-brown, **waxed rather than lacquered**. It will darken with
 handling over years, and that is correct. The object should look like it has
 been owned.
 
-### The block
+### The seal
 
-- **English oak**, quarter-sawn so the medullary rays show as figure.
-  Sustainably sourced, supplier named on the certificate.
-- **168 × 168 × 34 mm.** One block, not a tiered plinth. A trophy on stacked
-  slabs reads as a wedding cake.
-- **2 mm hand-worked chamfer** on every arris. No radius, no bullnose.
-- Hard-wax oil, matt. Not lacquer, not gloss.
-- Ballasted from beneath with brass if the finished piece comes in under
-  **2.4 kg**. Heft is the difference between an award and a souvenir.
+Not a block. A **turned bronze disc**, Ø150 × 42 mm, faced on a lathe with a
+shallow dome across the top and a quarter fillet down to the rim. A block is
+joinery; a struck, turned disc is the object PALMA's whole verification language
+already describes, and the palm is socketed into its centre rather than standing
+on it.
+
+- Standing on a **thin English oak ring foot**, Ø132 × 10 mm, quarter-sawn,
+  hard-wax oiled. It keeps the piece warm in the hand and stops the bronze
+  ringing against a table.
+- Ballasted with lead shot in the turned cavity if the finished piece comes in
+  under **2.4 kg**. Heft is the difference between an award and a souvenir.
 
 ### The plate
 
-Let into the front face **flush at 3 mm**, so a fingertip crossing it feels an
-edge and not a step. Solid brass, 1.5 mm, satin, **192 × 30 mm**.
+Let into the **rim of the seal** flush at 3 mm, so a fingertip crossing it feels
+an edge and not a step. Solid brass, 1.5 mm, satin, **96 × 13 mm**, curved to
+the rim.
 
 Deep-etched and oxide-filled in ink black — **not laser-marked**. Laser marking
 sits on the surface and wears off a plate that gets handled, and this one will
@@ -109,11 +123,11 @@ the object over looking for it.
 
 **265 mm · 1.4 kg · one per category**
 
-The same palm, the same casting process, the same two finishes, at **175 mm**.
-**No crown:** the spine tapers and simply ends.
+The same palm, the same casting, the same cruciform plan and the same two
+finishes, at **184 mm**. **No crown:** the spine tapers and simply ends.
 
-- Block: English oak, **128 × 128 × 26 mm**, same chamfer and finish.
-- Plate: brass, let in flush, 70 mm wide, carrying the category, the year and
+- Seal: turned bronze, **Ø116 × 32 mm**, on an oak ring foot.
+- Plate: brass, let into the rim, 72 mm, carrying the category, the year and
   the winner.
 - Code on the underside, as above.
 
@@ -129,27 +143,7 @@ sponsor buys association with the category, not a share of the recognition.
 
 ---
 
-## The finalist frond
-
-**112 mm · 0.4 kg**
-
-One frond, socketed into a small oak block at **62°** so it leaves the block
-steeply and opens as it rises. Cast brass rather than bronze, polished along the
-upper arris like its larger siblings.
-
-A frond _pair_ laid flat was the first attempt and it read as a moustache. One
-frond reads as what it is: a part of the palm, given to somebody who was part of
-the season.
-
-- Block: English oak, **104 × 104 × 20 mm**.
-- Plate: brass, 54 mm, carrying the category, the year and the name.
-
-Being a PALMA finalist is meant to be worth something on its own, and a
-medallion in a box is not something anybody puts on a shelf.
-
----
-
-## The certificate, for all three
+## The certificate, for both
 
 A5 landscape, 300 gsm mould-made cotton, letterpressed in ink black with the
 palm **blind-embossed** — no ink, pressure only — at 42 mm.
@@ -184,7 +178,7 @@ cannot be reproduced by a home printer, and it is felt before it is seen.
 generate them.
 
 ```
-node docs/trophies/draw-elevation.mjs   # the three, to scale
+node docs/trophies/draw-elevation.mjs   # both, to scale, with the plan
 node docs/trophies/draw-detail.mjs      # THE PALMA, with callouts
 ```
 
