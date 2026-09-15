@@ -56,20 +56,27 @@ is never a surface, never a gradient, and never a button fill on its own.
 
 ### Category pigments
 
-Eight heraldic accents, one per PALMA. This is where the life comes from: a
+Twelve heraldic accents, one per Creator PALMA. This is where the life comes from: a
 category stops being a slug and becomes a colour a reader recognises across
 cards, headers, finalists and the Roll of Honour.
 
-| Category                     | Pigment    |
-| ---------------------------- | ---------- |
-| Creator of the Year          | Amber      |
-| Best Independent Creator     | Oxblood    |
-| Best New Creator             | Verdigris  |
-| Creative Direction           | Aubergine  |
-| Community Impact             | Laurel     |
-| Business of Creating         | Slate      |
-| Craft in Video               | Indigo     |
-| Contribution to the Industry | Terracotta |
+| Creator PALMA               | Pigment     |
+| --------------------------- | ----------- |
+| Female Creator of the Year  | Oxblood     |
+| Male Creator of the Year    | Indigo      |
+| Trans Creator of the Year   | Aubergine   |
+| MILF Creator of the Year    | Damson      |
+| BBW Creator of the Year     | Terracotta  |
+| Fetish Creator of the Year  | Ultramarine |
+| Cosplay Creator of the Year | Verdigris   |
+| Inked Creator of the Year   | Slate       |
+| Live Creator of the Year    | Amber       |
+| Clip Creator of the Year    | Umber       |
+| Creator Duo of the Year     | Sage        |
+| Rising Creator of the Year  | Laurel      |
+
+THE PALMA has no pigment. It is not a category, and it takes the institution's
+own champagne rather than joining a colour scheme it sits above.
 
 Chosen as **pigments rather than screen colours** so they sit with ink and ivory
 instead of shouting over them. Rules:
@@ -166,7 +173,7 @@ time:
    The                                        │  three or    │
    categories                                 │  four facts  │
    ─────────────────                          └──────────────┘
-   Eight honours. Each with published…
+   Twelve Creator PALMAs. Each with published…
    ──────────────────────────────────────────────────────────
    8 CONTESTED │ FIVE CRITERIA │ AUDIENCE SIZE IS NOT ONE
 └─                                                              ─┘

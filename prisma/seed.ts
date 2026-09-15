@@ -1,7 +1,7 @@
 /**
  * PALMA seed.
  *
- * Loads the bundled cast into PostgreSQL: nine people, eight categories, three
+ * Loads the bundled cast into PostgreSQL: nine people, twelve categories, three
  * seasons, the Roll of Honour with signed verification records, the Journal and
  * two sponsors.
  *
@@ -165,9 +165,12 @@ async function main() {
 
   // ── Categories, one set per season ────────────────────────────────────────
   const categoryIds = new Map<string, string>();
+  const slateFor = (season: (typeof seasonSeeds)[number]) =>
+    categorySeeds.filter((category) => season.categorySlugs.includes(category.slug));
+
   for (const season of seasonSeeds) {
     const awardYearId = seasonIds.get(season.year)!;
-    for (const [position, category] of categorySeeds.entries()) {
+    for (const [position, category] of slateFor(season).entries()) {
       const record = await prisma.category.create({
         data: {
           slug: category.slug,
@@ -184,7 +187,11 @@ async function main() {
       categoryIds.set(`${season.year}:${category.slug}`, record.id);
     }
   }
-  console.log(`  categories: ${categorySeeds.length} × ${seasonIds.size} seasons`);
+  console.log(
+    `  categories: ${categoryIds.size} across ${seasonIds.size} seasons (${seasonSeeds
+      .map((season) => `${season.year}: ${season.categorySlugs.length}`)
+      .join(', ')})`,
+  );
 
   // ── The cast ──────────────────────────────────────────────────────────────
   //
@@ -328,7 +335,7 @@ async function main() {
   for (const season of seasonSeeds) {
     const awardYearId = seasonIds.get(season.year)!;
 
-    for (const category of categorySeeds) {
+    for (const category of slateFor(season)) {
       const creatorSlugs = season.results[category.slug] ?? [];
       const categoryId = categoryIds.get(`${season.year}:${category.slug}`)!;
 

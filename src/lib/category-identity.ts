@@ -1,7 +1,7 @@
 /**
  * Category identity.
  *
- * Eight PALMAs, eight pigments. A category should become something a reader
+ * Twelve Creator PALMAs, twelve pigments. A category should become something a reader
  * recognises before they have read its name — on a card, in a header, against
  * a finalist, beside a line in the Roll of Honour.
  *
@@ -19,19 +19,27 @@ export const CATEGORY_PIGMENTS = [
   'terracotta',
   'slate',
   'amber',
+  'damson',
+  'ultramarine',
+  'umber',
+  'sage',
 ] as const;
 
 export type Pigment = (typeof CATEGORY_PIGMENTS)[number];
 
 const ASSIGNED: Record<string, Pigment> = {
-  'creator-of-the-year': 'amber',
-  'best-independent-creator': 'oxblood',
-  'best-new-creator': 'verdigris',
-  'creative-direction': 'aubergine',
-  'community-impact': 'laurel',
-  'business-of-creating': 'slate',
-  'craft-in-video': 'indigo',
-  'industry-contribution': 'terracotta',
+  'female-creator-of-the-year': 'oxblood',
+  'male-creator-of-the-year': 'indigo',
+  'trans-creator-of-the-year': 'aubergine',
+  'milf-creator-of-the-year': 'damson',
+  'bbw-creator-of-the-year': 'terracotta',
+  'fetish-creator-of-the-year': 'ultramarine',
+  'cosplay-creator-of-the-year': 'verdigris',
+  'inked-creator-of-the-year': 'slate',
+  'live-creator-of-the-year': 'amber',
+  'clip-creator-of-the-year': 'umber',
+  'creator-duo-of-the-year': 'sage',
+  'rising-creator-of-the-year': 'laurel',
 };
 
 /**

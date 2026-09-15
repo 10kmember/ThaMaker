@@ -87,7 +87,7 @@ palmaawards.com are seed-owned and reconciled to the cast; accounts on any
 other domain, and rows a person created while testing — a claim, an internal
 note, an enforcement proposal — are left alone.
 
-The archive is deliberately thin: three creators, eight categories, three
+The archive is deliberately thin: three creators, twelve categories, three
 seasons. It is an honest picture of a young institution rather than a fake
 picture of a busy one — and it exercises every state, including the one that
 matters most. **In 2025 the panel declined Community Impact**, and in 2026

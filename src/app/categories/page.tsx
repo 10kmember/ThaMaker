@@ -10,7 +10,7 @@ export const revalidate = 900;
 export const metadata = buildMetadata({
   title: 'Categories',
   description:
-    'Every PALMA category, with its eligibility rules and judging criteria set out in full. The eight honours contested in The Creator Honours.',
+    'Every PALMA category, with its eligibility rules and judging criteria set out in full. The twelve Creator PALMAs contested in The Creator Honours.',
   path: '/categories',
 });
 
@@ -25,14 +25,14 @@ export default async function CategoriesPage() {
         title="The categories"
         titleLines={['The', 'categories']}
         figure={season.year}
-        standfirst="Eight honours. Each with published eligibility rules, published judging criteria, and a panel briefed to discount audience size."
+        standfirst="Twelve Creator PALMAs. Each with published eligibility rules, published judging criteria, and a panel briefed to discount audience size."
         meta={[
           `${categories.length} contested`,
           `${SCORING_CRITERIA.length} weighted criteria, ten points each`,
           'Audience size is not one of them',
         ]}
         plate={
-          <MastheadPlate label="The rule that governs all eight">
+          <MastheadPlate label="The rule that governs all twelve">
             <p className="text-ivory/75 text-sm leading-relaxed">
               A category publishes its eligibility and its judging criteria before nominations open,
               and neither changes mid-season.

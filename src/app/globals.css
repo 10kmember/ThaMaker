@@ -97,7 +97,7 @@
     color-scheme: light;
 
     /* ── Category pigments ─────────────────────────────────────────────────
-     Eight heraldic accents, one per PALMA. This is where the life comes
+     Twelve heraldic accents, one per Creator PALMA. This is where the life comes
      from: a category is not a slug, it is a colour you start to recognise
      across cards, headers, finalists and the Roll of Honour.
 
@@ -127,6 +127,14 @@
     --color-slate-ink: #2f4a63;
     --color-amber: #b8831a;
     --color-amber-ink: #7d5a11;
+    --color-damson: #8e2f6b;
+    --color-damson-ink: #6b2250;
+    --color-ultramarine: #4340a8;
+    --color-ultramarine-ink: #36337f;
+    --color-umber: #7d5233;
+    --color-umber-ink: #5e3d26;
+    --color-sage: #5c7a52;
+    --color-sage-ink: #465c3e;
 
     /* Chart colours.
 
@@ -214,6 +222,14 @@
     --color-slate-ink: #a4bcd8;
     --color-amber: #dcae4a;
     --color-amber-ink: #e8c67e;
+    --color-damson: #ce7fae;
+    --color-damson-ink: #dda3c5;
+    --color-ultramarine: #8c89dd;
+    --color-ultramarine-ink: #aeabe8;
+    --color-umber: #c2906a;
+    --color-umber-ink: #d4ad90;
+    --color-sage: #9dba92;
+    --color-sage-ink: #b8cfae;
 
     /* Chart steps for ink. Not a flip of the light ones — chosen against this
        surface and re-validated on it, which is why indigo sits darker here
@@ -735,6 +751,42 @@
   .palma-chip:focus-visible:not([data-active='true']) {
     color: var(--color-ivory);
     border-color: var(--color-ink);
+  }
+
+  /* A footer trunk.
+
+     Collapsed on a phone so the footer is a handful of headings rather than a
+     long scroll, and forced open from `sm` up, where there is room for the
+     whole tree and hiding it behind a click would only cost a reader time.
+
+     The open state is undone rather than simulated: the UA hides a closed
+     details' children, so `sm` overrides that display rule directly and turns
+     the summary back into plain type. Nothing here depends on JavaScript. */
+  .palma-branch > summary::-webkit-details-marker,
+  .palma-branch > summary::marker {
+    display: none;
+    content: '';
+  }
+
+  @media (min-width: 40rem) {
+    .palma-branch > summary {
+      pointer-events: none;
+    }
+
+    /* Two mechanisms, because browsers disagree about how a closed details
+       hides its content. Chrome uses `content-visibility` on the
+       `::details-content` pseudo-element; older engines hide the light-DOM
+       children with `display`. Undo both and the branch is open on desktop
+       whatever the `open` attribute says. */
+    .palma-branch::details-content {
+      content-visibility: visible;
+      block-size: auto;
+    }
+
+    .palma-branch:not([open]) > *:not(summary) {
+      display: block;
+      content-visibility: visible;
+    }
   }
 
   /* A quiet link — footers, legal, secondary navigation. The mark appears

@@ -5,11 +5,19 @@ import { Container } from './layout';
 import { FOOTER_NAV, LEGAL_NAV, type FooterBranch } from '@/lib/navigation';
 
 /**
- * A branch: a hairline spine with a short stub out to each destination.
+ * The footer as a tree that opens rather than a list that runs on.
  *
- * Drawn the way the mark is drawn, because it is the same idea. The spine is a
- * left border on the list and every item puts a stub across the gap, so the
- * structure is visible without a single box or divider being added to the page.
+ * Every trunk is a `<details>`. On a phone they start closed, so the footer is
+ * five headings and a rule instead of a column of forty links, and a reader
+ * opens the one branch they came for. From `sm` up they are forced open by CSS
+ * and the summary marker is hidden, because a desktop footer has the room and
+ * hiding links behind a click there costs a reader a scan they were going to
+ * do with their eyes anyway.
+ *
+ * `<details>` is deliberate. It opens with no JavaScript, it is keyboard
+ * operable and screen-reader announced without a line of ARIA, and it survives
+ * the page being rendered on the server, which a state-driven accordion does
+ * not. The footer is the last thing that should ship a hydration bundle.
  */
 function Branch({ branch }: { branch: FooterBranch }) {
   return (
@@ -44,7 +52,7 @@ export function SiteFooter() {
   return (
     <footer className="on-ink border-ink bg-ink text-ivory border-t">
       <Container className="py-14 sm:py-16">
-        <div className="flex flex-col gap-12 lg:flex-row lg:justify-between lg:gap-12">
+        <div className="flex flex-col gap-10 lg:flex-row lg:justify-between lg:gap-12">
           <div className="flex max-w-72 shrink-0 flex-col gap-5">
             <Wordmark size="md" descriptor />
             <p className="text-ivory/55 text-sm leading-relaxed">
@@ -54,36 +62,55 @@ export function SiteFooter() {
             <PalmMark className="text-ivory/25 h-10" />
           </div>
 
-          {/* Each column is a trunk. A trunk with several branches spreads
-              across two, which is what keeps the footer short: the longest
-              list stops setting the height of everything beside it. */}
-          <div className="grid flex-1 gap-x-8 gap-y-9 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid flex-1 gap-x-8 sm:grid-cols-2 sm:gap-y-9 lg:grid-cols-5">
             {FOOTER_NAV.map((group) => (
-              <nav
+              <details
                 key={group.title}
-                aria-label={group.title}
-                className={`flex flex-col gap-4 ${
-                  group.branches.length > 1 ? 'sm:col-span-2 lg:col-span-2' : ''
+                className={`palma-branch border-ivory/12 group border-b sm:border-b-0 ${
+                  group.branches.length > 1 ? 'sm:col-span-2' : ''
                 }`}
               >
-                <h2 className="palma-label text-champagne">{group.title}</h2>
-                {group.branches.length > 1 ? (
-                  <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
+                <summary className="palma-label text-champagne flex cursor-pointer list-none items-center justify-between py-4 sm:cursor-default sm:py-0">
+                  {group.title}
+                  {/* A frond that turns down when the branch opens. Hidden from
+                      sm up, where nothing is collapsed to signal. */}
+                  <svg
+                    viewBox="0 0 12 12"
+                    aria-hidden="true"
+                    className="text-ivory/40 h-3 w-3 transition-transform duration-200 group-open:rotate-90 sm:hidden"
+                  >
+                    <path
+                      d="M4 2.5 8 6l-4 3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </summary>
+
+                {/* Two elements, not one. The outer wrapper is what the `sm`
+                    rule forces back into flow, so it must stay a plain block;
+                    the grid lives inside it and keeps its own display. Merging
+                    them means the override and the grid fight, and the grid
+                    loses. */}
+                <div className="pt-1 pb-6 sm:pt-4 sm:pb-0">
+                  <div
+                    className={
+                      group.branches.length > 1 ? 'grid gap-x-8 gap-y-6 sm:grid-cols-2' : ''
+                    }
+                  >
                     {group.branches.map((branch) => (
                       <Branch key={branch.title ?? branch.items[0]?.href} branch={branch} />
                     ))}
                   </div>
-                ) : (
-                  group.branches.map((branch) => (
-                    <Branch key={branch.title ?? branch.items[0]?.href} branch={branch} />
-                  ))
-                )}
-              </nav>
+                </div>
+              </details>
             ))}
           </div>
         </div>
 
-        <nav aria-label="Legal register" className="border-ivory/12 mt-12 border-t pt-7">
+        <nav aria-label="Legal register" className="mt-10 sm:mt-12">
           <h2 className="palma-label text-champagne">The register</h2>
           <ul className="text-ivory/55 mt-4 flex flex-wrap gap-x-7 gap-y-3 text-xs">
             {LEGAL_NAV.map((item) => (

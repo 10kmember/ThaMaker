@@ -176,94 +176,153 @@ export type CategorySeed = {
   judgingCriteria: string;
 };
 
+/**
+ * The twelve Creator PALMAs.
+ *
+ * Twelve categories, and above them THE PALMA, which is not in this list
+ * because it is not a category: it is conferred once a season on one creator
+ * for a career rather than for a year, it cannot be nominated for, and its
+ * rules live in `src/domain/the-palma.ts`.
+ *
+ * Every category recognises achievement in creator work. Several are genre or
+ * identity categories, and those are self-declared at nomination: PALMA asks
+ * for no documentation of anyone's gender, body or private life, and holds
+ * none. That is the same rule the privacy architecture already applies to
+ * verification, applied here so that entering a category never becomes a
+ * reason to hand PALMA something it has no business keeping.
+ */
 export const categorySeeds: CategorySeed[] = [
   {
-    slug: 'creator-of-the-year',
-    name: 'Creator of the Year',
-    strapline: 'The defining body of work of the season.',
+    slug: 'female-creator-of-the-year',
+    name: 'Female Creator of the Year',
+    strapline: 'The year defined by a woman in the industry.',
     description:
-      'The highest PALMA. Awarded to the creator whose work has most clearly defined the year, in craft, in consequence, and in how it changed what other creators believed was possible.',
+      'For the female creator whose work across the qualifying year set the standard, in craft, in consistency, and in what it led other creators to attempt.',
     eligibility:
-      'Open to any creator aged 18 or over who published work between 1 January and 31 December of the qualifying year. Nominees may work in any medium and any territory. Previous winners may be nominated again after two seasons.',
+      'Open to creators aged 18 or over who identify as women. Gender is self-declared at the point of nomination and PALMA requests no evidence of it. Work must have been published during the qualifying year.',
     judgingCriteria:
-      'Judges weigh originality and impact most heavily, with consistency of output across the full qualifying year treated as a threshold rather than a bonus.',
+      'Achievement and creative quality lead. Judges are briefed to disregard follower and subscriber counts entirely, and to assess a full year of work rather than a single release.',
   },
   {
-    slug: 'best-independent-creator',
-    name: 'Best Independent Creator',
-    strapline: 'Work made without a network behind it.',
+    slug: 'male-creator-of-the-year',
+    name: 'Male Creator of the Year',
+    strapline: 'The year defined by a man in the industry.',
     description:
-      'For creators operating without a studio, network, label or agency holding editorial control. Independence is judged on control of the work, not on scale of audience.',
+      'For the male creator whose work across the qualifying year set the standard, judged on the same criteria and to the same weighting as every other Creator PALMA.',
     eligibility:
-      'Nominees must retain editorial and commercial control of their primary output, and must not be under an exclusive content agreement with a studio, network or label during the qualifying year.',
+      'Open to creators aged 18 or over who identify as men. Gender is self-declared at the point of nomination and PALMA requests no evidence of it. Work must have been published during the qualifying year.',
     judgingCriteria:
-      'Originality, consistency and professionalism carry equal weight. Judges are asked explicitly to discount audience size.',
+      'Achievement and creative quality lead. Judges are briefed to disregard follower and subscriber counts entirely, and to assess a full year of work rather than a single release.',
   },
   {
-    slug: 'best-new-creator',
-    name: 'Best New Creator',
-    strapline: 'The first two years, done properly.',
+    slug: 'trans-creator-of-the-year',
+    name: 'Trans Creator of the Year',
+    strapline: 'The year defined by a trans creator.',
     description:
-      'For a creator whose first published work appeared within two years of the qualifying period, and who arrived with a point of view already formed.',
+      'For the trans creator whose work across the qualifying year set the standard. The category recognises the work, and it is judged against the same six criteria as every other Creator PALMA.',
     eligibility:
-      'First public work must have been published no earlier than two years before the start of the qualifying year. A creator may win this PALMA once.',
+      'Open to creators aged 18 or over who identify as trans. Identity is self-declared at the point of nomination. PALMA requests no documentation, holds no record of transition or medical history, and will refuse such material if it is offered.',
     judgingCriteria:
-      'Originality carries the greatest weight. Judges are asked to assess the work on its own terms rather than against creators with a decade of practice behind them.',
+      "Achievement and creative quality lead. Judges are briefed to disregard follower and subscriber counts, and to assess the work rather than the creator's biography.",
   },
   {
-    slug: 'creative-direction',
-    name: 'Creative Direction',
-    strapline: 'The eye that decided how it looks.',
+    slug: 'milf-creator-of-the-year',
+    name: 'MILF Creator of the Year',
+    strapline: "The standard-setter in one of the industry's largest genres.",
     description:
-      'For the visual intelligence behind a body of work: art direction, styling, set, colour, typography and edit treated as decisions rather than defaults. This PALMA recognises the person who set the look, whether or not they appear in the work themselves.',
+      'A genre PALMA. For the creator whose work in this category defined it across the qualifying year, judged on craft, consistency and the strength of the body of work like any other honour.',
     eligibility:
-      'Open to any creator aged 18 or over who held creative or art direction over work published during the qualifying year. A nominee may be credited as director, stylist, editor or creator, and a team may be nominated through its lead.',
+      'Open to creators aged 18 or over whose published work during the qualifying year sits substantially within this genre. Genre placement is self-declared at nomination, and a creator may be nominated in more than one category.',
     judgingCriteria:
-      'Judges weigh coherence of a visual language across a body of work above any single striking image. A look that is merely expensive is not direction, and judges are asked to say what decision they can see.',
+      'Judges weigh production quality, range and consistency across the year. Genre popularity is not a criterion, and a category with a large audience is not thereby an easier one to win.',
   },
   {
-    slug: 'community-impact',
-    name: 'Community Impact',
-    strapline: 'Work whose consequence outlived its audience.',
+    slug: 'bbw-creator-of-the-year',
+    name: 'BBW Creator of the Year',
+    strapline: "The year's strongest body of work in the category.",
     description:
-      'For work that changed something outside itself: a practice other creators adopted, a subject taken seriously, a standard raised for everyone working in the same field.',
+      'A genre PALMA, recognising the creator whose work in this category most clearly set the standard across the qualifying year.',
     eligibility:
-      'Open to any creator aged 18 or over. The impact claimed must be evidenced and must have occurred during the qualifying year.',
+      'Open to creators aged 18 or over. Category placement is self-declared at nomination, PALMA asks for no physical description and records none, and a creator may be nominated in more than one category.',
     judgingCriteria:
-      'Impact is weighed most heavily, and reach is explicitly not impact. Judges are asked what changed because this work exists.',
+      'Judges weigh production quality, range and consistency across the year, and are briefed to disregard follower and subscriber counts.',
   },
   {
-    slug: 'business-of-creating',
-    name: 'Business of Creating',
-    strapline: 'The company built behind the work.',
+    slug: 'fetish-creator-of-the-year',
+    name: 'Fetish Creator of the Year',
+    strapline: 'Specialist work, made properly.',
     description:
-      'For the creator who has built something durable around what they make: pricing held, rights retained, people employed and paid properly, income that does not depend on a single platform staying friendly.',
+      'For the creator whose specialist work showed the clearest craft across the qualifying year: concept, production, presentation and an evident understanding of the audience it is made for.',
     eligibility:
-      'Open to any creator aged 18 or over whose business traded through the qualifying year. Nominees are not required to disclose turnover, and PALMA does not ask for accounts.',
+      'Open to creators aged 18 or over whose published work during the qualifying year sits substantially within this category, and whose work is lawful and consistent with the PALMA content policy. Nominations point to work; nothing explicit is uploaded to PALMA.',
     judgingCriteria:
-      'Judges weigh durability and the terms a creator secured for themselves and their collaborators. Revenue alone is not the measure, and a large business built on poor terms scores below a small one built on good ones.',
+      'Judges weigh craft, originality and consistency. Shock is not a criterion. A judge who cannot assess a nomination without viewing material PALMA does not host assesses it externally or declares that they cannot.',
   },
   {
-    slug: 'craft-in-video',
-    name: 'Craft in Video',
-    strapline: 'Shot, cut and finished properly.',
+    slug: 'cosplay-creator-of-the-year',
+    name: 'Cosplay Creator of the Year',
+    strapline: 'Costume, character and production, held together.',
     description:
-      'For technical craft in moving image: camera, lighting, sound, pacing and the edit. This PALMA is for the work that holds up when the sound is on and the screen is large.',
+      'For the creator whose costume and character work was the most accomplished across the qualifying year. This is a craft category: construction, styling, lighting, staging and the discipline of staying in character.',
     eligibility:
-      'Open to any creator aged 18 or over who published moving-image work during the qualifying year, in any length and on any platform. Craft may be executed by the nominee or directed by them.',
+      'Open to creators aged 18 or over who published costume or character work during the qualifying year. Costumes may be made or commissioned, and where commissioned the maker should be credited in the nomination.',
+    judgingCriteria:
+      'Judges weigh construction and finish, fidelity of character, and the quality of the photography or video around it. A commissioned costume worn well scores below one conceived and built by the creator.',
+  },
+  {
+    slug: 'inked-creator-of-the-year',
+    name: 'Inked Creator of the Year',
+    strapline: 'A visual identity carried through the work.',
+    description:
+      'For the tattooed creator whose visual identity is a deliberate part of the work rather than incidental to it, and whose output across the qualifying year was the strongest in the category.',
+    eligibility:
+      'Open to creators aged 18 or over. Category placement is self-declared at nomination, and a creator may be nominated in more than one category.',
+    judgingCriteria:
+      'Judges weigh how coherently the visual identity runs through a body of work, alongside the usual criteria of craft and consistency. A tattoo is not an achievement; what is built around it can be.',
+  },
+  {
+    slug: 'live-creator-of-the-year',
+    name: 'Live Creator of the Year',
+    strapline: 'Unedited, in real time, and still excellent.',
+    description:
+      'For the creator whose live work was the most accomplished across the qualifying year. Live is the hardest discipline in the industry because nothing can be fixed afterwards: the room, the pacing and the audience are handled once.',
+    eligibility:
+      'Open to creators aged 18 or over who broadcast live during the qualifying year on any platform. Hours streamed are recorded as context and are not a criterion.',
+    judgingCriteria:
+      'Judges weigh presence, pacing, technical quality and the handling of a live audience. Volume of streaming is not a criterion, and a creator who streams less but better scores higher.',
+  },
+  {
+    slug: 'clip-creator-of-the-year',
+    name: 'Clip Creator of the Year',
+    strapline: 'Self-produced, start to finish.',
+    description:
+      'For the creator whose self-produced work was the strongest across the qualifying year: written, shot, performed, edited and released by the creator, usually alone.',
+    eligibility:
+      'Open to creators aged 18 or over who produced and published their own work during the qualifying year. Where a creator worked with a crew, the nomination should say so.',
     judgingCriteria:
       'Judges assess craft against the resources actually available, so a well-finished piece made alone can outscore a studio production. Sound is weighed as heavily as picture.',
   },
   {
-    slug: 'industry-contribution',
-    name: 'Contribution to the Industry',
-    strapline: 'Making the work safer, fairer or better for the next person.',
+    slug: 'creator-duo-of-the-year',
+    name: 'Creator Duo of the Year',
+    strapline: 'Two people, one body of work.',
     description:
-      'For sustained contribution beyond the work a nominee publishes themselves: mentorship, advocacy, safety, rates, rights, or standards that other creators now benefit from. The contribution is the achievement, and it need not have been publicised.',
+      'For the pair whose collaborative work across the qualifying year was the strongest. The honour is held jointly and both names enter the Roll of Honour together.',
     eligibility:
-      'Open to any creator aged 18 or over, and to those working alongside creators in the industry. The contribution must have been active during the qualifying year, though it may have begun long before it.',
+      'Open to two creators aged 18 or over who published collaborative work together during the qualifying year. Both must consent to the nomination, and a duo that has since separated remains eligible for work published while it was together.',
     judgingCriteria:
-      'Judges weigh what materially changed for other people. Advocacy that produced a result scores above advocacy that produced attention, and quiet, unpublicised work is explicitly eligible.',
+      "Judges weigh the work the pair made together rather than either creator's separate output, and look for a partnership that produced something neither would have made alone.",
+  },
+  {
+    slug: 'rising-creator-of-the-year',
+    name: 'Rising Creator of the Year',
+    strapline: 'The first years, done properly.',
+    description:
+      'For the creator who arrived with a point of view already formed. This is the category that most often predicts the rest of the Roll of Honour.',
+    eligibility:
+      'Open to creators aged 18 or over whose first published work appeared no earlier than three years before the start of the qualifying year. A creator may win this PALMA once.',
+    judgingCriteria:
+      'Originality carries the greatest weight, and judges assess the work on its own terms rather than against creators with a decade of practice behind them.',
   },
 ];
 
@@ -289,6 +348,16 @@ export type SeasonSeed = {
   finalistsAt: string | null;
   ceremonyAt: string | null;
   /**
+   * The categories contested that season, in order.
+   *
+   * A season runs the slate it announced, not today's slate. PALMA opened with
+   * six Creator PALMAs and has grown to twelve, so an archived season must show
+   * the categories that actually existed then. Without this, adding a category
+   * in 2027 would silently invent it into 2025 and either fabricate a winner or
+   * imply the panel declined an honour it was never asked to confer.
+   */
+  categorySlugs: string[];
+  /**
    * category slug → [winner, ...finalists] creator slugs.
    *
    * A category absent from this map, or present with an empty list, was
@@ -305,24 +374,31 @@ export const seasonSeeds: SeasonSeed[] = [
     stage: 'archived',
     tagline: 'The first record.',
     summary:
-      'The inaugural PALMA season. Eight categories, an independent panel, and the first names entered into the Roll of Honour.',
+      'The inaugural PALMA season. Six categories, an independent panel, and the first names entered into the Roll of Honour.',
     isCurrent: false,
     nominationsOpenAt: '2025-01-14T09:00:00.000Z',
     nominationsCloseAt: '2025-03-31T23:00:00.000Z',
     shortlistAt: '2025-05-06T09:00:00.000Z',
     finalistsAt: '2025-06-17T09:00:00.000Z',
     ceremonyAt: '2025-09-25T18:00:00.000Z',
+    // The opening slate: six.
+    categorySlugs: [
+      'female-creator-of-the-year',
+      'male-creator-of-the-year',
+      'trans-creator-of-the-year',
+      'live-creator-of-the-year',
+      'clip-creator-of-the-year',
+      'rising-creator-of-the-year',
+    ],
     results: {
-      'creator-of-the-year': ['maya-rivers', 'jordan-smith', 'noor-haddad'],
-      'best-independent-creator': ['noor-haddad', 'maya-rivers', 'jordan-smith'],
-      'best-new-creator': ['jordan-smith', 'noor-haddad'],
-      'creative-direction': ['noor-haddad', 'maya-rivers'],
+      'female-creator-of-the-year': ['maya-rivers', 'noor-haddad'],
+      'male-creator-of-the-year': ['jordan-smith'],
+      'trans-creator-of-the-year': ['noor-haddad', 'maya-rivers'],
+      'live-creator-of-the-year': ['jordan-smith', 'maya-rivers', 'noor-haddad'],
       // Contested, judged, and not conferred: the panel found no candidacy that
       // met the standard. The public record says so.
-      'community-impact': [],
-      'business-of-creating': ['maya-rivers', 'jordan-smith'],
-      'craft-in-video': ['jordan-smith', 'maya-rivers', 'noor-haddad'],
-      'industry-contribution': ['noor-haddad', 'jordan-smith'],
+      'clip-creator-of-the-year': [],
+      'rising-creator-of-the-year': ['noor-haddad', 'jordan-smith'],
     },
   },
   {
@@ -331,24 +407,37 @@ export const seasonSeeds: SeasonSeed[] = [
     stage: 'archived',
     tagline: 'The record holds.',
     summary:
-      'A second season, and the first repeat honour in the Roll of Honour — the point at which an archive starts being worth checking.',
+      'A second season, nine categories, and the first repeat honour in the Roll of Honour. The point at which an archive starts being worth checking.',
     isCurrent: false,
     nominationsOpenAt: '2026-01-13T09:00:00.000Z',
     nominationsCloseAt: '2026-03-30T23:00:00.000Z',
     shortlistAt: '2026-05-05T09:00:00.000Z',
     finalistsAt: '2026-06-16T09:00:00.000Z',
     ceremonyAt: '2026-09-24T18:00:00.000Z',
+    // Three added: the genre categories arrive.
+    categorySlugs: [
+      'female-creator-of-the-year',
+      'male-creator-of-the-year',
+      'trans-creator-of-the-year',
+      'milf-creator-of-the-year',
+      'fetish-creator-of-the-year',
+      'cosplay-creator-of-the-year',
+      'live-creator-of-the-year',
+      'clip-creator-of-the-year',
+      'rising-creator-of-the-year',
+    ],
     results: {
-      'creator-of-the-year': ['jordan-smith', 'maya-rivers', 'noor-haddad'],
-      'best-independent-creator': ['maya-rivers', 'noor-haddad', 'jordan-smith'],
-      'best-new-creator': ['noor-haddad', 'jordan-smith'],
-      'creative-direction': ['maya-rivers', 'noor-haddad', 'jordan-smith'],
-      'community-impact': ['maya-rivers', 'jordan-smith', 'noor-haddad'],
-      'business-of-creating': ['jordan-smith', 'maya-rivers'],
-      // A second category the panel declined to confer. Two in three seasons is
-      // the standard being real rather than decorative.
-      'craft-in-video': [],
-      'industry-contribution': ['maya-rivers', 'noor-haddad', 'jordan-smith'],
+      'female-creator-of-the-year': ['noor-haddad', 'maya-rivers'],
+      'male-creator-of-the-year': ['jordan-smith', 'noor-haddad'],
+      'trans-creator-of-the-year': ['maya-rivers', 'noor-haddad', 'jordan-smith'],
+      'milf-creator-of-the-year': ['maya-rivers', 'jordan-smith'],
+      'fetish-creator-of-the-year': ['jordan-smith', 'maya-rivers'],
+      'cosplay-creator-of-the-year': ['noor-haddad', 'jordan-smith', 'maya-rivers'],
+      'live-creator-of-the-year': ['maya-rivers', 'noor-haddad'],
+      'clip-creator-of-the-year': ['jordan-smith', 'noor-haddad', 'maya-rivers'],
+      // A second declined honour. Two across three seasons is the standard
+      // being real rather than decorative.
+      'rising-creator-of-the-year': [],
     },
   },
   {
@@ -357,26 +446,32 @@ export const seasonSeeds: SeasonSeed[] = [
     stage: 'nominations_open',
     tagline: 'Recognising the people shaping creator culture.',
     summary:
-      'The third PALMA season. Nominations are open across eight categories, judged by an independent panel and announced in four stages.',
+      'The third PALMA season. Nominations are open across all twelve Creator PALMAs, judged by an independent panel and announced in four stages. THE PALMA is conferred at the ceremony.',
     isCurrent: true,
     nominationsOpenAt: '2026-09-01T09:00:00.000Z',
     nominationsCloseAt: '2027-01-31T23:00:00.000Z',
     shortlistAt: '2027-03-10T09:00:00.000Z',
     finalistsAt: '2027-05-12T09:00:00.000Z',
     ceremonyAt: '2027-09-23T18:00:00.000Z',
+    // The full slate for the first time.
+    categorySlugs: categorySeeds.map((category) => category.slug),
     results: {},
   },
 ];
 
 export const citations: Record<string, string> = {
-  'creator-of-the-year': 'For a body of work that set the standard of the season.',
-  'best-independent-creator': 'For sustained, independent work held to an uncommon standard.',
-  'best-new-creator': 'For arriving with a point of view already fully formed.',
-  'creative-direction': 'For a visual language other people started borrowing.',
-  'community-impact': 'For work whose consequence was felt well beyond its audience.',
-  'business-of-creating': 'For building something durable without giving away the terms.',
-  'craft-in-video': 'For work that holds up with the sound on and the screen large.',
-  'industry-contribution': 'For making the work fairer for people who will never know it was them.',
+  'female-creator-of-the-year': 'For a year of work that set the standard and held it.',
+  'male-creator-of-the-year': 'For a year of work that set the standard and held it.',
+  'trans-creator-of-the-year': 'For work that made the case on its own terms.',
+  'milf-creator-of-the-year': 'For defining a category rather than occupying it.',
+  'bbw-creator-of-the-year': 'For a body of work of uncommon range and consistency.',
+  'fetish-creator-of-the-year': 'For specialist work made with unusual care.',
+  'cosplay-creator-of-the-year': 'For character work built rather than bought.',
+  'inked-creator-of-the-year': 'For a visual identity carried through every frame.',
+  'live-creator-of-the-year': 'For work that could not be fixed afterwards and did not need to be.',
+  'clip-creator-of-the-year': 'For writing, shooting, performing and cutting it alone, and well.',
+  'creator-duo-of-the-year': 'For making together what neither would have made apart.',
+  'rising-creator-of-the-year': 'For arriving with a point of view already fully formed.',
 };
 
 export const sponsors = [
@@ -395,7 +490,7 @@ export const sponsors = [
     summary: 'An independent audio studio and post house.',
     websiteUrl: 'https://example.com/northbank-audio',
     tier: 'category_partner' as const,
-    categorySlug: 'best-new-creator',
+    categorySlug: 'rising-creator-of-the-year',
   },
 ];
 
@@ -409,7 +504,7 @@ export const articles = [
   {
     slug: 'palma-2027-nominations-open',
     title: 'Nominations for PALMA 2027 are open',
-    standfirst: 'Eight categories, one nomination each, and a closing date that will not move.',
+    standfirst: 'Twelve categories, one nomination each, and a closing date that will not move.',
     categorySlug: 'announcements',
     status: 'published' as const,
     publishedAt: '2026-09-01T09:00:00.000Z',
