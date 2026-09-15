@@ -28,51 +28,98 @@ export const PUBLIC_NAV: NavItem[] = [
   { href: '/about', label: 'About' },
 ];
 
-export const FOOTER_NAV: { title: string; items: NavItem[] }[] = [
+/**
+ * The footer, as a branching structure rather than four flat lists.
+ *
+ * A column is a trunk; a branch is a named group of destinations hanging off
+ * it. This exists because "Institution" had eleven links in a single run while
+ * its neighbours had four, which made the footer tall, ragged and hard to scan.
+ * Splitting the long trunk into named branches lets the column sit two abreast,
+ * so the same eleven destinations occupy roughly half the height and arrive
+ * sorted rather than piled.
+ *
+ * It is also the right shape for this institution. The mark is a spine with
+ * fronds coming off it, and the footer is drawn the same way: a rule down the
+ * side of each branch with a short stub out to every item.
+ */
+export type FooterBranch = { title?: string; items: NavItem[] };
+export const FOOTER_NAV: { title: string; branches: FooterBranch[] }[] = [
   {
     title: 'The Honours',
-    items: [
-      { href: '/the-palma', label: 'THE PALMA' },
-      { href: '/awards', label: 'Awards' },
-      { href: '/categories', label: 'Categories' },
-      { href: '/finalists', label: 'Finalists' },
-      { href: '/winners', label: 'Winners' },
-      { href: '/paroh', label: 'PALMA Roll of Honour' },
+    branches: [
+      {
+        items: [
+          { href: '/the-palma', label: 'THE PALMA' },
+          { href: '/awards', label: 'Awards' },
+          { href: '/categories', label: 'Categories' },
+          { href: '/finalists', label: 'Finalists' },
+          { href: '/winners', label: 'Winners' },
+          { href: '/paroh', label: 'PALMA Roll of Honour' },
+        ],
+      },
     ],
   },
   {
     title: 'Take part',
-    items: [
-      { href: '/nominate', label: 'Nominate a creator' },
-      { href: '/creators', label: 'Creators' },
-      { href: '/verify', label: 'Verify an honour' },
-      { href: '/report', label: 'Report a concern' },
+    branches: [
+      {
+        items: [
+          { href: '/nominate', label: 'Nominate a creator' },
+          { href: '/creators', label: 'Creators' },
+          { href: '/verify', label: 'Verify an honour' },
+          { href: '/report', label: 'Report a concern' },
+        ],
+      },
     ],
   },
   {
     title: 'Institution',
-    items: [
-      { href: '/about', label: 'About PALMA' },
-      { href: '/about/judging', label: 'How judging works' },
-      { href: '/about/judges', label: 'The panel' },
-      { href: '/about/sponsors', label: 'Partners' },
-      { href: '/about/policy', label: 'Content policy' },
-      { href: '/kulture', label: 'Kulture' },
-      { href: '/journal', label: 'The Journal' },
-      { href: '/lists/awards', label: 'PALMA Awards' },
-      { href: '/lists/journal', label: 'PALMA Journal' },
-      { href: '/press', label: 'Press' },
-      { href: '/contact', label: 'Contact' },
+    branches: [
+      {
+        title: 'About',
+        items: [
+          { href: '/about', label: 'About PALMA' },
+          { href: '/about/judging', label: 'How judging works' },
+          { href: '/about/judges', label: 'The panel' },
+          { href: '/about/policy', label: 'Content policy' },
+        ],
+      },
+      {
+        title: 'Reading',
+        items: [
+          { href: '/kulture', label: 'Kulture' },
+          { href: '/journal', label: 'The Journal' },
+        ],
+      },
+      {
+        title: 'Mailing lists',
+        items: [
+          { href: '/lists/awards', label: 'PALMA Awards' },
+          { href: '/lists/journal', label: 'PALMA Journal' },
+        ],
+      },
+      {
+        title: 'Enquiries',
+        items: [
+          { href: '/about/sponsors', label: 'Partners' },
+          { href: '/press', label: 'Press' },
+          { href: '/contact', label: 'Contact' },
+        ],
+      },
     ],
   },
   {
     title: 'Account',
-    items: [
-      { href: '/creator', label: 'Creators' },
-      { href: '/judge', label: 'Judges' },
-      { href: '/portal', label: 'Moderation' },
-      { href: '/admin', label: 'Administration' },
-      { href: '/humans.txt', label: 'humans.txt' },
+    branches: [
+      {
+        items: [
+          { href: '/creator', label: 'Creators' },
+          { href: '/judge', label: 'Judges' },
+          { href: '/portal', label: 'Moderation' },
+          { href: '/admin', label: 'Administration' },
+          { href: '/humans.txt', label: 'humans.txt' },
+        ],
+      },
     ],
   },
 ];
