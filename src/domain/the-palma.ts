@@ -38,7 +38,7 @@ export const NAME_ERRORS: { wrong: RegExp; why: string }[] = [
   },
   {
     wrong: /\blifetime\s+achievement\b/i,
-    why: 'THE PALMA is not a lifetime achievement award — it is winnable by an active creator.',
+    why: 'THE PALMA is not a lifetime achievement award. It is winnable by an active creator.',
   },
   {
     wrong: /\bpalma\s+award\s+for\b/i,
@@ -107,7 +107,7 @@ export const CONSIDERATIONS = [
   {
     key: 'community',
     title: 'Audience and community significance',
-    detail: 'What the work means to the people it reached — not how many of them there were.',
+    detail: 'What the work means to the people it reached, not how many of them there were.',
   },
   {
     key: 'achievement',

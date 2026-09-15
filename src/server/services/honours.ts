@@ -6,7 +6,8 @@ import { recordAudit, type AuditActor } from '@/server/audit';
 import { requireDb } from '@/server/db';
 import { sendHonourConferred, sendHonourRevoked } from '@/server/email/messages';
 
-export type HonourKind = 'shortlist' | 'finalist' | 'winner' | 'special_recognition';
+export type { HonourKind } from '@/domain/honours';
+import type { HonourKind } from '@/domain/honours';
 
 export type ConferInput = {
   candidacyId: string;

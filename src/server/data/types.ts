@@ -1,6 +1,7 @@
 import type { SeasonStage } from '@/domain/season';
 
-export type HonourKind = 'shortlist' | 'finalist' | 'winner' | 'special_recognition';
+export { HONOUR_KINDS, HONOUR_LABEL, type HonourKind } from '@/domain/honours';
+import type { HonourKind } from '@/domain/honours';
 export type HonourState = 'active' | 'revoked';
 export type VerificationStatus =
   'unverified' | 'pending' | 'verified' | 'failed' | 'expired' | 'revoked';

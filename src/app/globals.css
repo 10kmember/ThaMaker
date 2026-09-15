@@ -1074,6 +1074,114 @@
     }
   }
 
+  /* ── The threshold ────────────────────────────────────────────────────
+
+     Two ink panels that part from the centreline on arrival. Pure CSS, in the
+     server-rendered markup, so it animates from the first paint rather than
+     waiting for a bundle: the page underneath is complete the whole time and
+     this is a covering that leaves, not a screen that has to finish.
+
+     Everything is transform and opacity, so it runs on the compositor and
+     cannot cause layout. `forwards` leaves it hidden and non-interactive. */
+  .palma-threshold {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    pointer-events: none;
+    animation: palma-threshold-done 0s linear 820ms forwards;
+  }
+
+  .palma-threshold-leaf {
+    position: absolute;
+    top: -2px;
+    bottom: -2px;
+    width: 51vw;
+    background: var(--color-ink);
+    will-change: transform;
+  }
+
+  .palma-threshold-leaf[data-side='left'] {
+    left: 0;
+    animation: palma-part-left 700ms var(--ease-ceremonial) 90ms both;
+  }
+
+  .palma-threshold-leaf[data-side='right'] {
+    right: 0;
+    animation: palma-part-right 700ms var(--ease-ceremonial) 90ms both;
+  }
+
+  /* The mark sits on its own ink plate.
+
+     Without one it ends up champagne on ivory the moment the panels open
+     behind it, which is the worst contrast pairing in the palette. The plate
+     keeps it on ink for its whole life and reads as a struck seal rather than
+     a logo that lost its background. */
+  .palma-threshold-mark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    display: grid;
+    place-items: center;
+    width: 112px;
+    height: 112px;
+    margin: -56px 0 0 -56px;
+    background: var(--color-ink);
+    animation: palma-threshold-mark 820ms var(--ease-ceremonial) both;
+    will-change: transform, opacity;
+  }
+
+  @keyframes palma-part-left {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      transform: translate3d(-100%, 0, 0);
+    }
+  }
+
+  @keyframes palma-part-right {
+    from {
+      transform: translate3d(0, 0, 0);
+    }
+    to {
+      transform: translate3d(100%, 0, 0);
+    }
+  }
+
+  /* The mark holds for a beat while the panels open behind it, then lifts. */
+  @keyframes palma-threshold-mark {
+    0% {
+      opacity: 0;
+      transform: scale(0.82);
+    }
+    20% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    52% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.42);
+    }
+  }
+
+  @keyframes palma-threshold-done {
+    to {
+      visibility: hidden;
+    }
+  }
+
+  /* Removed outright rather than shortened. A curtain nobody asked for is
+     precisely what this setting is asking not to see. */
+  @media (prefers-reduced-motion: reduce) {
+    .palma-threshold {
+      display: none;
+    }
+  }
+
   /* The institutional label: small, spaced, quietly authoritative. */
   .palma-label {
     font-size: 0.6875rem;

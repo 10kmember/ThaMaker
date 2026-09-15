@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { MARK_CROWN, MARK_PATHS, MARK_VIEWBOX } from './geometry';
 
 type PalmMarkProps = {
   className?: string;
@@ -10,17 +11,21 @@ type PalmMarkProps = {
 /**
  * The PALMA mark.
  *
- * A palm reduced to an engraved spine and open fronds that sweep upward — the
+ * A palm reduced to an engraved spine and open fronds that sweep upward: the
  * geometry of victory and honour rather than a picture of a tree. The fronds
  * are single open strokes, never closed leaf shapes, so the mark reads as a
  * ceremonial engraving at any size.
+ *
+ * The paths live in `geometry.ts` and are shared with the favicon, the seal and
+ * every generated image, so the mark cannot be redrawn by hand in one place and
+ * quietly stop matching itself in the others.
  */
 export function PalmMark({ className, variant = 'line', title }: PalmMarkProps) {
   const decorative = !title;
 
   return (
     <svg
-      viewBox="0 0 48 56"
+      viewBox={MARK_VIEWBOX}
       fill="none"
       className={cn('h-6 w-auto', className)}
       role={decorative ? 'presentation' : 'img'}
@@ -35,21 +40,10 @@ export function PalmMark({ className, variant = 'line', title }: PalmMarkProps) 
         strokeLinecap="round"
         fill="none"
       >
-        {/* Spine */}
-        <path d="M24 53V9" />
-
-        {/* Fronds: open sweeps, longest at the crown, tightening downward */}
-        <path d="M24 13C18.2 9.8 12.6 9.4 7.2 11.8" />
-        <path d="M24 13c5.8-3.2 11.4-3.6 16.8-1.2" />
-        <path d="M24 21.5C18.8 17.6 13.5 16.3 8.2 17.6" />
-        <path d="M24 21.5c5.2-3.9 10.5-5.2 15.8-3.9" />
-        <path d="M24 30.5c-4.6-4.2-9.3-6-14-5.4" />
-        <path d="M24 30.5c4.6-4.2 9.3-6 14-5.4" />
-        <path d="M24 39.5c-3.9-4.2-7.9-6.3-11.9-6.2" />
-        <path d="M24 39.5c3.9-4.2 7.9-6.3 11.9-6.2" />
-
-        {/* Crown */}
-        <circle cx="24" cy="5.4" r="2.1" />
+        {MARK_PATHS.map((d) => (
+          <path key={d} d={d} />
+        ))}
+        <circle cx={MARK_CROWN.cx} cy={MARK_CROWN.cy} r={MARK_CROWN.r} />
       </g>
     </svg>
   );

@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { MARK_CENTRE, MARK_CROWN, MARK_PATHS } from './geometry';
 
 type PalmaSealProps = {
   className?: string;
@@ -86,22 +87,19 @@ export function PalmaSeal({
         </textPath>
       </text>
 
-      {/* Palm geometry, engraved */}
+      {/* The same palm as the site mark, moved to the seal's centre rather
+          than redrawn at a smaller number of fronds. */}
       <g
-        transform="translate(110 98) scale(1.45)"
+        transform={`translate(110 104) scale(1.5) translate(${-MARK_CENTRE.x} ${-MARK_CENTRE.y})`}
         stroke="currentColor"
-        strokeWidth="0.9"
+        strokeWidth="0.62"
         strokeLinecap="round"
         fill="none"
       >
-        <path d="M0 20V-16" />
-        <path d="M0-11C-5.6-14.6-11.5-15-17-12.6" />
-        <path d="M0-11c5.6-3.6 11.5-4 17-1.6" />
-        <path d="M0-1.5C-5-5.9-10.6-7.4-16-6" />
-        <path d="M0-1.5c5-4.4 10.6-5.9 16-4.5" />
-        <path d="M0 8.5c-4.4-4.6-9.2-6.6-14-6" />
-        <path d="M0 8.5c4.4-4.6 9.2-6.6 14-6" />
-        <circle cx="0" cy="-19.6" r="2" />
+        {MARK_PATHS.map((d) => (
+          <path key={d} d={d} />
+        ))}
+        <circle cx={MARK_CROWN.cx} cy={MARK_CROWN.cy} r={MARK_CROWN.r} />
       </g>
 
       {centre ? (

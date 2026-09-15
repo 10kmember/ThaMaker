@@ -148,10 +148,25 @@ const MODERATOR: Permission[] = [
   'verification:review_manual',
   // The desk presets records for claiming, so the importer is theirs too.
   'editorial:import_creators',
-  // The desk owns the pages a sponsor's name appears on, so it places them —
+  // The desk owns the pages a sponsor's name appears on, so it places them,
   // but only sponsors administration has already approved, and only while the
   // matching feature is live.
   'commercial:assign_placement',
+  // The desk also owns what is switched on.
+  //
+  // A feature flag decides whether a public surface exists at all, which makes
+  // it an editorial decision before it is a commercial one: the people who run
+  // the pages are the people who should be able to take one down at four in the
+  // afternoon without finding an administrator. Switching one ON still demands
+  // a written reason of at least ten characters and is audited with the name of
+  // whoever threw it.
+  //
+  // What this deliberately does NOT carry is the money. Creating a sponsor,
+  // pricing a package and licensing the mark stay with administration, so the
+  // desk can decide whether a surface is live without being able to decide who
+  // pays to be on it.
+  'commercial:view',
+  'commercial:manage_features',
 ];
 
 const ADMIN: Permission[] = [
@@ -180,6 +195,7 @@ const ADMIN: Permission[] = [
   'commercial:manage_packages',
   'commercial:manage_campaigns',
   'commercial:manage_event_commerce',
+  'commercial:manage_features',
   'commercial:assign_placement',
 ];
 

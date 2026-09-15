@@ -1,6 +1,7 @@
 import { BadgeCheck, Award, Medal } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { HONOUR_LABEL } from '@/domain/honours';
 import type { HonourEntry, VerificationStatus } from '@/server/data/types';
 
 export function VerificationBadge({
@@ -23,13 +24,6 @@ export function VerificationBadge({
     </Badge>
   );
 }
-
-const HONOUR_LABEL: Record<HonourEntry['kind'], string> = {
-  winner: 'PALMA Winner',
-  finalist: 'PALMA Finalist',
-  shortlist: 'PALMA Shortlist',
-  special_recognition: 'Special Recognition',
-};
 
 export function AchievementBadge({
   kind,

@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: Params) {
 
   return buildMetadata({
     title: `Nominate ${creator.displayName}`,
-    description: `Nominate ${creator.displayName} for a PALMA — The Creator Honours. It takes under a minute and needs no account.`,
+    description: `Nominate ${creator.displayName} for a PALMA, The Creator Honours. It takes under a minute and needs no account.`,
     path: `/nominate/${creator.slug}`,
     image: `/creators/${creator.slug}/opengraph-image`,
   });

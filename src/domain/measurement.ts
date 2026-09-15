@@ -61,7 +61,7 @@ export const SURFACES = [
   {
     key: 'kulture',
     label: 'Kulture',
-    note: 'Editorial readership — the Journal and everything under Kulture.',
+    note: 'Editorial readership: the Journal and everything under Kulture.',
     match: (path: string) =>
       path === '/journal' || path.startsWith('/journal/') || path.startsWith('/kulture'),
   },
@@ -131,7 +131,7 @@ export function surfaceOf(path: string): SurfaceKey {
 export const REFUSED = [
   {
     term: 'Unique visitors',
-    why: 'Requires telling one person from another across a day. That needs an identifier — a cookie, an IP, or a hash of one — and PALMA holds none of them.',
+    why: 'Requires telling one person from another across a day. That needs an identifier, such as a cookie, an IP, or a hash of one, and PALMA holds none of them.',
   },
   {
     term: 'Returning visitors',

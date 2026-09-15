@@ -1,3 +1,4 @@
+import type { HonourKind } from '@/domain/honours';
 import { constantTimeEquals, hmac, sha256 } from '@/lib/crypto';
 
 /**
@@ -18,7 +19,7 @@ export type AchievementPayload = {
   creatorName: string;
   categoryName: string;
   year: number;
-  kind: 'shortlist' | 'finalist' | 'winner' | 'special_recognition';
+  kind: HonourKind;
   issuedAt: string;
 };
 

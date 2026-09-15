@@ -98,7 +98,7 @@ export default function MarkPage() {
     },
     {
       heading: 'If you were nominated',
-      plainly: 'You may mention it, plainly, once — but a nomination is not an honour.',
+      plainly: 'You may mention it, plainly, once. A nomination is not an honour.',
       body: (
         <p>
           Anyone can be nominated, because anyone can nominate. You may say you were nominated in a

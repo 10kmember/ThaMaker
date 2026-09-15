@@ -60,7 +60,7 @@ export const SCORING_CRITERIA = [
     weight: 10,
     description: 'What the work means to the people it reached.',
     guidance:
-      'Not how many. This is the criterion most easily misread, so it is put plainly: score what the work means to the community around it — whether it gave people something they did not have, whether it is defended and passed on. Follower counts, subscriber numbers and view counts are not evidence for this criterion and must be disregarded.',
+      'Not how many. This is the criterion most easily misread, so it is put plainly: score what the work means to the community around it: whether it gave people something they did not have, whether it is defended and passed on. Follower counts, subscriber numbers and view counts are not evidence for this criterion and must be disregarded.',
   },
   {
     key: 'fit',

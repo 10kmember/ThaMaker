@@ -402,7 +402,7 @@ export default function PrivacyPage() {
     },
     {
       heading: 'Judging confidentiality',
-      plainly: 'Scores and deliberations stay closed — to creators, sponsors and the public alike.',
+      plainly: 'Scores and deliberations stay closed, to creators, sponsors and the public alike.',
       body: (
         <>
           <p>
@@ -593,7 +593,7 @@ export default function PrivacyPage() {
     },
     {
       heading: 'Your rights',
-      plainly: 'Access, correction, erasure, objection — and a regulator if PALMA gets it wrong.',
+      plainly: 'Access, correction, erasure, objection, and a regulator if PALMA gets it wrong.',
       body: (
         <>
           <p>Subject to the conditions and exemptions in law, you have the right to:</p>

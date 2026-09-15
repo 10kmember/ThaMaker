@@ -4,6 +4,7 @@ import { headers } from 'next/headers';
 import { SiteHeader } from '@/components/palma/SiteHeader';
 import { SiteFooter } from '@/components/palma/SiteFooter';
 import { PageCounter } from '@/components/palma/PageCounter';
+import { Threshold } from '@/components/brand/Threshold';
 import { MotionProvider } from '@/components/motion/MotionProvider';
 import { THEME_BOOTSTRAP } from '@/lib/theme';
 import { JsonLd, organisationJsonLd, SITE_DESCRIPTOR, SITE_NAME } from '@/lib/seo';
@@ -97,6 +98,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         >
           Skip to content
         </a>
+        {/* Parts on arrival. Pure CSS, in the markup, gone in 820ms. */}
+        {chrome ? <Threshold /> : null}
         <MotionProvider>
           {chrome ? <SiteHeader /> : null}
           <main id="main" className="flex-1">

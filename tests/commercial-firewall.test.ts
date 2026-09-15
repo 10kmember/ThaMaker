@@ -71,18 +71,36 @@ describe('the commercial firewall', () => {
   });
 
   it('never lets a moderator change what PALMA sells', () => {
-    // Moderation is an editorial job. Pricing is not.
+    // Moderation is an editorial job. Pricing is not. The desk may take a
+    // surface down; it may not decide who pays to be on it or what they pay.
     for (const permission of [
       'commercial:manage_packages',
-      'commercial:manage_features',
+      'commercial:manage_sponsors',
+      'commercial:manage_campaigns',
+      'commercial:manage_licensing',
     ] as const) {
-      expect(can('moderator', permission)).toBe(false);
+      expect(can('moderator', permission), `moderator can ${permission}`).toBe(false);
     }
   });
 
-  it('reserves feature flags and licensing for a super administrator', () => {
-    expect(can('admin', 'commercial:manage_features')).toBe(false);
-    expect(can('super_admin', 'commercial:manage_features')).toBe(true);
+  it('lets both the desk and administration switch a surface on or off', () => {
+    // A feature flag decides whether a public surface exists at all, which is
+    // an editorial decision before it is a commercial one. Whoever runs the
+    // pages should be able to take one down without hunting for a super
+    // administrator, so all three hold it.
+    for (const role of ['moderator', 'admin', 'super_admin'] as const) {
+      expect(can(role, 'commercial:manage_features'), `${role} cannot toggle`).toBe(true);
+    }
+    // A creator or a judge emphatically does not.
+    for (const role of ['creator', 'judge', 'visitor'] as const) {
+      expect(can(role, 'commercial:manage_features'), `${role} can toggle`).toBe(false);
+    }
+  });
+
+  it('reserves licensing the mark for a super administrator', () => {
+    // Licensing is the one commercial act that puts PALMA's name on somebody
+    // else's product in perpetuity, so it stays at the top.
+    expect(can('moderator', 'commercial:manage_licensing')).toBe(false);
     expect(can('admin', 'commercial:manage_licensing')).toBe(false);
     expect(can('super_admin', 'commercial:manage_licensing')).toBe(true);
   });
@@ -92,7 +110,7 @@ describe('the commercial firewall', () => {
    *
    * An administrator runs the whole institution, including its business, and
    * at PALMA's scale that is one or two people rather than two departments. So
-   * the invariant worth asserting is not "nobody holds both" — that would force
+   * the invariant worth asserting is not "nobody holds both", which would force
    * a fake separation and be quietly relaxed the first time somebody needed to
    * do their job. It is that holding a commercial permission *grants* nothing
    * on the judging side: the sets are disjoint, so commercial access can never
@@ -142,12 +160,20 @@ describe('the commercial firewall', () => {
     for (const permission of [
       'commercial:manage_sponsors',
       'commercial:manage_packages',
-      'commercial:manage_features',
       'commercial:manage_licensing',
       'commercial:manage_campaigns',
     ] as const) {
       expect(can('moderator', permission), `moderator can ${permission}`).toBe(false);
     }
+  });
+
+  it('keeps toggling a feature away from the money behind it', () => {
+    // The split the desk's access rests on: every role that can switch a
+    // commercial surface on must be unable to create the sponsor who would
+    // appear on it, unless it is administration doing both knowingly.
+    expect(can('moderator', 'commercial:manage_features')).toBe(true);
+    expect(can('moderator', 'commercial:manage_sponsors')).toBe(false);
+    expect(can('moderator', 'commercial:manage_packages')).toBe(false);
   });
 
   it('still requires two administrators for the decisions that matter', () => {

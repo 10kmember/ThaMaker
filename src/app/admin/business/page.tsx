@@ -18,7 +18,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata = buildMetadata({
   title: 'Business',
-  description: 'PALMA’s commercial side — sponsors, packages and what is for sale.',
+  description: 'PALMA’s commercial side: sponsors, packages and what is for sale.',
   path: '/admin/business',
   noIndex: true,
 });

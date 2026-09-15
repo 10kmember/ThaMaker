@@ -55,6 +55,11 @@ export const MODERATION_NAV: AdminGroup[] = [
         label: 'Sponsor placements',
         permission: 'commercial:assign_placement',
       },
+      {
+        href: '/portal/features',
+        label: 'Features',
+        permission: 'commercial:manage_features',
+      },
       { href: '/paroh', label: 'PaROH', permission: 'operations:view_dashboard' },
     ],
   },
