@@ -60,7 +60,11 @@ export function SiteHeader({ accountHref = '/creator' }: { accountHref?: string 
   return (
     <header
       className={cn(
-        'sticky top-0 z-40 border-b transition-colors duration-300',
+        // `pt-[env(safe-area-inset-top)]` is what makes the header the top of
+        // the page on a notched phone: the bar runs under the status bar and
+        // pushes its own contents clear of it, rather than the document
+        // starting below the notch and leaving a strip above the header.
+        'sticky top-0 z-40 border-b pt-[env(safe-area-inset-top)] transition-colors duration-300',
         condensed || open
           ? 'border-stone-deep bg-ivory/92 backdrop-blur-md'
           : 'bg-ivory border-transparent',

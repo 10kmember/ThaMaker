@@ -99,6 +99,12 @@ function readingMinutes(body: string): number {
  * the local database untrustworthy in exactly the way PALMA is built not to be.
  */
 async function reset() {
+  // Proposals point at seasons and creators that are about to be deleted, so
+  // they go first. Left behind, a proposal survives a reseed and reappears on
+  // the desk pointing at an award year that no longer exists.
+  await prisma.consequentialAction.deleteMany({
+    where: { kind: { in: ['the_palma_conferral', 'honour_revocation'] } },
+  });
   await prisma.verificationRecord.deleteMany();
   await prisma.achievement.deleteMany();
   await prisma.honour.deleteMany();

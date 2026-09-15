@@ -1,6 +1,7 @@
 import { Container, Section } from '@/components/palma/layout';
 import { Masthead, MastheadPlate, PlateFact } from '@/components/palma/Masthead';
 import { CategoryCard } from '@/components/palma/CategoryCard';
+import { Reveal } from '@/components/palma/Reveal';
 import { buildMetadata } from '@/lib/seo';
 import { SCORING_CRITERIA } from '@/domain/judging';
 import { getCurrentSeason, listCategories } from '@/server/data/queries';
@@ -47,9 +48,15 @@ export default async function CategoriesPage() {
 
       <Section>
         <Container>
+          {/* The stagger is by row rather than by card. On a phone the grid is
+              one column, so staggering per card would make the twelfth arrive
+              two seconds after the first; per row, the delay resets as the
+              reader moves down the page and every card arrives promptly. */}
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {categories.map((category, index) => (
-              <CategoryCard key={category.slug} category={category} index={index} />
+              <Reveal key={category.slug} delay={(index % 3) * 70}>
+                <CategoryCard category={category} index={index} />
+              </Reveal>
             ))}
           </div>
         </Container>

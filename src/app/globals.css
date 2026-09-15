@@ -273,6 +273,20 @@
   html {
     -webkit-text-size-adjust: 100%;
     scroll-behavior: smooth;
+
+    /* Stop the document rubber-banding past its own top.
+
+       On a phone, pulling down past the top bounces the whole document and
+       uncovers whatever is behind it, which reads as a strip appearing above a
+       header that is meant to be the top of the page. Containing the overscroll
+       keeps the header welded to the edge. Pull-to-refresh goes with it, which
+       on a site with no feed to refresh is no loss. */
+    overscroll-behavior-y: none;
+
+    /* The canvas takes the page's colour explicitly rather than inheriting it
+       from body. Anything the browser paints outside the document, including
+       the safe area on a notched phone, is then ivory rather than white. */
+    background-color: var(--color-ivory);
   }
 
   /* The paper itself.

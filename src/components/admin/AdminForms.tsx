@@ -7,7 +7,8 @@ import { Notice } from '@/components/ui/feedback';
 import {
   advanceSeason,
   assignJudges,
-  conferThePalmaAction,
+  decideThePalmaAction,
+  proposeThePalmaAction,
   confirmFinalists,
   confirmWinner,
   reviewCandidacy,
@@ -169,7 +170,7 @@ export function ThePalmaForm({
   seasons: { id: string; title: string }[];
   creators: { id: string; displayName: string }[];
 }) {
-  const [state, action, pending] = useActionState(conferThePalmaAction, initial);
+  const [state, action, pending] = useActionState(proposeThePalmaAction, initial);
   const [creatorId, setCreatorId] = useState('');
   const [confirmation, setConfirmation] = useState('');
 
@@ -244,13 +245,59 @@ export function ThePalmaForm({
           autoComplete="off"
         />
         <p className="text-taupe-deep text-xs leading-relaxed">
-          One a year, never shared and never repeated. The database refuses a second.
+          One a year, never shared and never repeated. Proposing does not confer it: a second person
+          has to sign it off, and it cannot be the person who proposed it.
         </p>
       </div>
 
       <Button type="submit" size="md" disabled={pending || !confirmed}>
-        {pending ? 'Conferring…' : 'Confer THE PALMA'}
+        {pending ? 'Proposing…' : 'Propose THE PALMA'}
       </Button>
+      <Feedback state={state} />
+    </form>
+  );
+}
+
+/**
+ * The second signature.
+ *
+ * Two buttons and no fields. Everything that could be argued about was written
+ * at the desk when the proposal was made; this is the moment somebody who did
+ * not write it agrees with it, which is the only thing a two-person rule is
+ * asking for.
+ */
+export function ThePalmaDecision({
+  actionId,
+  subject,
+  proposedBy,
+}: {
+  actionId: string;
+  subject: string;
+  proposedBy: string;
+}) {
+  const [state, action, pending] = useActionState(decideThePalmaAction, initial);
+
+  return (
+    <form action={action} className="flex flex-col gap-4">
+      <input type="hidden" name="actionId" value={actionId} />
+      <p className="text-taupe-deep text-xs">
+        Proposed by {proposedBy}. They cannot confer it themselves.
+      </p>
+      <div className="flex flex-wrap gap-3">
+        <Button type="submit" name="decision" value="confer" size="sm" disabled={pending}>
+          {pending ? 'Conferring…' : `Confer ${subject}`}
+        </Button>
+        <Button
+          type="submit"
+          name="decision"
+          value="decline"
+          size="sm"
+          variant="outline"
+          disabled={pending}
+        >
+          Decline
+        </Button>
+      </div>
       <Feedback state={state} />
     </form>
   );

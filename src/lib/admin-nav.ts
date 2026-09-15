@@ -65,6 +65,11 @@ export const MODERATION_NAV: AdminGroup[] = [
         label: 'Features',
         permission: 'commercial:manage_features',
       },
+      {
+        href: '/portal/the-palma',
+        label: 'THE PALMA',
+        permission: 'honours:propose_the_palma',
+      },
       { href: '/paroh', label: 'PaROH', permission: 'operations:view_dashboard' },
     ],
   },
@@ -93,7 +98,7 @@ export const ADMIN_NAV: AdminGroup[] = [
       },
       // Its own destination, not a panel inside the standings screen. Only
       // super administrators see it, because only they can confer it.
-      { href: '/admin/the-palma', label: 'THE PALMA', permission: 'admin:confer_the_palma' },
+      { href: '/admin/the-palma', label: 'THE PALMA', permission: 'honours:confer_the_palma' },
       { href: '/paroh', label: 'PaROH', permission: 'admin:view_dashboard' },
     ],
   },

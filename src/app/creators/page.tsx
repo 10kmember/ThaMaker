@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { after } from 'next/server';
 import { Container, Section } from '@/components/palma/layout';
+import { Reveal } from '@/components/palma/Reveal';
 import { Masthead } from '@/components/palma/Masthead';
 import { CreatorCard } from '@/components/palma/CreatorCard';
 import { EmptyState } from '@/components/ui/feedback';
@@ -140,7 +141,9 @@ export default async function CreatorsPage({ searchParams }: Props) {
           ) : (
             <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
               {creators.map((creator, index) => (
-                <CreatorCard key={creator.slug} creator={creator} priority={index < 4} />
+                <Reveal key={creator.slug} delay={(index % 4) * 70}>
+                  <CreatorCard creator={creator} priority={index < 4} />
+                </Reveal>
               ))}
             </div>
           )}

@@ -57,20 +57,31 @@ describe('THE PALMA as an honour kind', () => {
 });
 
 describe('who may confer it', () => {
-  it('is super administrators alone', () => {
-    const allowed = ROLES.filter((role) => can(role, 'admin:confer_the_palma'));
-    expect(allowed).toEqual(['super_admin']);
+  it('splits the work from the signature', () => {
+    // The desk does the work: naming the panel's choice and writing the
+    // citation. It cannot complete the act alone, because a moderator who can
+    // both edit a creator's record and confer the highest honour on them is
+    // the hole the outcome firewall exists to close.
+    expect(can('moderator', 'honours:propose_the_palma')).toBe(true);
+    expect(can('moderator', 'honours:confer_the_palma')).toBe(false);
+
+    const mayConfer = ROLES.filter((role) => can(role, 'honours:confer_the_palma'));
+    expect(mayConfer).toEqual(['admin', 'super_admin']);
   });
 
-  it('is withheld from administrators who may still select category winners', () => {
-    // The distinction is the point: this is not "an admin thing", it is the
-    // one outcome an administrator cannot reach.
-    expect(can('admin', 'admin:select_winners')).toBe(true);
-    expect(can('admin', 'admin:confer_the_palma')).toBe(false);
+  it('is never open to a creator, a judge or the public', () => {
+    // A judge scoring candidacies must not also be able to confer the honour
+    // those candidacies compete beneath.
+    for (const role of ['visitor', 'creator', 'judge'] as const) {
+      expect(can(role, 'honours:confer_the_palma'), role).toBe(false);
+      expect(can(role, 'honours:propose_the_palma'), role).toBe(false);
+    }
   });
 
-  it('is an outcome permission, so a sponsor can never hold it', () => {
-    expect(OUTCOME_PERMISSIONS).toContain('admin:confer_the_palma');
+  it('treats conferring as an outcome and proposing as not one', () => {
+    expect(OUTCOME_PERMISSIONS).toContain('honours:confer_the_palma');
+    // Proposing must stay off this list, or the desk loses it again.
+    expect(OUTCOME_PERMISSIONS).not.toContain('honours:propose_the_palma');
   });
 });
 

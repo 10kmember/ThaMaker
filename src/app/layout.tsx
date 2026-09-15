@@ -66,6 +66,16 @@ export const viewport: Viewport = {
     { media: '(prefers-color-scheme: dark)', color: '#14151a' },
   ],
   colorScheme: 'light dark',
+  /**
+   * The page runs to the physical edge of the screen.
+   *
+   * Without this a notched phone letterboxes the document below the status
+   * bar, which puts a strip of nothing above a header that is supposed to be
+   * the top of the page. With it, the header runs under the status bar and
+   * pads itself back out with `env(safe-area-inset-top)`, so the ivory reaches
+   * the edge and the header is genuinely at the top.
+   */
+  viewportFit: 'cover',
 };
 
 /**

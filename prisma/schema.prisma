@@ -212,6 +212,8 @@ enum VerificationCaseStatus {
 enum ConsequentialActionKind {
   account_ban
   honour_revocation
+  /// THE PALMA. Proposed at the desk, conferred by a second person.
+  the_palma_conferral
 }
 
 enum NotificationChannel {

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Container, Section } from '@/components/palma/layout';
+import { Reveal } from '@/components/palma/Reveal';
 import { Masthead } from '@/components/palma/Masthead';
 import { SeasonRail } from '@/components/palma/SeasonRail';
 import { pigmentStyle } from '@/lib/category-identity';
@@ -132,12 +133,13 @@ export default async function FinalistsPage({ searchParams }: Props) {
 
               <div className="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
                 {outcome.finalists.map((finalist, position) => (
-                  <FinalistCard
-                    key={finalist.creator.slug}
-                    finalist={finalist}
-                    index={position}
-                    categorySlug={outcome.category.slug}
-                  />
+                  <Reveal key={finalist.creator.slug} delay={(position % 4) * 70}>
+                    <FinalistCard
+                      finalist={finalist}
+                      index={position}
+                      categorySlug={outcome.category.slug}
+                    />
+                  </Reveal>
                 ))}
               </div>
             </Container>

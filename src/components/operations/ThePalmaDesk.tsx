@@ -1,0 +1,176 @@
+import { ThePalmaDecision, ThePalmaForm } from '@/components/admin/AdminForms';
+import { Notice } from '@/components/ui/feedback';
+import { prisma } from '@/server/db';
+import { CONSIDERATIONS, NOT_MEASURED, THE_PALMA_CRITERION } from '@/domain/the-palma';
+import { can } from '@/lib/auth/rbac';
+import { currentRole } from '@/lib/auth/guards';
+
+/**
+ * THE PALMA desk.
+ *
+ * One implementation, rendered at both `/portal/the-palma` and
+ * `/admin/the-palma`. Conferring it is desk work: the panel decides, and an
+ * operator records the decision, the same way every other entry in the record
+ * is made. Administration keeps its own door to the same screen because the
+ * audit log, not the URL, is what says who did it.
+ *
+ * Written as a component rather than duplicated across two routes because two
+ * copies of a screen this consequential is two places for the rules to drift.
+ */
+export async function ThePalmaDesk() {
+  const role = await currentRole();
+  const mayPropose = can(role, 'honours:propose_the_palma');
+  const mayConfer = can(role, 'honours:confer_the_palma');
+
+  const [seasons, creators, proposals, conferred] = await Promise.all([
+    prisma.awardYear.findMany({
+      orderBy: { year: 'desc' },
+      select: { id: true, year: true, title: true },
+    }),
+    prisma.creator.findMany({
+      where: { isPublished: true, isSuspended: false },
+      orderBy: { displayName: 'asc' },
+      select: { id: true, displayName: true },
+      take: 500,
+    }),
+    prisma.consequentialAction.findMany({
+      where: { kind: 'the_palma_conferral', executedAt: null, cancelledAt: null },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        entityId: true,
+        subject: true,
+        reason: true,
+        requestedBy: { select: { name: true } },
+      },
+    }),
+    prisma.honour.findMany({
+      where: { kind: 'the_palma', state: 'active' },
+      orderBy: { awardYear: { year: 'desc' } },
+      select: {
+        id: true,
+        citation: true,
+        awardYear: { select: { year: true } },
+        creator: { select: { displayName: true } },
+        achievement: { select: { code: true } },
+      },
+    }),
+  ]);
+
+  const taken = new Set(conferred.map((honour) => honour.awardYear.year));
+  const open = seasons.filter((season) => !taken.has(season.year));
+
+  return (
+    <>
+      <h1 className="text-3xl">THE PALMA</h1>
+
+      <Notice className="mt-5" title="What this screen does">
+        {THE_PALMA_CRITERION} It is conferred once a season, never shared, and never given to the
+        same creator twice. There is no nomination behind it and no shortlist it comes through.
+      </Notice>
+
+      <section className="border-stone-deep mt-12 border p-7">
+        <h2 className="font-display text-2xl">Conferred</h2>
+        {conferred.length === 0 ? (
+          <p className="text-taupe-deep mt-4 text-sm">None yet.</p>
+        ) : (
+          <ul className="mt-6 flex flex-col gap-6">
+            {conferred.map((honour) => (
+              <li key={honour.id} className="border-stone-deep flex flex-col gap-2 border-t pt-5">
+                <div className="flex flex-wrap items-baseline gap-x-4">
+                  <span className="font-display text-xl">{honour.creator.displayName}</span>
+                  <span className="palma-label text-taupe-deep tabular-nums">
+                    {honour.awardYear.year}
+                  </span>
+                  {honour.achievement ? (
+                    <span className="text-taupe-deep font-mono text-xs">
+                      {honour.achievement.code}
+                    </span>
+                  ) : null}
+                </div>
+                {honour.citation ? (
+                  <p className="text-taupe-deep max-w-160 text-sm leading-relaxed">
+                    {honour.citation}
+                  </p>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {/* Awaiting a second signature. Shown to both desks: the desk that wrote
+          it needs to see that it is still waiting, and the person who can
+          confer it needs somewhere to do that. */}
+      {proposals.length > 0 ? (
+        <section className="border-champagne-deep mt-10 border p-7">
+          <h2 className="font-display text-2xl">Awaiting a second signature</h2>
+          <ul className="mt-6 flex flex-col gap-8">
+            {proposals.map((proposal) => (
+              <li key={proposal.id} className="border-stone-deep flex flex-col gap-3 border-t pt-5">
+                <span className="font-display text-xl">{proposal.subject}</span>
+                <p className="text-taupe-deep max-w-160 text-sm leading-relaxed">
+                  {proposal.reason}
+                </p>
+                {mayConfer ? (
+                  <ThePalmaDecision
+                    actionId={proposal.id}
+                    subject={proposal.subject}
+                    proposedBy={proposal.requestedBy.name}
+                  />
+                ) : (
+                  <p className="text-taupe-deep text-xs">
+                    Proposed by {proposal.requestedBy.name}. It is conferred when a second person
+                    with the authority signs it off.
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      {mayPropose ? (
+        <section className="border-stone-deep mt-10 border p-7">
+          <h2 className="font-display text-2xl">Propose</h2>
+
+          {open.length === 0 ? (
+            <Notice className="mt-5" tone="warning">
+              Every season on record already holds THE PALMA. There is one a year.
+            </Notice>
+          ) : (
+            <div className="mt-7 grid gap-12 lg:grid-cols-2">
+              <ThePalmaForm seasons={open} creators={creators} />
+
+              <div className="flex flex-col gap-8">
+                <div>
+                  <h3 className="palma-label text-taupe-deep">What the panel weighs</h3>
+                  <ul className="mt-4 flex flex-col gap-2">
+                    {CONSIDERATIONS.map((consideration) => (
+                      <li key={consideration.key} className="text-sm leading-relaxed">
+                        <span className="font-medium">{consideration.title}.</span>{' '}
+                        <span className="text-taupe-deep">{consideration.detail}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  <h3 className="palma-label text-taupe-deep">What it is not</h3>
+                  <ul className="mt-4 flex flex-col gap-2">
+                    {NOT_MEASURED.map((entry) => (
+                      <li key={entry.term} className="text-sm leading-relaxed">
+                        <span className="font-medium">{entry.term}.</span>{' '}
+                        <span className="text-taupe-deep">{entry.why}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+      ) : null}
+    </>
+  );
+}

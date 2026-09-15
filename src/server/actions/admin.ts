@@ -12,7 +12,7 @@ import { recordAudit } from '@/server/audit';
 import { sendCandidacyUpdate, sendPanelAssignment } from '@/server/email/messages';
 import { requireDb } from '@/server/db';
 import { conferHonour, conferThePalma, revokeHonour } from '@/server/services/honours';
-import { nameObjections } from '@/domain/the-palma';
+import { conferralObjections, nameObjections } from '@/domain/the-palma';
 
 export type AdminState = { status: 'idle' | 'error' | 'success'; message?: string };
 
@@ -533,18 +533,19 @@ export async function advanceSeason(
 }
 
 /**
- * Confer THE PALMA.
+ * Propose THE PALMA.
  *
- * Its own action, its own permission and its own screen. THE PALMA is not
- * selected from a shortlist and has no proposal to accept: an administrator
- * names a creator from the whole record and writes the citation, and the
- * domain decides whether that is allowed.
+ * The desk's half. It writes a proposal and nothing else: no honour, no
+ * achievement, no verification record. The panel decides who receives THE
+ * PALMA, the desk records that decision and the citation, and a second person
+ * with `honours:confer_the_palma` completes it.
  *
- * `admin:confer_the_palma` is held by super administrators alone. Every other
- * outcome permission is held by administrators too; this one is not, because
- * there is one a year and no way to un-confer it that leaves the record clean.
+ * This split is why the desk can own the work without the firewall moving. A
+ * moderator can edit a creator's record; if the same moderator could also
+ * confer the institution's highest honour on that creator, one person would
+ * hold both halves of the only story PALMA sells.
  */
-export async function conferThePalmaAction(
+export async function proposeThePalmaAction(
   _previous: AdminState,
   formData: FormData,
 ): Promise<AdminState> {
@@ -552,9 +553,9 @@ export async function conferThePalmaAction(
 
   let session;
   try {
-    session = await authorise('admin:confer_the_palma');
+    session = await authorise('honours:propose_the_palma');
   } catch {
-    return { status: 'error', message: 'You are not authorised to confer THE PALMA.' };
+    return { status: 'error', message: 'You are not authorised to propose THE PALMA.' };
   }
 
   const awardYearId = String(formData.get('awardYearId') ?? '').trim();
@@ -564,23 +565,176 @@ export async function conferThePalmaAction(
   if (!awardYearId) return { status: 'error', message: 'Choose a season.' };
   if (!creatorId) return { status: 'error', message: 'Name a creator.' };
 
-  // The copy is checked before the honour is written. A citation that calls it
-  // a lifetime achievement award, or "the PALMA Award", is the name eroding in
-  // the institution's own records, which is the one place it must not.
+  // The naming rules apply to the citation before it is stored, not after.
   const naming = nameObjections(citation);
-  if (naming.length > 0) {
-    return { status: 'error', message: naming.join(' ') };
+  if (naming.length > 0) return { status: 'error', message: naming.join(' ') };
+
+  const db = requireDb();
+  const [awardYear, creator] = await Promise.all([
+    db.awardYear.findUnique({ where: { id: awardYearId }, select: { year: true } }),
+    db.creator.findUnique({
+      where: { id: creatorId },
+      select: {
+        displayName: true,
+        isPublished: true,
+        isSuspended: true,
+        verification: { select: { status: true } },
+      },
+    }),
+  ]);
+
+  if (!awardYear) return { status: 'error', message: 'That season does not exist.' };
+  if (!creator) return { status: 'error', message: 'That creator does not exist.' };
+
+  // Everything the conferral will check, checked now, so the desk finds out
+  // at the point of writing rather than the approver finding out days later.
+  const [existingThisSeason, held] = await Promise.all([
+    db.honour.count({ where: { awardYearId, kind: 'the_palma', state: 'active' } }),
+    db.honour.findMany({
+      where: { creatorId, kind: 'the_palma', state: 'active' },
+      select: { awardYear: { select: { year: true } } },
+    }),
+  ]);
+
+  // Checked here as well as at conferral, and with the real status rather than
+  // an assumed one. A proposal that can never be conferred is worse than a
+  // refusal: the desk believes it has done the work, and the person signing it
+  // off days later is the one who discovers it cannot be done.
+  const objections = conferralObjections({
+    existingThisSeason,
+    creatorHeldIn: held.map((honour) => honour.awardYear.year),
+    creatorIsVerified: creator.verification?.status === 'verified',
+    creatorIsPublished: creator.isPublished && !creator.isSuspended,
+    citation,
+  });
+  if (objections.length > 0) return { status: 'error', message: objections.join(' ') };
+
+  // A proposal names two things, a season and a creator, and this table has
+  // one id column. They are stored joined, with the type saying so, rather than
+  // the approver re-deriving the creator by matching the subject line against
+  // names — which breaks the first time two creators share a prefix.
+  const entityId = `${awardYearId}:${creatorId}`;
+
+  const pending = await db.consequentialAction.findFirst({
+    where: {
+      kind: 'the_palma_conferral',
+      entityId: { startsWith: `${awardYearId}:` },
+      executedAt: null,
+      cancelledAt: null,
+    },
+  });
+  if (pending) {
+    return { status: 'error', message: 'THE PALMA is already proposed for that season.' };
+  }
+
+  const proposal = await db.consequentialAction.create({
+    data: {
+      kind: 'the_palma_conferral',
+      entityType: 'AwardYear:Creator',
+      entityId,
+      subject: `${creator.displayName} — THE PALMA ${awardYear.year}`,
+      reason: citation,
+      requestedById: session.user.id,
+    },
+  });
+
+  // The creator is carried on the audit entry rather than a column, because
+  // ConsequentialAction has no field for it and inventing one for a single
+  // kind would be worse than writing it down where it is already written.
+  await recordAudit({
+    action: 'action.proposed',
+    entityType: 'ConsequentialAction',
+    entityId: proposal.id,
+    actor: { id: session.user.id, role: session.user.role, label: session.user.email },
+    summary: `THE PALMA ${awardYear.year} proposed for ${creator.displayName}`,
+    after: { creatorId, citation },
+  });
+
+  revalidatePath('/portal/the-palma');
+  revalidatePath('/admin/the-palma');
+
+  return {
+    status: 'success',
+    message: 'Proposed. It is conferred when a second person approves it.',
+  };
+}
+
+/**
+ * Confer or decline a proposed PALMA.
+ *
+ * The second signature. The approver may not be the proposer, which is the
+ * whole point of a two-person rule and is enforced here rather than trusted.
+ */
+export async function decideThePalmaAction(
+  _previous: AdminState,
+  formData: FormData,
+): Promise<AdminState> {
+  await assertSameOrigin();
+
+  let session;
+  try {
+    session = await authorise('honours:confer_the_palma');
+  } catch {
+    return { status: 'error', message: 'You are not authorised to confer THE PALMA.' };
+  }
+
+  const id = String(formData.get('actionId') ?? '').trim();
+  const decision = String(formData.get('decision') ?? '').trim();
+  const db = requireDb();
+
+  const proposal = await db.consequentialAction.findUnique({ where: { id } });
+  if (!proposal || proposal.kind !== 'the_palma_conferral') {
+    return { status: 'error', message: 'That proposal does not exist.' };
+  }
+  if (proposal.executedAt || proposal.cancelledAt) {
+    return { status: 'error', message: 'That proposal has already been settled.' };
+  }
+
+  if (decision === 'decline') {
+    await db.consequentialAction.update({
+      where: { id },
+      data: { cancelledAt: new Date(), cancelledReason: 'Declined before conferral.' },
+    });
+    await recordAudit({
+      action: 'action.cancelled',
+      entityType: 'ConsequentialAction',
+      entityId: id,
+      actor: { id: session.user.id, role: session.user.role, label: session.user.email },
+      summary: `${proposal.subject} declined. No PALMA was conferred.`,
+    });
+    revalidatePath('/portal/the-palma');
+    revalidatePath('/admin/the-palma');
+    return { status: 'success', message: 'Declined. Nothing was conferred.' };
+  }
+
+  if (proposal.requestedById === session.user.id) {
+    return {
+      status: 'error',
+      message:
+        'You proposed this. A second person has to confer it — that is the point of the rule.',
+    };
+  }
+
+  const [awardYearId, creatorId] = proposal.entityId.split(':');
+  if (!awardYearId || !creatorId) {
+    return { status: 'error', message: 'That proposal is malformed and cannot be conferred.' };
   }
 
   const result = await conferThePalma({
     awardYearId,
     creatorId,
-    citation,
+    citation: proposal.reason,
     actor: { id: session.user.id, role: session.user.role, label: session.user.email },
   });
 
   if (!result.ok) return { status: 'error', message: result.reason };
 
+  await db.consequentialAction.update({
+    where: { id },
+    data: { approvedById: session.user.id, approvedAt: new Date(), executedAt: new Date() },
+  });
+
+  revalidatePath('/portal/the-palma');
   revalidatePath('/admin/the-palma');
   revalidatePath('/the-palma');
   revalidatePath('/winners');

@@ -18,6 +18,7 @@ import {
 } from '@/server/data/queries';
 import { countSearch } from '@/server/services/measurement';
 import { LaureatePlate } from '@/components/palma/TheLaureate';
+import { Reveal } from '@/components/palma/Reveal';
 
 export const revalidate = 900;
 
@@ -226,45 +227,47 @@ export default async function ParohPage({ searchParams }: Props) {
           ) : (
             <div className="flex flex-col gap-20">
               {roll.map((group) => (
-                <section key={group.year} aria-labelledby={`paroh-${group.year}`}>
-                  <div className="border-ink/15 flex items-end justify-between gap-6 border-b pb-5">
-                    <h2 id={`paroh-${group.year}`} className="text-5xl leading-none sm:text-6xl">
-                      {group.year}
-                    </h2>
-                    <Link
-                      href={`/paroh/${group.year}`}
-                      className="palma-label text-taupe-deep hover:text-ink transition-colors"
-                    >
-                      Class of {group.year} →
-                    </Link>
-                  </div>
-
-                  {group.laureate ? <LaureatePlate laureate={group.laureate} /> : null}
-
-                  <ul className="mt-2">
-                    {group.entries.map((entry) => (
-                      <li
-                        key={`${entry.year}-${entry.categorySlug}`}
-                        style={pigmentStyle(entry.categorySlug)}
+                <Reveal key={group.year}>
+                  <section aria-labelledby={`paroh-${group.year}`}>
+                    <div className="border-ink/15 flex items-end justify-between gap-6 border-b pb-5">
+                      <h2 id={`paroh-${group.year}`} className="text-5xl leading-none sm:text-6xl">
+                        {group.year}
+                      </h2>
+                      <Link
+                        href={`/paroh/${group.year}`}
+                        className="palma-label text-taupe-deep hover:text-ink transition-colors"
                       >
-                        <Link
-                          href={`/creators/${entry.creator.slug}`}
-                          className="palma-row group/card border-stone-deep hover:bg-stone/25 grid grid-cols-1 items-baseline gap-1 border-b py-6 sm:grid-cols-12 sm:gap-6"
+                        Class of {group.year} →
+                      </Link>
+                    </div>
+
+                    {group.laureate ? <LaureatePlate laureate={group.laureate} /> : null}
+
+                    <ul className="mt-2">
+                      {group.entries.map((entry) => (
+                        <li
+                          key={`${entry.year}-${entry.categorySlug}`}
+                          style={pigmentStyle(entry.categorySlug)}
                         >
-                          <span className="palma-label palma-pigment-text sm:col-span-5">
-                            {entry.categoryName}
-                          </span>
-                          <span className="palma-row-lead font-display text-2xl leading-tight sm:col-span-5 sm:text-3xl">
-                            {entry.creator.displayName}
-                          </span>
-                          <span className="palma-label text-taupe sm:col-span-2 sm:text-right">
-                            {countryName(entry.creator.countryCode)}
-                          </span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
+                          <Link
+                            href={`/creators/${entry.creator.slug}`}
+                            className="palma-row group/card border-stone-deep hover:bg-stone/25 grid grid-cols-1 items-baseline gap-1 border-b py-6 sm:grid-cols-12 sm:gap-6"
+                          >
+                            <span className="palma-label palma-pigment-text sm:col-span-5">
+                              {entry.categoryName}
+                            </span>
+                            <span className="palma-row-lead font-display text-2xl leading-tight sm:col-span-5 sm:text-3xl">
+                              {entry.creator.displayName}
+                            </span>
+                            <span className="palma-label text-taupe sm:col-span-2 sm:text-right">
+                              {countryName(entry.creator.countryCode)}
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                </Reveal>
               ))}
             </div>
           )}

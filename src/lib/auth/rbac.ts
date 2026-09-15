@@ -65,7 +65,8 @@ export const PERMISSIONS = [
   'admin:resolve_conflicts',
   'admin:select_finalists',
   'admin:select_winners',
-  'admin:confer_the_palma',
+  'honours:propose_the_palma',
+  'honours:confer_the_palma',
   'admin:revoke_honour',
   'admin:correct_score',
   'admin:manage_sponsors',
@@ -174,6 +175,15 @@ const MODERATOR: Permission[] = [
   // pays to be on it.
   'commercial:view',
   'commercial:manage_features',
+  // And the desk does the work of THE PALMA.
+  //
+  // Proposing it is desk work: naming the panel's choice and writing the
+  // citation is preparing the record, which is what this desk is for. What the
+  // desk cannot do is complete it alone. `honours:confer_the_palma` is the
+  // second signature and stays an outcome permission, because a single person
+  // who can both edit a creator's record and confer the institution's highest
+  // honour on them is the one hole this firewall exists to close.
+  'honours:propose_the_palma',
 ];
 
 const ADMIN: Permission[] = [
@@ -190,6 +200,9 @@ const ADMIN: Permission[] = [
   'admin:resolve_conflicts',
   'admin:select_finalists',
   'admin:select_winners',
+  // The second signature on THE PALMA. Administration confers what the desk
+  // proposed, and the action refuses it if the two are the same person.
+  'honours:confer_the_palma',
   'admin:revoke_honour',
   'admin:correct_score',
   'admin:manage_sponsors',
@@ -241,7 +254,9 @@ export function canAny(role: Role | null | undefined, permissions: Permission[])
 export const OUTCOME_PERMISSIONS: readonly Permission[] = [
   'admin:select_finalists',
   'admin:select_winners',
-  'admin:confer_the_palma',
+  // Conferring is an outcome. Proposing is not, which is why
+  // `honours:propose_the_palma` is deliberately absent from this list.
+  'honours:confer_the_palma',
   'admin:revoke_honour',
   'admin:correct_score',
   'admin:assign_judging',
