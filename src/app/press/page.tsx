@@ -101,8 +101,29 @@ export default async function PressPage() {
                   <p className="text-taupe text-xs leading-relaxed">
                     Journalists may use the PALMA name, wordmark and palm mark to report on the
                     honours without permission or licence. Please do not recolour, stretch, rotate
-                    or outline them. For print-resolution files and approved ceremony photography,
-                    write to{' '}
+                    or outline them.
+                  </p>
+
+                  {/* Linked rather than requested. A press page that tells a
+                      journalist on deadline to send an email and wait is a
+                      press page that gets the wrong logo used. */}
+                  <div className="border-stone-deep/60 flex flex-wrap gap-x-5 gap-y-2 border-t pt-5">
+                    <span className="palma-label text-taupe-deep">Download</span>
+                    {[
+                      ['/brand/palma-mark-on-ink.svg', 'SVG, on ink'],
+                      ['/brand/palma-mark-on-ivory.svg', 'SVG, on ivory'],
+                      ['/brand/palma-mark-on-ink.png', 'PNG, on ink'],
+                      ['/brand/palma-mark-on-ivory.png', 'PNG, on ivory'],
+                      ['/brand/palma-mark-transparent.png', 'PNG, transparent'],
+                    ].map(([href, label]) => (
+                      <a key={href} href={href} download className="palma-link text-ink text-xs">
+                        {label}
+                      </a>
+                    ))}
+                  </div>
+
+                  <p className="text-taupe text-xs leading-relaxed">
+                    For approved ceremony photography, write to{' '}
                     <a href={`mailto:${CONTACTS.press}`} className="palma-link text-ink">
                       {CONTACTS.press}
                     </a>
