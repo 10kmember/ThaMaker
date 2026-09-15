@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     template: `%s — ${SITE_NAME}`,
   },
   description:
-    'PALMA — The Creator Honours. Recognising the people shaping creator culture, and keeping the permanent record of who they are.',
+    'PALMA, The Creator Honours. Recognising the people shaping creator culture, and keeping the permanent record of who they are.',
   applicationName: SITE_NAME,
   keywords: ['PALMA', 'Palma Awards', 'creator awards', 'The Creator Honours', 'creator industry'],
   authors: [{ name: SITE_NAME }],

@@ -20,7 +20,7 @@ export const revalidate = 900;
 export const metadata = buildMetadata({
   title: 'Winners',
   description:
-    'PALMA winners by season — the creators who hold The Creator Honours, with a permanent verification record for each.',
+    'PALMA winners by season: the creators who hold The Creator Honours, with a permanent verification record for each.',
   path: '/winners',
 });
 

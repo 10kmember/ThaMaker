@@ -14,7 +14,7 @@ import { UNCLAIMED_RECORD_FIELDS, CLAIMED_RECORD_FIELDS } from '@/domain/record-
 export const metadata = buildMetadata({
   title: 'Privacy Notice',
   description:
-    'What PALMA holds about creators, nominators and judges — and the hard limits on what it will hold about someone who never asked to be here.',
+    'What PALMA holds about creators, nominators and judges, and the hard limits on what it will hold about someone who never asked to be here.',
   path: '/legal/privacy',
 });
 

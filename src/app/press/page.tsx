@@ -17,7 +17,7 @@ export const revalidate = 3600;
 export const metadata = buildMetadata({
   title: 'Press',
   description:
-    'Press kit for PALMA — The Creator Honours: boilerplate, the facts of a season, the correct wording for an honour, and who to ask.',
+    'Press kit for PALMA, The Creator Honours. Boilerplate, the facts of a season, the correct wording for an honour, and who to ask.',
   path: '/press',
 });
 
@@ -235,7 +235,7 @@ export default async function PressPage() {
                   {
                     href: '/about/judging',
                     label: 'How judging works',
-                    note: 'The five criteria and how scores are aggregated.',
+                    note: `The ${SCORING_CRITERIA.length} criteria and how scores are aggregated.`,
                   },
                   {
                     href: '/about/judges',

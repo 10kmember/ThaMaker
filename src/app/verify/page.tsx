@@ -11,7 +11,7 @@ import { isValidCodeFormat, normaliseCode } from '@/lib/verification';
 export const metadata = buildMetadata({
   title: 'Verify an honour',
   description:
-    'Check a PALMA. Every honour carries a permanent verification code — enter it to confirm the recipient, category and season.',
+    'Check a PALMA. Every honour carries a permanent verification code. Enter it to confirm the recipient, category and season.',
   path: '/verify',
 });
 

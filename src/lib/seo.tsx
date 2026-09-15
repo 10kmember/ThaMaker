@@ -72,7 +72,7 @@ export function organisationJsonLd(): JsonLd {
     alternateName: `${SITE_NAME} — ${SITE_DESCRIPTOR}`,
     url: siteUrl,
     description:
-      'PALMA is the permanent record of achievement in the creator industry — the institution behind The Creator Honours.',
+      'PALMA is the permanent record of achievement in the creator industry, the institution behind The Creator Honours.',
     address: { '@type': 'PostalAddress', addressCountry: 'GB' },
   };
 }

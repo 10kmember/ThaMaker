@@ -182,7 +182,7 @@ export const categorySeeds: CategorySeed[] = [
     name: 'Creator of the Year',
     strapline: 'The defining body of work of the season.',
     description:
-      'The highest PALMA. Awarded to the creator whose work has most clearly defined the year — in craft, in consequence, and in how it changed what other creators believed was possible.',
+      'The highest PALMA. Awarded to the creator whose work has most clearly defined the year, in craft, in consequence, and in how it changed what other creators believed was possible.',
     eligibility:
       'Open to any creator aged 18 or over who published work between 1 January and 31 December of the qualifying year. Nominees may work in any medium and any territory. Previous winners may be nominated again after two seasons.',
     judgingCriteria:
@@ -211,15 +211,59 @@ export const categorySeeds: CategorySeed[] = [
       'Originality carries the greatest weight. Judges are asked to assess the work on its own terms rather than against creators with a decade of practice behind them.',
   },
   {
+    slug: 'creative-direction',
+    name: 'Creative Direction',
+    strapline: 'The eye that decided how it looks.',
+    description:
+      'For the visual intelligence behind a body of work: art direction, styling, set, colour, typography and edit treated as decisions rather than defaults. This PALMA recognises the person who set the look, whether or not they appear in the work themselves.',
+    eligibility:
+      'Open to any creator aged 18 or over who held creative or art direction over work published during the qualifying year. A nominee may be credited as director, stylist, editor or creator, and a team may be nominated through its lead.',
+    judgingCriteria:
+      'Judges weigh coherence of a visual language across a body of work above any single striking image. A look that is merely expensive is not direction, and judges are asked to say what decision they can see.',
+  },
+  {
     slug: 'community-impact',
     name: 'Community Impact',
     strapline: 'Work whose consequence outlived its audience.',
     description:
-      'For work that changed something outside itself — a practice other creators adopted, a subject taken seriously, a standard raised for everyone working in the same field.',
+      'For work that changed something outside itself: a practice other creators adopted, a subject taken seriously, a standard raised for everyone working in the same field.',
     eligibility:
       'Open to any creator aged 18 or over. The impact claimed must be evidenced and must have occurred during the qualifying year.',
     judgingCriteria:
       'Impact is weighed most heavily, and reach is explicitly not impact. Judges are asked what changed because this work exists.',
+  },
+  {
+    slug: 'business-of-creating',
+    name: 'Business of Creating',
+    strapline: 'The company built behind the work.',
+    description:
+      'For the creator who has built something durable around what they make: pricing held, rights retained, people employed and paid properly, income that does not depend on a single platform staying friendly.',
+    eligibility:
+      'Open to any creator aged 18 or over whose business traded through the qualifying year. Nominees are not required to disclose turnover, and PALMA does not ask for accounts.',
+    judgingCriteria:
+      'Judges weigh durability and the terms a creator secured for themselves and their collaborators. Revenue alone is not the measure, and a large business built on poor terms scores below a small one built on good ones.',
+  },
+  {
+    slug: 'craft-in-video',
+    name: 'Craft in Video',
+    strapline: 'Shot, cut and finished properly.',
+    description:
+      'For technical craft in moving image: camera, lighting, sound, pacing and the edit. This PALMA is for the work that holds up when the sound is on and the screen is large.',
+    eligibility:
+      'Open to any creator aged 18 or over who published moving-image work during the qualifying year, in any length and on any platform. Craft may be executed by the nominee or directed by them.',
+    judgingCriteria:
+      'Judges assess craft against the resources actually available, so a well-finished piece made alone can outscore a studio production. Sound is weighed as heavily as picture.',
+  },
+  {
+    slug: 'industry-contribution',
+    name: 'Contribution to the Industry',
+    strapline: 'Making the work safer, fairer or better for the next person.',
+    description:
+      'For sustained contribution beyond the work a nominee publishes themselves: mentorship, advocacy, safety, rates, rights, or standards that other creators now benefit from. The contribution is the achievement, and it need not have been publicised.',
+    eligibility:
+      'Open to any creator aged 18 or over, and to those working alongside creators in the industry. The contribution must have been active during the qualifying year, though it may have begun long before it.',
+    judgingCriteria:
+      'Judges weigh what materially changed for other people. Advocacy that produced a result scores above advocacy that produced attention, and quiet, unpublicised work is explicitly eligible.',
   },
 ];
 
@@ -261,7 +305,7 @@ export const seasonSeeds: SeasonSeed[] = [
     stage: 'archived',
     tagline: 'The first record.',
     summary:
-      'The inaugural PALMA season. Four categories, an independent panel, and the first names entered into the Roll of Honour.',
+      'The inaugural PALMA season. Eight categories, an independent panel, and the first names entered into the Roll of Honour.',
     isCurrent: false,
     nominationsOpenAt: '2025-01-14T09:00:00.000Z',
     nominationsCloseAt: '2025-03-31T23:00:00.000Z',
@@ -272,9 +316,13 @@ export const seasonSeeds: SeasonSeed[] = [
       'creator-of-the-year': ['maya-rivers', 'jordan-smith', 'noor-haddad'],
       'best-independent-creator': ['noor-haddad', 'maya-rivers', 'jordan-smith'],
       'best-new-creator': ['jordan-smith', 'noor-haddad'],
+      'creative-direction': ['noor-haddad', 'maya-rivers'],
       // Contested, judged, and not conferred: the panel found no candidacy that
       // met the standard. The public record says so.
       'community-impact': [],
+      'business-of-creating': ['maya-rivers', 'jordan-smith'],
+      'craft-in-video': ['jordan-smith', 'maya-rivers', 'noor-haddad'],
+      'industry-contribution': ['noor-haddad', 'jordan-smith'],
     },
   },
   {
@@ -294,7 +342,13 @@ export const seasonSeeds: SeasonSeed[] = [
       'creator-of-the-year': ['jordan-smith', 'maya-rivers', 'noor-haddad'],
       'best-independent-creator': ['maya-rivers', 'noor-haddad', 'jordan-smith'],
       'best-new-creator': ['noor-haddad', 'jordan-smith'],
+      'creative-direction': ['maya-rivers', 'noor-haddad', 'jordan-smith'],
       'community-impact': ['maya-rivers', 'jordan-smith', 'noor-haddad'],
+      'business-of-creating': ['jordan-smith', 'maya-rivers'],
+      // A second category the panel declined to confer. Two in three seasons is
+      // the standard being real rather than decorative.
+      'craft-in-video': [],
+      'industry-contribution': ['maya-rivers', 'noor-haddad', 'jordan-smith'],
     },
   },
   {
@@ -303,7 +357,7 @@ export const seasonSeeds: SeasonSeed[] = [
     stage: 'nominations_open',
     tagline: 'Recognising the people shaping creator culture.',
     summary:
-      'The third PALMA season. Nominations are open across four categories, judged by an independent panel and announced in four stages.',
+      'The third PALMA season. Nominations are open across eight categories, judged by an independent panel and announced in four stages.',
     isCurrent: true,
     nominationsOpenAt: '2026-09-01T09:00:00.000Z',
     nominationsCloseAt: '2027-01-31T23:00:00.000Z',
@@ -318,7 +372,11 @@ export const citations: Record<string, string> = {
   'creator-of-the-year': 'For a body of work that set the standard of the season.',
   'best-independent-creator': 'For sustained, independent work held to an uncommon standard.',
   'best-new-creator': 'For arriving with a point of view already fully formed.',
+  'creative-direction': 'For a visual language other people started borrowing.',
   'community-impact': 'For work whose consequence was felt well beyond its audience.',
+  'business-of-creating': 'For building something durable without giving away the terms.',
+  'craft-in-video': 'For work that holds up with the sound on and the screen large.',
+  'industry-contribution': 'For making the work fairer for people who will never know it was them.',
 };
 
 export const sponsors = [
@@ -351,7 +409,7 @@ export const articles = [
   {
     slug: 'palma-2027-nominations-open',
     title: 'Nominations for PALMA 2027 are open',
-    standfirst: 'Four categories, one nomination each, and a closing date that will not move.',
+    standfirst: 'Eight categories, one nomination each, and a closing date that will not move.',
     categorySlug: 'announcements',
     status: 'published' as const,
     publishedAt: '2026-09-01T09:00:00.000Z',

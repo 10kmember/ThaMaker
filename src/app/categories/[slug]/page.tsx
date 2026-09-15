@@ -75,7 +75,7 @@ export default async function CategoryPage({ params, searchParams }: Params) {
         belowTitle={<SponsorAttribution attribution={attribution} tone="ink" />}
         meta={[
           open ? 'Open for nominations' : STAGE_LABEL[category.stage],
-          'Five criteria, ten points each',
+          `${SCORING_CRITERIA.length} weighted criteria, ten points each`,
           'Judged independently',
         ]}
         figure={season.year}

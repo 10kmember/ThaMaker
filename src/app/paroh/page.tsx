@@ -23,7 +23,7 @@ export const revalidate = 900;
 export const metadata = buildMetadata({
   title: 'PALMA Roll of Honour',
   description:
-    'The PaROH — the permanent record of PALMA recipients. Every honour, every season, filterable by year, category, creator and country.',
+    'The PaROH, the permanent record of PALMA recipients. Every honour, every season, filterable by year, category, creator and country.',
   path: '/paroh',
 });
 

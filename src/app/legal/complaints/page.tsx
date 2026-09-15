@@ -12,7 +12,7 @@ import { CONTACTS, legalDocument } from '@/lib/legal';
 export const metadata = buildMetadata({
   title: 'Complaints and Appeals',
   description:
-    'How to challenge a PALMA decision, report a concern about the record, or complain about the institution itself — with the timescales PALMA holds itself to.',
+    'How to challenge a PALMA decision, report a concern about the record, or complain about the institution itself, with the timescales PALMA holds itself to.',
   path: '/legal/complaints',
 });
 

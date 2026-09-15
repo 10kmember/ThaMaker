@@ -13,7 +13,7 @@ export const revalidate = 900;
 export const metadata = buildMetadata({
   title: 'Journal',
   description:
-    'The PALMA Journal — interviews, essays, category explainers and announcements on the industry PALMA recognises.',
+    'The PALMA Journal: interviews, essays, category explainers and announcements on the industry PALMA recognises.',
   path: '/journal',
 });
 

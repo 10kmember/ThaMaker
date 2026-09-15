@@ -14,7 +14,7 @@ export const revalidate = 300;
 export const metadata = buildMetadata({
   title: 'Nominate a creator',
   description:
-    'Nominate a creator for a PALMA. It takes under a minute, needs no account, and costs nothing — the audience nominates, PALMA judges.',
+    'Nominate a creator for a PALMA. It takes under a minute, needs no account, and costs nothing. The audience nominates, PALMA judges.',
   path: '/nominate',
 });
 

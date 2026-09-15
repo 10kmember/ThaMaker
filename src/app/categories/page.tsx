@@ -2,6 +2,7 @@ import { Container, Section } from '@/components/palma/layout';
 import { Masthead, MastheadPlate, PlateFact } from '@/components/palma/Masthead';
 import { CategoryCard } from '@/components/palma/CategoryCard';
 import { buildMetadata } from '@/lib/seo';
+import { SCORING_CRITERIA } from '@/domain/judging';
 import { getCurrentSeason, listCategories } from '@/server/data/queries';
 
 export const revalidate = 900;
@@ -9,7 +10,7 @@ export const revalidate = 900;
 export const metadata = buildMetadata({
   title: 'Categories',
   description:
-    'Every PALMA category, with its eligibility rules and judging criteria set out in full — the eight honours contested in The Creator Honours.',
+    'Every PALMA category, with its eligibility rules and judging criteria set out in full. The eight honours contested in The Creator Honours.',
   path: '/categories',
 });
 
@@ -27,7 +28,7 @@ export default async function CategoriesPage() {
         standfirst="Eight honours. Each with published eligibility rules, published judging criteria, and a panel briefed to discount audience size."
         meta={[
           `${categories.length} contested`,
-          'Five criteria, ten points each',
+          `${SCORING_CRITERIA.length} weighted criteria, ten points each`,
           'Audience size is not one of them',
         ]}
         plate={

@@ -17,7 +17,7 @@ export const revalidate = 900;
 export const metadata = buildMetadata({
   title: 'Creators',
   description:
-    'Creators in the PALMA record — professional achievement records for the people shaping creator culture.',
+    'Creators in the PALMA record: professional achievement records for the people shaping creator culture.',
   path: '/creators',
 });
 

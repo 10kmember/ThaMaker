@@ -87,10 +87,11 @@ palmaawards.com are seed-owned and reconciled to the cast; accounts on any
 other domain, and rows a person created while testing — a claim, an internal
 note, an enforcement proposal — are left alone.
 
-The archive is deliberately thin: three creators, four categories, three
+The archive is deliberately thin: three creators, eight categories, three
 seasons. It is an honest picture of a young institution rather than a fake
 picture of a busy one — and it exercises every state, including the one that
-matters most. **In 2025 the panel declined Community Impact**: contested,
+matters most. **In 2025 the panel declined Community Impact**, and in 2026
+Craft in Video: contested,
 judged, and no PALMA conferred. The winners page says so under _Contested, not
 conferred_ rather than quietly omitting the category, because a rule PALMA
 published is worth more when the record shows it being used.

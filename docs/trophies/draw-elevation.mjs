@@ -1,6 +1,6 @@
 import sharp from 'sharp';
 import { writeFileSync } from 'node:fs';
-import { BRONZE_DARK, CHAMPAGNE, engraving, INK, RULE, seal, TAUPE } from './shapes.mjs';
+import { CHAMPAGNE, engraving, INK, RULE, seal, TAUPE } from './shapes.mjs';
 
 const DIR = new URL('.', import.meta.url).pathname;
 

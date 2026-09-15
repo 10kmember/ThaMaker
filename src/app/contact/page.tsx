@@ -8,7 +8,7 @@ import { CONTACTS, ENTITY } from '@/lib/legal';
 export const metadata = buildMetadata({
   title: 'Contact',
   description:
-    'Who to write to at PALMA about nominations, the record, data protection, security, accessibility, press and partnerships — with the timescales each is answered in.',
+    'Who to write to at PALMA about nominations, the record, data protection, security, accessibility, press and partnerships, with the timescales each is answered in.',
   path: '/contact',
 });
 

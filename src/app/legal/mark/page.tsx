@@ -12,7 +12,7 @@ import { CONTACTS, ENTITY, legalDocument } from '@/lib/legal';
 export const metadata = buildMetadata({
   title: 'Use of the PALMA Mark',
   description:
-    'How finalists, winners, sponsors and the press may use the PALMA name, wordmark and seal — with the exact wording that is permitted.',
+    'How finalists, winners, sponsors and the press may use the PALMA name, wordmark and seal, with the exact wording that is permitted.',
   path: '/legal/mark',
 });
 

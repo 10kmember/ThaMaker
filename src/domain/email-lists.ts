@@ -69,7 +69,7 @@ export const EMAIL_LISTS = {
     key: 'opportunities',
     name: 'PALMA Opportunities',
     description:
-      'Selected opportunities for creators — collaborations, applications, programmes. Curated, never a feed.',
+      'Selected opportunities for creators: collaborations, applications, programmes. Curated, never a feed.',
     cadence: 'Occasional, and only when something is genuinely worth passing on.',
     commercial: false,
     requiresFeature: 'creator_opportunities',

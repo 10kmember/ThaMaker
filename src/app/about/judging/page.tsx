@@ -20,7 +20,11 @@ export default function JudgingPage() {
         eyebrow={'The Creator Honours'}
         title="How judging works"
         standfirst="Published in full, because a judgement nobody can inspect is not worth holding."
-        meta={['Five criteria', 'Ten points each', 'Three judges minimum']}
+        meta={[
+          `${SCORING_CRITERIA.length} weighted criteria`,
+          'Ten points each',
+          'Three judges minimum',
+        ]}
         size="compact"
       />
 

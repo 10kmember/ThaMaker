@@ -21,7 +21,7 @@ export const revalidate = 900;
 export const metadata = buildMetadata({
   title: 'Finalists',
   description:
-    'The PALMA finalists — the shortlisted creators contesting each honour of The Creator Honours.',
+    'The PALMA finalists: the shortlisted creators contesting each honour of The Creator Honours.',
   path: '/finalists',
 });
 

@@ -1,7 +1,7 @@
 /**
  * PALMA seed.
  *
- * Loads the bundled cast into PostgreSQL: nine people, four categories, three
+ * Loads the bundled cast into PostgreSQL: nine people, eight categories, three
  * seasons, the Roll of Honour with signed verification records, the Journal and
  * two sponsors.
  *

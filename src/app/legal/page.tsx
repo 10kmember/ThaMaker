@@ -9,7 +9,7 @@ import { CONTACTS, ENTITY, LEGAL_DOCUMENTS } from '@/lib/legal';
 export const metadata = buildMetadata({
   title: 'Legal',
   description:
-    'The PALMA legal register: terms, privacy, cookies, competition rules, complaints, use of the mark and accessibility — each versioned and dated.',
+    'The PALMA legal register: terms, privacy, cookies, competition rules, complaints, use of the mark and accessibility, each versioned and dated.',
   path: '/legal',
 });
 
