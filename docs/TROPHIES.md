@@ -1,212 +1,194 @@
 # The PALMA trophies
 
-A brief for a maker, not a mood board. Every dimension, material and tolerance
-here is stated so that a metalworker, a glass studio and a joiner can quote from
-it without a second conversation.
+A brief a foundry can quote from. Every dimension, alloy and finish is stated,
+and the drawings are generated from the same palm geometry the website uses, so
+the object and the mark cannot drift apart.
 
-Two objects. **THE PALMA**, of which exactly one exists each year, and the
-**Category PALMA**, of which there are as many as there are categories. They are
-recognisably the same family and are not the same object, and the difference is
-deliberate: a winner holding one should be able to tell, across a room, which of
-the two they are holding.
+![The three trophies in front elevation](trophies/palma-trophies.png)
 
 ---
 
-## The rule both objects obey
+## The idea the family rests on
 
-The mark is an engraved palm: a spine with four pairs of open fronds sweeping
-upward, and a struck dot at the crown. It is drawn as **open strokes, never
-closed leaf shapes**. Every trophy decision follows from that one fact, because
-a line drawing survives being made physical only if the line is given real
-thickness and real depth. A palm rendered as flat silhouette loses the whole
-identity.
+Three objects, one palm, and the hierarchy is **what you are given of it**:
 
-So: **the fronds are always three-dimensional strokes, never cut-outs.** No
-trophy in this family is a flat plate with a palm-shaped hole in it.
+|                    | What it carries                                      |
+| ------------------ | ---------------------------------------------------- |
+| **THE PALMA**      | The whole palm, four frond pairs, **and the crown**. |
+| **Category PALMA** | The same palm. **No crown.**                         |
+| **Finalist**       | **One frond.**                                       |
+
+That is the whole system, and it reads across a room in a photograph, which is
+where most people will ever see these. Nobody has to be told which is which.
+
+The crown matters because on the mark it is not a leaf: it is a struck dot held
+clear above the spine. Making it the thing only the highest honour carries turns
+a drawing convention into the most valuable 16 mm of bronze in the institution.
+
+### What the first version got wrong
+
+It was a figure on a plinth, which is what every corporate award has been for
+thirty years, and the hierarchy between the two trophies was a materials
+difference (full round against half relief) that nobody would notice and no
+photograph would show. Both are gone.
 
 ---
 
 ## THE PALMA
 
-The institution's highest honour. One a year. Never shared.
+**400 mm · 2.9 kg · one a year · never shared**
 
-### Silhouette
-
-An upright palm in solid cast bronze, rising from a single block of British
-hardwood, with a hand-set brass verification plate in the face of the block.
-
-Total height **385 mm**. That is deliberate: tall enough to be unmistakable when
-carried off a stage and photographed, short enough to go in overhead luggage,
-which a career-defining object should not be separated from.
+![THE PALMA, with details called out](trophies/the-palma-detail.png)
 
 ### The palm
 
-- **Material.** Silicon bronze, sand-cast, one piece. Not plated, not resin, not
-  a bronze-coloured finish. The weight is part of the object.
-- **Height of the palm alone.** 255 mm from the base of the spine to the top of
-  the crown dot.
-- **Spine.** 14 mm diameter at the base, tapering to 9 mm at the crown. Circular
-  section, not square: the palm should feel the same in the hand from any angle.
-- **Fronds.** Four opposed pairs. Each frond is a swept round-section stroke,
-  **7 mm** at the spine tapering to **4 mm** at the tip, with the tip finished
-  as a full hemisphere rather than cut flat. The lowest pair spans 150 mm tip to
-  tip; each pair above it spans 12 mm wider, so the crown pair spans 186 mm. The
-  sweep rises at roughly 28° from horizontal at the spine and flattens toward
-  the tip.
-- **Crown.** A free-standing sphere of **16 mm** diameter, held 12 mm clear
-  above the spine's top on a 5 mm stem. It should read as struck and separate,
-  because on the mark it is a dot and not a leaf.
-- **Finish.** Hand-polished to a satin sheen on the outer faces of the fronds,
-  left with a fine bead-blast texture on the undersides and the spine. The
-  contrast between the two is what makes the engraving read under a single
-  overhead light, which is the lighting every awards photograph is taken in.
-- **Patina.** A warm mid-brown patina, waxed rather than lacquered. It will
-  darken with handling over years, and that is correct: the object should look
-  like it has been owned.
+- **Material.** Silicon bronze, sand-cast, **one piece**. Not plated, not resin,
+  not a bronze-coloured finish. The weight is part of the object.
+- **Height.** 288 mm, spine socket to the top of the crown.
+- **Spine.** Round section, **22 mm** at the socket tapering to **6 mm** where
+  the needle leaves it. Circular throughout, so it feels the same in the hand
+  from any angle.
+- **Fronds.** Four opposed pairs, each a swept round rod of **7 mm** at the
+  spine, 5.5 mm at mid-span, closing to a **4 mm hemisphere** at the tip.
+  Nothing on this object is cut off flat. The lowest pair spans 150 mm tip to
+  tip and each pair above gains 12 mm, so the crown pair spans 186 mm.
+- **The crown.** A **16 mm** sphere held **12 mm clear** of the spine on a
+  needle that tapers out of it, finishing at 3 mm. It should read as struck and
+  separate. Only THE PALMA carries it.
+
+### Two finishes, one casting
+
+The single decision that makes this object photograph:
+
+- **Upper faces of the fronds and the crown:** hand-polished to a mirror.
+- **Undersides, spine and needle:** fine bead-blast, left dark under patina.
+
+An awards photograph has one light, and it is overhead. A uniformly polished
+palm turns into a flare; a uniformly dark one disappears. This one lights along
+its upper edges and holds its shape, which is what the engraved mark does on
+paper.
+
+Patina: warm mid-brown, **waxed rather than lacquered**. It will darken with
+handling over years, and that is correct. The object should look like it has
+been owned.
 
 ### The block
 
-- **Material.** Solid English oak, quarter-sawn so the medullary rays show as
-  figure on the face. Sustainably sourced, and the supplier named in the
-  certificate that accompanies it.
-- **Dimensions.** 130 mm wide × 130 mm deep × 130 mm high. A cube, not a slab.
-  A tall trophy on a wide base looks like a tabletop ornament; on a cube it
-  looks like a monument.
-- **Edges.** A 2 mm chamfer on every arris, hand-worked. No radius, no bullnose.
-- **Finish.** Hard-wax oil, matt. Not lacquer and not gloss.
-- **Weight.** The finished object should sit between **2.4 kg and 2.8 kg**. If
-  it comes in light, the oak is cored and brass ballast is added from beneath.
-  The heft is the difference between an award and a souvenir.
+- **English oak**, quarter-sawn so the medullary rays show as figure.
+  Sustainably sourced, supplier named on the certificate.
+- **168 × 168 × 34 mm.** One block, not a tiered plinth. A trophy on stacked
+  slabs reads as a wedding cake.
+- **2 mm hand-worked chamfer** on every arris. No radius, no bullnose.
+- Hard-wax oil, matt. Not lacquer, not gloss.
+- Ballasted from beneath with brass if the finished piece comes in under
+  **2.4 kg**. Heft is the difference between an award and a souvenir.
 
 ### The plate
 
-Recessed flush into the front face of the block, 3 mm deep, so a fingertip
-crossing it feels the edge and not a step.
+Let into the front face **flush at 3 mm**, so a fingertip crossing it feels an
+edge and not a step. Solid brass, 1.5 mm, satin, **192 × 30 mm**.
 
-- **Material.** Solid brass, 1.5 mm, satin finished.
-- **Size.** 92 mm × 34 mm.
-- **Engraving.** Deep-etched and oxide-filled in ink black, not laser-marked.
-  Laser marking sits on the surface and wears off a plate that gets handled.
-
-Set in three lines:
+Deep-etched and oxide-filled in ink black — **not laser-marked**. Laser marking
+sits on the surface and wears off a plate that gets handled, and this one will
+be handled for decades.
 
 ```
-              THE PALMA
-                 2027
-             Ama Okonkwo
+              THE PALMA · 2027
+                AMA OKONKWO
 ```
 
-The verification code is engraved on the **underside of the block**, not the
-face: it is proof, not decoration, and it should be found by somebody who turns
+### The code, underneath
+
+`PM-2027-XXXXXX · palmaawards.com/verify` engraved on the **underside** of the
+block. It is proof, not decoration, and it should be found by somebody who turns
 the object over looking for it.
-
-```
-        PM-2027-XXXXXX · palmaawards.com/verify
-```
-
-### The citation
-
-THE PALMA is never conferred without a written citation, and the citation
-travels with the object: letterpressed on 300 gsm mould-made cotton paper,
-A5, in a slipcase cut from the same oak offcut as the block, so the grain
-matches the trophy it belongs to.
 
 ---
 
 ## The Category PALMA
 
-Awarded in each category. Same family, smaller register, and honest about being
-a different thing.
+**265 mm · 1.4 kg · one per category**
 
-### Silhouette
+The same palm, the same casting process, the same two finishes, at **175 mm**.
+**No crown:** the spine tapers and simply ends.
 
-The same palm, at **half scale and in half relief**, standing proud of a
-solid glass slab rather than free in the air.
-
-Total height **215 mm**.
-
-### The palm
-
-- **Material.** Cast brass, polished, with the same satin-and-bead-blast
-  contrast as THE PALMA so the two read as siblings.
-- **Relief.** The palm is a **half-round section**: the front face is the full
-  swept profile, the back is flat where it meets the glass. This is the single
-  clearest difference between the two objects, and it is the honest one — a
-  category winner holds a palm against a surface; THE PALMA stands alone.
-- **Height of the palm.** 128 mm.
-- **Fixing.** Two 4 mm brass pins into blind holes in the glass, set in clear
-  structural adhesive. No visible fixings from the front.
-
-### The slab
-
-- **Material.** Low-iron optical glass, 19 mm thick. Low-iron matters: ordinary
-  float glass is green on the edge, and a green edge on a champagne-and-ink
-  identity is wrong.
-- **Dimensions.** 150 mm wide × 200 mm high.
-- **Edges.** Flat-polished on all four edges, 45° arris polished top and bottom.
-- **Base.** Seated in a 150 × 40 × 22 mm oak foot in the same English oak, with
-  a 20 mm slot. The wood ties the category award to THE PALMA across a
-  photograph.
-
-### The category band
-
-Sand-blasted into the reverse of the glass, reading correctly through the front,
-so the category name appears to float behind the palm.
-
-```
-              SHORT FORM
-                 2027
-```
-
-Set in the display face, 14 pt, letter-spaced to 0.24 em. Sand-blast rather than
-print: printing on glass fails within a decade and a PALMA record is permanent.
-
-The verification code is etched small in the lower right of the reverse, at the
-same 0.24 em spacing.
+- Block: English oak, **128 × 128 × 26 mm**, same chamfer and finish.
+- Plate: brass, let in flush, 70 mm wide, carrying the category, the year and
+  the winner.
+- Code on the underside, as above.
 
 ### Where a sponsor may and may not appear
 
 A category may be presented by a partner. If it is, the partner's name appears
-**on the certificate and in the programme**, never on the trophy. The object in
+**on the certificate and in the programme, never on the trophy.** The object in
 a winner's hands carries PALMA's mark, the category, the year and their name,
-and nothing that was paid for. This is not a style preference. It is the same
-line the software enforces: a sponsor buys association with the category, not a
-share of the recognition.
+and nothing that was paid for.
+
+This is not a style preference. It is the same line the software enforces: a
+sponsor buys association with the category, not a share of the recognition.
 
 ---
 
-## Finalist mark
+## The finalist frond
 
-Not a trophy. Finalists receive a **72 mm brass medallion**, struck rather than
-cast, 3 mm thick, with the palm in low relief on the obverse and the category
-and year on the reverse, in a foam-set card box. It should feel like a coin,
-because a finalist has been weighed and measured and not quite won, and a coin
-is the right register for that.
+**112 mm · 0.4 kg**
+
+One frond, socketed into a small oak block at **62°** so it leaves the block
+steeply and opens as it rises. Cast brass rather than bronze, polished along the
+upper arris like its larger siblings.
+
+A frond _pair_ laid flat was the first attempt and it read as a moustache. One
+frond reads as what it is: a part of the palm, given to somebody who was part of
+the season.
+
+- Block: English oak, **104 × 104 × 20 mm**.
+- Plate: brass, 54 mm, carrying the category, the year and the name.
+
+Being a PALMA finalist is meant to be worth something on its own, and a
+medallion in a box is not something anybody puts on a shelf.
+
+---
+
+## The certificate, for all three
+
+A5 landscape, 300 gsm mould-made cotton, letterpressed in ink black with the
+palm **blind-embossed** — no ink, pressure only — at 42 mm.
+
+Two signatures: the chair of the panel and one administrator, which is the same
+two-person rule the software applies to conferral. The verification code is set
+at the foot in monospace with the verify URL beneath it.
+
+Blind embossing is the detail worth paying for. It cannot be photocopied, it
+cannot be reproduced by a home printer, and it is felt before it is seen.
 
 ---
 
 ## What none of these are
 
-- **Not crystal-and-chrome.** The corporate award of the last thirty years is a
-  bevelled acrylic obelisk, and PALMA's whole position is that it is not that
-  kind of institution.
+- **Not crystal-and-chrome.** The bevelled acrylic obelisk is the corporate
+  award of the last thirty years, and PALMA's whole position is that it is not
+  that kind of institution.
 - **Not gold plated.** Plating chips, and a chipped award is worse than a plain
   one. Solid brass and bronze age; plate fails.
+- **Not resin, anywhere.** If cost pressure forces a change, the correct answer
+  is fewer categories, not a lighter object.
 - **Not engraved after the fact.** The name goes on before the ceremony, which
-  means the winner is known to the maker before the room. That is a confidence
-  the workshop holds under the same terms as the panel.
-- **Not resin, anywhere.** If a cost pressure forces a change, the correct
-  answer is fewer categories, not a lighter object.
+  means the winner is known to the workshop before the room. The foundry holds
+  that under the same terms as the panel.
 
 ---
 
-## Certificate, for both
+## The drawings
 
-A5 landscape, 300 gsm mould-made cotton, letterpressed in ink black with the
-palm blind-embossed (no ink, pressure only) at 42 mm. Two signatures: the chair
-of the panel and one administrator, which is the same two-person rule the
-software applies to conferral. The verification code is printed at the foot in
-monospace, small, with the verify URL beneath it.
+`docs/trophies/` holds both sheets as PNG and SVG, and the two scripts that
+generate them.
 
-Blind embossing is the detail worth paying for. It cannot be photocopied, it
-cannot be reproduced by a home printer, and it is felt before it is seen.
+```
+node docs/trophies/draw-elevation.mjs   # the three, to scale
+node docs/trophies/draw-detail.mjs      # THE PALMA, with callouts
+```
+
+They import the palm paths from the same source the site renders — see
+`src/components/brand/geometry.ts`. **Redraw rather than retouch.** A trophy
+drawing edited by hand is how the object and the mark quietly stop being the
+same palm, which has already happened once to this institution's logo.
