@@ -162,22 +162,50 @@ export const ENTITY = {
   /** Placeholders until the company is registered. Marked as such on the page. */
   companyNumber: null as string | null,
   registeredOffice: null as string | null,
+  /**
+   * ICO data-protection registration.
+   *
+   * Two fields because there are three states and one field can only carry
+   * two. `icoRegistered` is the fact; `icoRegistration` is the ZA reference,
+   * which arrives with the confirmation. Registered-but-reference-not-yet-
+   * recorded is a real state, and the register says exactly that rather than
+   * claiming an application is still pending after it has been granted.
+   */
+  icoRegistered: true,
   icoRegistration: null as string | null,
   /**
-   * The parent.
+   * The parent, recorded and not published.
    *
-   * Named here rather than in the pages that mention it, because who owns
-   * PALMA is a fact about the institution and appears in the footer, the legal
-   * register, the machine-readable files and the metadata. One spelling, in
-   * one place, with the macron on the o: One Cō Ltd, not One Co Ltd.
+   * PALMA is a One Cō Ltd company. That is true, it is kept here so the
+   * institution knows its own ownership, and it is shown on the settings
+   * screen behind a login. It is deliberately absent from every public
+   * surface: the footer, the legal register, the metadata, the JSON-LD,
+   * `llms.txt` and the well-known files.
    *
-   * The number is null until it is supplied, and every surface that shows it
-   * says "not yet supplied" rather than quietly omitting the row. An ownership
-   * claim with a blank space where its registration should be is worse than one
-   * that admits the registration is outstanding.
+   * Nothing requires it to be there. UK law makes the *operator* identifiable,
+   * which is `name` above, and the data controller identifiable, which is the
+   * same company. A parent company is not a required disclosure, so naming it
+   * was a choice and not naming it is equally a choice.
+   *
+   * Be clear about what this does and does not achieve: it keeps the link off
+   * PALMA's own pages, and it does nothing to Companies House, which publishes
+   * officers and persons of significant control for every company on its own
+   * register regardless of what a website says.
    */
   parent: {
     name: 'One Cō Ltd',
     companyNumber: null as string | null,
+    published: false,
   },
 } as const;
+
+/**
+ * How the ICO registration reads on the register, at each of its three stages.
+ */
+export function icoStatus(entity: {
+  icoRegistered: boolean;
+  icoRegistration: string | null;
+}): string {
+  if (entity.icoRegistration) return entity.icoRegistration;
+  return entity.icoRegistered ? 'Registered; reference to follow' : 'Application pending';
+}

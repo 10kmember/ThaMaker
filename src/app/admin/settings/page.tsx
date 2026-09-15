@@ -14,7 +14,7 @@ import {
 } from '@/domain/judging';
 import { DEFAULT_FINALIST_COUNT, MIN_JUDGES_PER_CANDIDACY } from '@/domain/selection';
 import { SESSION_TTL_SECONDS } from '@/lib/auth/session';
-import { ENTITY } from '@/lib/legal';
+import { ENTITY, icoStatus } from '@/lib/legal';
 import { VerificationModeForm } from '@/components/operations/VerificationModeForm';
 import { RetentionPanel } from '@/components/operations/RetentionPanel';
 import { getVerificationConfig } from '@/server/settings';
@@ -212,10 +212,11 @@ export default async function SettingsPage() {
           note="Who PALMA is, in law and on the wire."
           rows={[
             { label: 'Registered name', value: ENTITY.name, source: 'code' },
-            { label: 'Parent company', value: ENTITY.parent.name, source: 'code' },
+            // Shown here and nowhere public. See ENTITY.parent in lib/legal.
+            { label: 'Parent company (not published)', value: ENTITY.parent.name, source: 'code' },
             {
-              label: 'Parent company number',
-              value: ENTITY.parent.companyNumber ?? 'Not yet supplied',
+              label: 'ICO registration',
+              value: icoStatus(ENTITY),
               source: 'code',
             },
             { label: 'Jurisdiction', value: ENTITY.jurisdiction, source: 'code' },

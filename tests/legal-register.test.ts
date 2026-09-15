@@ -1,7 +1,8 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { CONTACTS, ENTITY, LEGAL_DOCUMENTS, legalDocument } from '@/lib/legal';
+import { CONTACTS, ENTITY, icoStatus, LEGAL_DOCUMENTS, legalDocument } from '@/lib/legal';
 import { LEGAL_NAV } from '@/lib/navigation';
 
 /**
@@ -70,31 +71,75 @@ describe('the legal register', () => {
 });
 
 /**
- * The parent company.
+ * The parent company, and where it may not appear.
  *
- * PALMA is a One Cō Ltd company, and that fact appears in the footer, the
- * legal register, the settings screen, `llms.txt` and `.well-known/palma.txt`.
- * Every one of those reads `ENTITY.parent`, so these assertions are about the
- * one place the name is written rather than the five places it is shown.
+ * PALMA is a One Cō Ltd company. It is recorded so the institution knows its
+ * own ownership and shown on the settings screen behind a login, and it is
+ * deliberately absent from everything a visitor or a crawler can read.
+ *
+ * These assertions read the public files on disk, because the point is not
+ * what a constant says but what is actually served.
  */
 describe('the parent company', () => {
-  it('is spelled with the macron', () => {
-    // "One Co Ltd" is a different company name. The macron is part of it, and
-    // it is the kind of character that gets quietly normalised by a keyboard,
-    // a spellchecker or somebody retyping it from a screenshot.
+  it('is recorded, with its spelling held', () => {
+    // "One Co Ltd" is a different company name, and the macron is the kind of
+    // character a keyboard or a spellchecker quietly flattens.
     expect(ENTITY.parent.name).toBe('One Cō Ltd');
-    expect(ENTITY.parent.name).toContain('ō');
-  });
-
-  it('admits the registration number is outstanding rather than omitting it', () => {
-    // Until a number is supplied this is null, and the surfaces print "not yet
-    // supplied". An ownership claim with a blank where its registration should
-    // be is worse than one that says the registration is outstanding.
-    expect(ENTITY.parent.companyNumber).toBeNull();
-  });
-
-  it('is not confused with the operating company', () => {
+    expect(ENTITY.parent.name).toContain('\u014d');
     expect(ENTITY.parent.name).not.toBe(ENTITY.name);
-    expect(ENTITY.name).toBe('Palma Awards Ltd');
+  });
+
+  it('is marked as not published', () => {
+    expect(ENTITY.parent.published).toBe(false);
+  });
+
+  it('appears in no public file that is served as-is', () => {
+    const here = fileURLToPath(new URL('.', import.meta.url));
+    for (const file of ['../public/humans.txt', '../public/.well-known/palma.txt']) {
+      const path = join(here, file);
+      expect(existsSync(path), file).toBe(true);
+      const body = readFileSync(path, 'utf8');
+      expect(body, file).not.toContain('One Cō');
+      expect(body, file).not.toContain('One Co Ltd');
+    }
+  });
+
+  it('appears in no page or route that renders it', () => {
+    // The surfaces that used to carry it. A reference to ENTITY.parent in any
+    // of these means it is being published again.
+    const here = fileURLToPath(new URL('.', import.meta.url));
+    const surfaces = [
+      '../src/components/palma/SiteFooter.tsx',
+      '../src/app/layout.tsx',
+      '../src/lib/seo.tsx',
+      '../src/app/llms.txt/route.ts',
+      '../src/app/legal/page.tsx',
+    ];
+    for (const file of surfaces) {
+      const body = readFileSync(join(here, file), 'utf8');
+      expect(body, file).not.toContain('ENTITY.parent');
+      expect(body, file).not.toContain('One Cō');
+    }
+  });
+});
+
+describe('the ICO registration', () => {
+  it('is registered', () => {
+    expect(ENTITY.icoRegistered).toBe(true);
+  });
+
+  it('says registered rather than pending while the reference is outstanding', () => {
+    // The wrong thing here is not a blank. It is the register still saying an
+    // application is pending after it has been granted.
+    expect(icoStatus(ENTITY)).toBe('Registered; reference to follow');
+    expect(icoStatus(ENTITY)).not.toMatch(/pending/i);
+  });
+
+  it('shows the reference once there is one', () => {
+    expect(icoStatus({ icoRegistered: true, icoRegistration: 'ZA123456' })).toBe('ZA123456');
+  });
+
+  it('still says pending where nothing has been applied for', () => {
+    expect(icoStatus({ icoRegistered: false, icoRegistration: null })).toBe('Application pending');
   });
 });

@@ -135,8 +135,7 @@ export function SiteFooter() {
 
         <div className="border-ivory/12 text-ivory/45 mt-7 flex flex-col gap-4 border-t pt-7 text-xs sm:flex-row sm:items-center sm:justify-between">
           <p>
-            © {year} PALMA. The Creator Honours. {ENTITY.name}, United Kingdom. A{' '}
-            {ENTITY.parent.name} company.
+            © {year} PALMA. The Creator Honours. {ENTITY.name}, United Kingdom.
           </p>
           <p className="text-ivory/35">
             Nominations are free. Honours cannot be bought. Scores are never published.

@@ -4,7 +4,7 @@ import { Masthead, MastheadPlate, PlateFact } from '@/components/palma/Masthead'
 import { Reveal, RevealGroup, RevealItem } from '@/components/motion/primitives';
 import { buildMetadata } from '@/lib/seo';
 import { formatDate } from '@/lib/format';
-import { CONTACTS, ENTITY, LEGAL_DOCUMENTS } from '@/lib/legal';
+import { CONTACTS, ENTITY, icoStatus, LEGAL_DOCUMENTS } from '@/lib/legal';
 
 export const metadata = buildMetadata({
   title: 'Legal',
@@ -88,21 +88,9 @@ export default function LegalIndexPage() {
                         {ENTITY.companyNumber ?? 'Not yet registered'}
                       </dd>
                     </div>
-                    <div className="border-stone-deep/60 flex justify-between gap-6 border-b pb-3">
-                      <dt className="text-taupe-deep">ICO registration</dt>
-                      <dd className="text-taupe text-right">
-                        {ENTITY.icoRegistration ?? 'Application pending'}
-                      </dd>
-                    </div>
-                    <div className="border-stone-deep/60 flex justify-between gap-6 border-b pb-3">
-                      <dt className="text-taupe-deep">Parent company</dt>
-                      <dd className="text-right">{ENTITY.parent.name}</dd>
-                    </div>
                     <div className="flex justify-between gap-6">
-                      <dt className="text-taupe-deep">Parent company number</dt>
-                      <dd className="text-taupe text-right">
-                        {ENTITY.parent.companyNumber ?? 'Not yet supplied'}
-                      </dd>
+                      <dt className="text-taupe-deep">ICO registration</dt>
+                      <dd className="text-taupe text-right">{icoStatus(ENTITY)}</dd>
                     </div>
                   </dl>
                   <p className="text-taupe mt-6 text-xs leading-relaxed">

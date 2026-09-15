@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { siteUrl } from '@/lib/env';
-import { ENTITY } from './legal';
 
 export const SITE_NAME = 'PALMA';
 export const SITE_DESCRIPTOR = 'The Creator Honours';
@@ -75,13 +74,6 @@ export function organisationJsonLd(): JsonLd {
     description:
       'PALMA is the permanent record of achievement in the creator industry, the institution behind The Creator Honours.',
     address: { '@type': 'PostalAddress', addressCountry: 'GB' },
-    // Schema.org has a field for exactly this, and search engines and AI
-    // crawlers read it. Stating the owner in machine-readable form is the same
-    // transparency the legal register offers a person.
-    parentOrganization: {
-      '@type': 'Organization',
-      name: ENTITY.parent.name,
-    },
   };
 }
 

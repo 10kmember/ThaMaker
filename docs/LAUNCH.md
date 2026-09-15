@@ -104,13 +104,18 @@ nothing about PALMA waits on it beyond the fifteen minutes it takes.
 A data controller also has to be identifiable, which is what the registered
 name, office and company number on the register are for.
 
-**Outstanding, and named as outstanding wherever it appears.** PALMA is a
-**One Cō Ltd** company. The parent's registration number has not been supplied
-yet, so `ENTITY.parent.companyNumber` is `null` and every surface that shows it
-prints "not yet supplied" rather than dropping the row. Fill that one constant
-in `src/lib/legal.ts` and the legal register, the settings screen, `llms.txt`
-and `.well-known/palma.txt` all carry it, because they read it rather than
-restate it.
+**The ICO registration is done.** `ENTITY.icoRegistered` is `true`. The ZA
+reference has not been recorded yet, so the register reads "Registered;
+reference to follow" rather than claiming an application is still pending.
+Put the reference in `ENTITY.icoRegistration` and it replaces that line.
+
+**The parent company is recorded and not published.** PALMA is a One Cō Ltd
+company; `ENTITY.parent` holds it, the settings screen shows it behind a login,
+and no public surface names it. Nothing requires it to: UK law makes the
+operator and the data controller identifiable, and both are Palma Awards Ltd.
+Note what this does not do. Companies House publishes officers and persons of
+significant control for every registered company on its own register, and a
+website saying nothing does not change that.
 
 **The legal register itself is settled.** The terms and the privacy notice are
 the solicitor-drafted documents, in force as written, and the rest of the

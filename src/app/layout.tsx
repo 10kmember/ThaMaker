@@ -51,7 +51,7 @@ export const metadata: Metadata = {
   keywords: ['PALMA', 'Palma Awards', 'creator awards', 'The Creator Honours', 'creator industry'],
   authors: [{ name: SITE_NAME }],
   creator: SITE_NAME,
-  publisher: `${ENTITY.name}, a ${ENTITY.parent.name} company`,
+  publisher: ENTITY.name,
   formatDetection: { telephone: false },
   openGraph: {
     type: 'website',
