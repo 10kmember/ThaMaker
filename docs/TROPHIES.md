@@ -4,132 +4,97 @@ A brief a foundry can quote from. Every dimension, alloy and finish is stated,
 and the drawings are generated from the same palm geometry the website uses, so
 the object and the mark cannot drift apart.
 
-![The three trophies in front elevation](trophies/palma-trophies.png)
+![Both trophies in front elevation](trophies/palma-trophies.png)
 
 ---
 
-## The idea the family rests on
+## The seal, standing
 
-**Two objects**, one palm, and the hierarchy is the crown:
+**Two objects.** A bronze ring with the palm held inside it, and the hierarchy
+is the crown.
 
-|                    | What it carries                                      |
-| ------------------ | ---------------------------------------------------- |
-| **THE PALMA**      | The whole palm, four frond pairs, **and the crown**. |
-| **Category PALMA** | The same palm. **No crown.**                         |
+|                    | What it carries                              |
+| ------------------ | -------------------------------------------- |
+| **THE PALMA**      | The palm inside the ring, **and the crown**. |
+| **Category PALMA** | The same seal. **No crown.**                 |
 
-That is the whole system, and it reads across a room in a photograph, which is
-where most people will ever see these. Nobody has to be told which is which.
+A finalist is recognised by being named. There is no third object.
 
-There is no third object. A finalist is recognised by being named, and a family
-of three was one thing too many to hold in the head.
+### Why a ring
 
-The crown matters because on the mark it is not a leaf: it is a struck dot held
-clear above the spine. Making it the thing only the highest honour carries turns
-a drawing convention into the most valuable 16 mm of bronze in the institution.
+The silhouette is a circle, which is about as abstract as a form gets, and the
+palm inside reads as an **emblem** rather than as a plant because it is framed.
+Nothing grows in a ring.
 
-### It is a cross in plan, not a pressing
+It is also the object PALMA already talks in. Every honour carries a signed
+verification record; a seal is what that language has always described. This is
+that seal at 340 mm.
 
-One set of fronds sits in the plane of the mark; a second set sits at ninety
-degrees to it. Head-on you see the logo exactly. From anywhere else you see a
-palm rather than a cutout of one, which is the difference between an object and
-a silhouette on a stick.
+### There is no base
 
-### What earlier versions got wrong
+A **128 mm flat is machined across the bottom of the band** and the object
+stands on that. One casting, floor to top. No plinth, no block, no collar, no
+socket, nothing to come loose, nothing to lose, and nothing to design twice.
 
-A figure on a tiered plinth, which is what every corporate award has been for
-thirty years. The hierarchy carried by a materials difference (full round
-against half relief) nobody would notice. Almost half the palm left as bare
-stalk below the lowest fronds. All three are gone: the palm is socketed deep
-into the seal, so what shows below the lowest fronds is a hand's width.
+Every earlier version put the palm on something and then had to solve what the
+something was: an oak block (a wedding cake), a turned disc (better, still a
+base), a tapered slab with an arched top (a headstone). Removing the base
+removed the problem.
 
 ---
 
 ## THE PALMA
 
-**400 mm · 2.9 kg · one a year · never shared**
+**Ø340 × 12 mm · 4.2 kg · one a year · never shared**
 
-![THE PALMA, with details called out](trophies/the-palma-detail.png)
+![THE PALMA, with the decisions called out](trophies/the-palma-detail.png)
 
-### The palm
+### The ring
 
-- **Material.** Silicon bronze, sand-cast, **one piece**. Not plated, not resin,
-  not a bronze-coloured finish. The weight is part of the object.
-- **Height.** 288 mm, spine socket to the top of the crown.
-- **Spine.** Round section, **22 mm** at the socket tapering to **6 mm** where
-  the needle leaves it. Circular throughout, so it feels the same in the hand
-  from any angle.
-- **Fronds.** Four opposed pairs, each a swept round rod of **7 mm** at the
-  spine, 5.5 mm at mid-span, closing to a **4 mm hemisphere** at the tip.
-  Nothing on this object is cut off flat. The lowest pair spans 150 mm tip to
-  tip and each pair above gains 12 mm, so the crown pair spans 186 mm.
-- **The crown.** A **16 mm** sphere held **12 mm clear** of the spine on a
-  needle that tapers out of it, finishing at 3 mm. It should read as struck and
-  separate. Only THE PALMA carries it.
+- **Silicon bronze, sand-cast, one piece.** Not plated, not resin, not a
+  bronze-coloured finish. The weight is part of the object.
+- **Band 30 mm wide, 12 mm thick.** Outer Ø340.
+- **Faces bead-blasted dark; the inner and outer arrises polished bright.** An
+  awards photograph has one light and it is overhead: the polished arrises draw
+  the circle while the faces stay quiet.
+- Waxed, **not lacquered**, so it darkens with handling. The object should look
+  like it has been owned.
 
-### Two finishes, one casting
+### The palm inside
 
-The single decision that makes this object photograph:
+- Four opposed frond pairs, each a swept round rod of **7 mm** at the spine
+  closing to a **4 mm hemisphere** at the tip. Nothing on this object is cut off
+  flat.
+- **The spine runs down into the band and merges with it.** That is the only
+  joint in the object, it is cast rather than fixed, and inside a frame a spine
+  reads as a mounting stem rather than as something rooted.
+- **The crown.** A 16 mm sphere on a tapered needle, held clear of the spine.
+  Only THE PALMA carries it, and the category seal ends where this begins.
 
-- **Upper faces of the fronds and the crown:** hand-polished to a mirror.
-- **Undersides, spine and needle:** fine bead-blast, left dark under patina.
+### The name, in the band
 
-An awards photograph has one light, and it is overhead. A uniformly polished
-palm turns into a flare; a uniformly dark one disappears. This one lights along
-its upper edges and holds its shape, which is what the engraved mark does on
-paper.
-
-Patina: warm mid-brown, **waxed rather than lacquered**. It will darken with
-handling over years, and that is correct. The object should look like it has
-been owned.
-
-### The seal
-
-Not a block. A **turned bronze disc**, Ø150 × 42 mm, faced on a lathe with a
-shallow dome across the top and a quarter fillet down to the rim. A block is
-joinery; a struck, turned disc is the object PALMA's whole verification language
-already describes, and the palm is socketed into its centre rather than standing
-on it.
-
-- Standing on a **thin English oak ring foot**, Ø132 × 10 mm, quarter-sawn,
-  hard-wax oiled. It keeps the piece warm in the hand and stops the bronze
-  ringing against a table.
-- Ballasted with lead shot in the turned cavity if the finished piece comes in
-  under **2.4 kg**. Heft is the difference between an award and a souvenir.
-
-### The plate
-
-Let into the **rim of the seal** flush at 3 mm, so a fingertip crossing it feels
-an edge and not a step. Solid brass, 1.5 mm, satin, **96 × 13 mm**, curved to
-the rim.
-
-Deep-etched and oxide-filled in ink black — **not laser-marked**. Laser marking
-sits on the surface and wears off a plate that gets handled, and this one will
-be handled for decades.
+Cut into the bronze itself along the bottom of the band and oxide-filled.
+**No plate, nothing screwed on**, nothing that can be prised off, nothing to
+work loose over thirty years.
 
 ```
-              THE PALMA · 2027
-                AMA OKONKWO
+THE PALMA · 2027 · AMA OKONKWO
 ```
 
-### The code, underneath
+### On the reverse
 
-`PM-2027-XXXXXX · palmaawards.com/verify` engraved on the **underside** of the
-block. It is proof, not decoration, and it should be found by somebody who turns
-the object over looking for it.
+`PM-2027-XXXXXX · palmaawards.com/verify` struck into the back of the band. It
+is proof, not decoration, and it should be found by somebody who turns the
+object over looking for it.
 
 ---
 
 ## The Category PALMA
 
-**265 mm · 1.4 kg · one per category**
+**Ø232 × 10 mm · 1.6 kg · one per category**
 
-The same palm, the same casting, the same cruciform plan and the same two
-finishes, at **184 mm**. **No crown:** the spine tapers and simply ends.
-
-- Seal: turned bronze, **Ø116 × 32 mm**, on an oak ring foot.
-- Plate: brass, let into the rim, 72 mm, carrying the category, the year and
-  the winner.
-- Code on the underside, as above.
+The same seal, the same casting, the same finishes. **No crown:** the spine
+tapers and simply ends. The band carries the category, the year and the winner.
 
 ### Where a sponsor may and may not appear
 
@@ -163,26 +128,29 @@ cannot be reproduced by a home printer, and it is felt before it is seen.
   award of the last thirty years, and PALMA's whole position is that it is not
   that kind of institution.
 - **Not gold plated.** Plating chips, and a chipped award is worse than a plain
-  one. Solid brass and bronze age; plate fails.
+  one. Solid bronze ages; plate fails.
 - **Not resin, anywhere.** If cost pressure forces a change, the correct answer
   is fewer categories, not a lighter object.
-- **Not engraved after the fact.** The name goes on before the ceremony, which
-  means the winner is known to the workshop before the room. The foundry holds
-  that under the same terms as the panel.
+- **Not engraved after the fact.** The name goes into the band before the
+  ceremony, which means the winner is known to the foundry before the room. The
+  workshop holds that under the same terms as the panel.
 
 ---
 
 ## The drawings
 
-`docs/trophies/` holds both sheets as PNG and SVG, and the two scripts that
+`docs/trophies/` holds both sheets as PNG and SVG, and the scripts that
 generate them.
 
 ```
-node docs/trophies/draw-elevation.mjs   # both, to scale, with the plan
+node docs/trophies/draw-elevation.mjs   # both, to scale
 node docs/trophies/draw-detail.mjs      # THE PALMA, with callouts
 ```
 
-They import the palm paths from the same source the site renders — see
-`src/components/brand/geometry.ts`. **Redraw rather than retouch.** A trophy
-drawing edited by hand is how the object and the mark quietly stop being the
-same palm, which has already happened once to this institution's logo.
+- `geometry.mjs` reads the palm paths out of `src/components/brand/geometry.ts`
+  and throws if the mark's shape changes under it.
+- `shapes.mjs` holds the palette and the seal itself, shared by both sheets.
+
+**Redraw rather than retouch.** A drawing edited by hand is how the object and
+the mark quietly stop being the same palm, which has already happened once to
+this institution's logo.
