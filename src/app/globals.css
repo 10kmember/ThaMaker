@@ -1088,7 +1088,7 @@
     inset: 0;
     z-index: 100;
     pointer-events: none;
-    animation: palma-threshold-done 0s linear 820ms forwards;
+    animation: palma-threshold-done 0s linear 660ms forwards;
   }
 
   .palma-threshold-leaf {
@@ -1102,32 +1102,12 @@
 
   .palma-threshold-leaf[data-side='left'] {
     left: 0;
-    animation: palma-part-left 700ms var(--ease-ceremonial) 90ms both;
+    animation: palma-part-left 600ms var(--ease-ceremonial) 60ms both;
   }
 
   .palma-threshold-leaf[data-side='right'] {
     right: 0;
-    animation: palma-part-right 700ms var(--ease-ceremonial) 90ms both;
-  }
-
-  /* The mark sits on its own ink plate.
-
-     Without one it ends up champagne on ivory the moment the panels open
-     behind it, which is the worst contrast pairing in the palette. The plate
-     keeps it on ink for its whole life and reads as a struck seal rather than
-     a logo that lost its background. */
-  .palma-threshold-mark {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    display: grid;
-    place-items: center;
-    width: 112px;
-    height: 112px;
-    margin: -56px 0 0 -56px;
-    background: var(--color-ink);
-    animation: palma-threshold-mark 820ms var(--ease-ceremonial) both;
-    will-change: transform, opacity;
+    animation: palma-part-right 600ms var(--ease-ceremonial) 60ms both;
   }
 
   @keyframes palma-part-left {
@@ -1149,25 +1129,6 @@
   }
 
   /* The mark holds for a beat while the panels open behind it, then lifts. */
-  @keyframes palma-threshold-mark {
-    0% {
-      opacity: 0;
-      transform: scale(0.82);
-    }
-    20% {
-      opacity: 1;
-      transform: scale(1);
-    }
-    52% {
-      opacity: 1;
-      transform: scale(1);
-    }
-    100% {
-      opacity: 0;
-      transform: scale(1.42);
-    }
-  }
-
   @keyframes palma-threshold-done {
     to {
       visibility: hidden;

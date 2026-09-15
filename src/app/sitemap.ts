@@ -36,6 +36,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${siteUrl}/winners`, lastModified: now, changeFrequency: 'weekly', priority: 0.9 },
     { url: `${siteUrl}/paroh`, lastModified: now, changeFrequency: 'weekly', priority: 1 },
     { url: `${siteUrl}/creators`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${siteUrl}/kulture`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${siteUrl}/journal`, lastModified: now, changeFrequency: 'daily', priority: 0.8 },
     ...EMAIL_LIST_VALUES.map((list) => ({
       url: `${siteUrl}/lists/${list.key}`,

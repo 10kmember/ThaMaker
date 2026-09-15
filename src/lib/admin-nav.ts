@@ -56,6 +56,11 @@ export const MODERATION_NAV: AdminGroup[] = [
         permission: 'commercial:assign_placement',
       },
       {
+        href: '/portal/kulture',
+        label: 'Kulture',
+        permission: 'kulture:manage_products',
+      },
+      {
         href: '/portal/features',
         label: 'Features',
         permission: 'commercial:manage_features',

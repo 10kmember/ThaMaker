@@ -24,7 +24,7 @@ export const PUBLIC_NAV: NavItem[] = [
   { href: '/categories', label: 'Categories' },
   { href: '/nominate', label: 'Nominate' },
   { href: '/paroh', label: 'PaROH', preserveCase: true },
-  { href: '/journal', label: 'Journal' },
+  { href: '/kulture', label: 'Kulture' },
   { href: '/about', label: 'About' },
 ];
 
@@ -57,6 +57,8 @@ export const FOOTER_NAV: { title: string; items: NavItem[] }[] = [
       { href: '/about/judges', label: 'The panel' },
       { href: '/about/sponsors', label: 'Partners' },
       { href: '/about/policy', label: 'Content policy' },
+      { href: '/kulture', label: 'Kulture' },
+      { href: '/journal', label: 'The Journal' },
       { href: '/lists/awards', label: 'PALMA Awards' },
       { href: '/lists/journal', label: 'PALMA Journal' },
       { href: '/press', label: 'Press' },

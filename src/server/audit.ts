@@ -94,6 +94,15 @@ export const AUDIT_ACTIONS = [
   'creator.portrait_approved',
   'creator.portrait_rejected',
   'creator.portrait_removed',
+
+  // The Product Library. The sponsorship entries are separate from the
+  // editorial ones on purpose: "who paid" and "who wrote the verdict" must be
+  // two different lines in the log, or the log cannot answer the only question
+  // anybody will ever ask of it.
+  'product.created',
+  'product.updated',
+  'product.sponsored',
+  'product.sponsorship_cleared',
 ] as const;
 
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];

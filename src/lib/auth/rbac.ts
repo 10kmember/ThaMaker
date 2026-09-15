@@ -35,6 +35,7 @@ export const PERMISSIONS = [
   // Editorial — the presentation of the record, never its outcomes
   'journal:write',
   'journal:publish',
+  'kulture:manage_products',
   'creators:view_records',
   'editorial:create_creator',
   'editorial:edit_creator',
@@ -138,6 +139,11 @@ const MODERATOR: Permission[] = [
   'creators:view_records',
   'journal:write',
   'journal:publish',
+  // Kulture is the desk's pillar, and the Product Library is the desk's work.
+  // It is the one commercial-adjacent surface whose content an administrator
+  // has no business writing: a verdict is editorial, and the people who write
+  // verdicts are the people who own them.
+  'kulture:manage_products',
   'editorial:create_creator',
   'editorial:edit_creator',
   'editorial:write_internal_note',

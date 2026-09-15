@@ -31,7 +31,8 @@ export type FeatureKey =
   | 'sponsored_editorial'
   | 'creator_opportunities'
   | 'partner_offers'
-  | 'palma_insights';
+  | 'palma_insights'
+  | 'product_library';
 
 export type Feature = {
   key: FeatureKey;
@@ -124,6 +125,17 @@ export const FEATURES = {
       'Formal permission to use the PALMA mark, granted against a real achievement — which is what eventually stops fabricated badges.',
     requires: 'A registered mark, and licence terms written by a solicitor.',
     group: 'Recognition',
+    seasonAware: false,
+    publicFacing: true,
+  },
+  product_library: {
+    key: 'product_library',
+    name: 'Product Library',
+    purpose:
+      'A short, curated list of products genuinely relevant to creators, each with a PALMA verdict, its strengths and its limitations. Sponsorship only: no affiliate links and no commission, and a sponsor cannot move a verdict.',
+    requires:
+      'Twenty or thirty products somebody has actually used, and an editor with time to keep them honest. A catalogue nobody looked at is worse than no library.',
+    group: 'Editorial & community',
     seasonAware: false,
     publicFacing: true,
   },

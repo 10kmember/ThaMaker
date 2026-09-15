@@ -806,9 +806,10 @@ model Sponsor {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  sponsorships  Sponsorship[]
-  campaigns     Campaign[]
-  opportunities Opportunity[]
+  sponsorships   Sponsorship[]
+  campaigns      Campaign[]
+  opportunities  Opportunity[]
+  productEntries ProductEntry[]
 
   @@index([status])
 }
@@ -1844,4 +1845,56 @@ model SearchCount {
 
   @@unique([scope, term, day])
   @@index([scope, day])
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The Product Library
+//
+// Editorial fields and sponsor fields are separated at the column level, not by
+// convention. A sponsorship records who paid and the disclosure; it touches no
+// field a reader would take as PALMA's opinion. See
+// src/domain/product-library.ts for the rule and the test that holds it.
+//
+// There is no affiliate column here and there never will be one. The outbound
+// link is validated to carry no query string at all, which is what makes a
+// commission impossible rather than merely discouraged.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ProductEntry {
+  id       String @id @default(cuid())
+  slug     String @unique
+  name     String
+  brand    String
+  category String
+
+  // ── Editorial. Written by PALMA, never shown to a partner before publication.
+  /// Out of ten, to one decimal place, stored in tenths so it stays an integer.
+  verdict     Int?
+  bestFor     String   @db.Text
+  strengths   String[]
+  limitations String[]
+  review      String   @db.Text
+  /// Who at PALMA actually used it, where that is true.
+  testedBy    String?
+
+  /// Plain https, no query string. Validated in the domain before it is stored.
+  externalUrl String?
+
+  isPublished Boolean   @default(false)
+  publishedAt DateTime?
+
+  // ── Sponsorship. Disjoint from everything above.
+  sponsorId         String?
+  sponsorDisclosure String?   @db.Text
+  sponsoredAt       DateTime?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  updatedById String?
+
+  sponsor Sponsor? @relation(fields: [sponsorId], references: [id], onDelete: SetNull)
+
+  @@index([isPublished, category])
+  @@index([sponsorId])
 }
