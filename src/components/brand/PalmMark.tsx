@@ -6,6 +6,18 @@ type PalmMarkProps = {
   /** `line` for engraved outlines, `solid` for a compact app/badge mark. */
   variant?: 'line' | 'solid';
   title?: string;
+  /**
+   * Draw the mark on, stroke by stroke, as though it were being engraved.
+   *
+   * Sets `pathLength` to 100 on every stroke so one CSS rule can dash all of
+   * them regardless of their real length, and marks the crown so it can be
+   * struck last. The animation itself lives in `globals.css` under
+   * `.palma-engrave`, guarded by `prefers-reduced-motion`.
+   *
+   * This exists so the one place that wants the effect does not have to inline
+   * its own copy of the geometry to get a handle on the paths.
+   */
+  draw?: boolean;
 };
 
 /**
@@ -20,14 +32,14 @@ type PalmMarkProps = {
  * every generated image, so the mark cannot be redrawn by hand in one place and
  * quietly stop matching itself in the others.
  */
-export function PalmMark({ className, variant = 'line', title }: PalmMarkProps) {
+export function PalmMark({ className, variant = 'line', title, draw = false }: PalmMarkProps) {
   const decorative = !title;
 
   return (
     <svg
       viewBox={MARK_VIEWBOX}
       fill="none"
-      className={cn('h-6 w-auto', className)}
+      className={cn('h-6 w-auto', draw && 'palma-engrave', className)}
       role={decorative ? 'presentation' : 'img'}
       aria-hidden={decorative || undefined}
       aria-label={title}
@@ -41,9 +53,9 @@ export function PalmMark({ className, variant = 'line', title }: PalmMarkProps) 
         fill="none"
       >
         {MARK_PATHS.map((d) => (
-          <path key={d} d={d} />
+          <path key={d} d={d} pathLength={draw ? 100 : undefined} />
         ))}
-        <circle cx={MARK_CROWN.cx} cy={MARK_CROWN.cy} r={MARK_CROWN.r} />
+        <circle cx={MARK_CROWN.cx} cy={MARK_CROWN.cy} r={MARK_CROWN.r} data-crown="" />
       </g>
     </svg>
   );

@@ -9,12 +9,14 @@ import { changeEmailSchema, closeAccountSchema } from '@/lib/validation/account'
 import { fieldErrors } from '@/lib/validation/nomination';
 import { recordAudit } from '@/server/audit';
 import { prisma } from '@/server/db';
+import { enforceRateLimit, RATE_LIMITS } from '@/server/rate-limit';
 import {
   sendAccountClosed,
   sendEmailChangeConfirm,
   sendEmailChangeNotice,
 } from '@/server/email/messages';
 import { clearSuppression } from '@/server/email/suppression';
+import { CONTACTS } from '@/lib/legal';
 
 /**
  * What a person can do to their own account without asking PALMA.
@@ -43,6 +45,19 @@ export async function requestEmailChange(
 
   const session = await getSession();
   if (!session) return { status: 'error', message: 'Sign in again.' };
+
+  // Counted after the origin and session checks, not before, so a forged
+  // cross-origin request cannot burn the budget of the account it is aimed at.
+  // Limited even though the caller is signed in: the confirmation goes to the
+  // address being claimed, so repeating this sends mail to somebody who has not
+  // asked for it. Authentication says who is doing it, not how often.
+  const limit = await enforceRateLimit(RATE_LIMITS.emailChange, session.user.id);
+  if (!limit.allowed) {
+    return {
+      status: 'error',
+      message: 'Too many address changes requested. Try again later.',
+    };
+  }
 
   const parsed = changeEmailSchema.safeParse({
     newEmail: formData.get('newEmail'),
@@ -217,7 +232,9 @@ export async function closeAccount(
     return {
       status: 'error',
       message:
-        'Accounts holding a PALMA role are closed by an administrator, not from here. Write to concierge@palmaawards.com and it will be done.',
+        'Accounts holding a PALMA role are closed by an administrator, not from here. Write to ' +
+        CONTACTS.general +
+        ' and it will be done.',
     };
   }
 

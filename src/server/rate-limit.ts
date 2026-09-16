@@ -33,6 +33,27 @@ export const RATE_LIMITS = {
   objection: { bucket: 'record:objection', limit: 20, windowSeconds: 60 * 60 },
   report: { bucket: 'integrity:report', limit: 10, windowSeconds: 60 * 60 },
   verifyLookup: { bucket: 'verify:lookup', limit: 120, windowSeconds: 60 * 60 },
+  /**
+   * The page counter.
+   *
+   * Deliberately generous: this fires once per page a reader opens, a
+   * household shares an address, and being rate-limited here costs PALMA a
+   * number rather than costing a reader anything. The limit is not about the
+   * figures, which decide nothing. It is about the write: without a ceiling
+   * this is an unauthenticated path that appends rows to the database as fast
+   * as somebody cares to call it.
+   */
+  pageCount: { bucket: 'measure:page', limit: 600, windowSeconds: 60 * 60 },
+  /**
+   * Asking to change the address on an account.
+   *
+   * Authenticated, and limited anyway, because the cost of repeating it lands
+   * in somebody else's inbox: the confirmation goes to the *new* address,
+   * which means an account can be used to send mail to an address its owner
+   * does not control. Five an hour is more than a person changing their email
+   * will ever need.
+   */
+  emailChange: { bucket: 'account:email-change', limit: 5, windowSeconds: 60 * 60 },
   creatorSearch: { bucket: 'creator:search', limit: 120, windowSeconds: 10 * 60 },
 } satisfies Record<string, RateLimitRule>;
 

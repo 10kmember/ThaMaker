@@ -74,6 +74,24 @@
   }
 }
 
+@keyframes palma-engrave {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* The crown is struck, not faded: it arrives slightly oversized and settles. */
+@keyframes palma-strike {
+  from {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @keyframes seal {
   from {
     opacity: 0;
@@ -800,6 +818,63 @@
     .palma-branch:not([open]) > *:not(summary) {
       display: block;
       content-visibility: visible;
+    }
+  }
+
+  /* The mark, engraved rather than displayed.
+
+     Every stroke carries `pathLength="100"`, so one dash rule covers strokes of
+     wildly different real lengths and they all draw at the same rate. The spine
+     goes down first, the fronds follow in pairs outward from it, and the crown
+     is struck last — which is the order somebody cutting this by hand would
+     work in, and the reason it reads as engraving rather than as a loading
+     spinner.
+
+     Under `prefers-reduced-motion` the whole thing is simply the finished mark:
+     no dash, no offset, nothing to wait for. */
+  .palma-engrave path {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: palma-engrave 700ms var(--ease-ceremonial) forwards;
+  }
+
+  /* The spine first, on its own, and quicker than the rest: it is one cut.
+     The timings are chosen so the last frond lands at 1360ms and the crown is
+     struck at 1400ms — the crown must be the last mark made, and an earlier
+     version had it arriving while two fronds were still drawing. */
+  .palma-engrave path:nth-of-type(1) {
+    animation-duration: 620ms;
+  }
+  .palma-engrave path:nth-of-type(2),
+  .palma-engrave path:nth-of-type(3) {
+    animation-delay: 300ms;
+  }
+  .palma-engrave path:nth-of-type(4),
+  .palma-engrave path:nth-of-type(5) {
+    animation-delay: 420ms;
+  }
+  .palma-engrave path:nth-of-type(6),
+  .palma-engrave path:nth-of-type(7) {
+    animation-delay: 540ms;
+  }
+  .palma-engrave path:nth-of-type(8),
+  .palma-engrave path:nth-of-type(9) {
+    animation-delay: 660ms;
+  }
+
+  .palma-engrave [data-crown] {
+    opacity: 0;
+    animation: palma-strike 480ms var(--ease-tactile) 1400ms forwards;
+    transform-origin: center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .palma-engrave path,
+    .palma-engrave [data-crown] {
+      stroke-dasharray: none;
+      stroke-dashoffset: 0;
+      opacity: 1;
+      animation: none;
     }
   }
 

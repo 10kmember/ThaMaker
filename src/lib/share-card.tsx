@@ -2,9 +2,10 @@ import { ImageResponse } from 'next/og';
 
 export const SHARE_CARD_SIZE = { width: 1200, height: 630 };
 
-const INK = '#161719';
-const IVORY = '#F4F0E8';
-const CHAMPAGNE = '#C9B58A';
+// Read from the mark's own geometry rather than restated. A share card that
+// drifted a shade off the site would be the one version of PALMA most people
+// see, because it is the version that travels.
+import { CHAMPAGNE, INK, IVORY } from '@/components/brand/geometry';
 
 /**
  * PALMA share cards.

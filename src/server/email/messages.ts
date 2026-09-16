@@ -2,6 +2,7 @@ import 'server-only';
 import { siteUrl } from '@/lib/env';
 import { CODE_TTL_SECONDS } from '@/domain/verification-code';
 import { dispatch, type DispatchResult } from './dispatch';
+import { MAILBOXES } from './addresses';
 import {
   action,
   aside,
@@ -167,7 +168,7 @@ export function sendPasswordChanged(input: { to: string; userId: string; when: D
         ),
         aside({
           title: 'If this was not you',
-          body: `Reply to this message immediately. Do not use the reset link in any other email you have received — reply to this one, which reaches ${'security@palmaawards.com'} directly.`,
+          body: `Reply to this message immediately. Do not use the reset link in any other email you have received — reply to this one, which reaches ${MAILBOXES.security.address} directly.`,
           tone: 'warning',
         }),
       ].join('\n'),
@@ -180,7 +181,7 @@ export function sendPasswordChanged(input: { to: string; userId: string; when: D
       '',
       'Every other session was signed out at the same time.',
       '',
-      'If this was not you, reply to this message immediately. It reaches security@palmaawards.com directly.',
+      `If this was not you, reply to this message immediately. It reaches ${MAILBOXES.security.address} directly.`,
     ]),
     dossier: {
       body: `The password on this account was changed on ${when}, and every other session was signed out.`,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { siteUrl } from '@/lib/env';
 import { countPage } from '@/server/services/measurement';
+import { enforceRateLimit, RATE_LIMITS } from '@/server/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,7 +23,8 @@ export const dynamic = 'force-dynamic';
  * which is the design rather than an accident of it.
  *
  * **Why it is safe to leave unauthenticated.** It has to be — the callers are
- * anonymous readers. Two properties make that acceptable. The path is checked
+ * anonymous readers, and it is rate-limited so that being open is not the same
+ * as being unbounded. Two properties make that acceptable. The path is checked
  * against the shapes of pages that actually exist, so this is not a way to
  * write arbitrary rows into PALMA's database. And the numbers decide nothing:
  * no honour, no shortlist, no ranking and no payment reads a page counter, so
@@ -48,6 +50,18 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   if (typeof path !== 'string') {
     return NextResponse.json({ ok: false }, { status: 400 });
+  }
+
+  // Bounded, generously. The figures decide nothing, so this is not protecting
+  // a result; it is protecting the database from an unauthenticated write path
+  // with no ceiling. A reader will never reach it. A script will, and gets a
+  // 429 with a Retry-After rather than an open tap.
+  const limit = await enforceRateLimit(RATE_LIMITS.pageCount);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { ok: false },
+      { status: 429, headers: { 'Retry-After': String(limit.retryAfterSeconds) } },
+    );
   }
 
   const counted = await countPage(path);

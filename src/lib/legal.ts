@@ -14,6 +14,8 @@
  * institution that quietly rewrites its terms has no terms.
  */
 
+import { mailbox } from '@/domain/mailboxes';
+
 export type LegalStatus = 'in-force' | 'superseded';
 
 export type LegalDocument = {
@@ -141,18 +143,26 @@ export function legalDocument(slug: string): LegalDocument | undefined {
  *
  * There is no noreply@ here either. Every address PALMA prints accepts replies.
  */
+/**
+ * Where to write about what.
+ *
+ * Seven reasons, four inboxes, and not a single address typed out here: they
+ * come from `domain/mailboxes`, which the mailer reads too. This used to be a
+ * second hardcoded copy of the same four strings, and a copy is a rename away
+ * from a legal page inviting people to write somewhere nobody reads.
+ */
 export const CONTACTS = {
   /** The desk: accounts, records, claims, anything in progress. */
-  general: 'concierge@palmaawards.com',
+  general: mailbox('concierge'),
   /** Data protection, complaints and appeals. */
-  privacy: 'concerns@palmaawards.com',
+  privacy: mailbox('concerns'),
   /** Vulnerabilities and account safety. */
-  security: 'security@palmaawards.com',
+  security: mailbox('security'),
   /** Integrity of the record — forged verification, manipulated nominations. */
-  integrity: 'concerns@palmaawards.com',
-  press: 'concierge@palmaawards.com',
-  partnerships: 'concierge@palmaawards.com',
-  accessibility: 'concierge@palmaawards.com',
+  integrity: mailbox('concerns'),
+  press: mailbox('concierge'),
+  partnerships: mailbox('concierge'),
+  accessibility: mailbox('concierge'),
 } as const;
 
 export const ENTITY = {

@@ -1,4 +1,5 @@
 import 'server-only';
+import { MAILBOX_ADDRESSES, MAILBOX_NAMES } from '@/domain/mailboxes';
 
 /**
  * Who PALMA writes as.
@@ -24,27 +25,27 @@ import 'server-only';
 export const MAILBOXES = {
   laurels: {
     key: 'laurels',
-    address: 'laurels@palmaawards.com',
-    name: 'PALMA',
+    address: MAILBOX_ADDRESSES.laurels,
+    name: MAILBOX_NAMES.laurels,
     /** What this voice is for, shown in the template register. */
     purpose: 'The record itself — honours, seasons, results, the Gazette.',
   },
   concierge: {
     key: 'concierge',
-    address: 'concierge@palmaawards.com',
-    name: 'PALMA Concierge',
+    address: MAILBOX_ADDRESSES.concierge,
+    name: MAILBOX_NAMES.concierge,
     purpose: 'The desk — accounts, claims, records, verification.',
   },
   security: {
     key: 'security',
-    address: 'security@palmaawards.com',
-    name: 'PALMA Security',
+    address: MAILBOX_ADDRESSES.security,
+    name: MAILBOX_NAMES.security,
     purpose: 'Account safety — passwords, addresses, sessions.',
   },
   concerns: {
     key: 'concerns',
-    address: 'concerns@palmaawards.com',
-    name: 'PALMA',
+    address: MAILBOX_ADDRESSES.concerns,
+    name: MAILBOX_NAMES.concerns,
     purpose: 'Enforcement, complaints and appeals.',
   },
 } as const;

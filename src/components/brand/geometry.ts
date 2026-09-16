@@ -50,9 +50,12 @@ export const MARK_CROWN = { cx: 24, cy: 5.4, r: 2.1 } as const;
 /** Centre of the mark, for anything that needs to translate it. */
 export const MARK_CENTRE = { x: MARK_WIDTH / 2, y: MARK_HEIGHT / 2 } as const;
 
-/** The institution's two colours, for the contexts that cannot read CSS. */
+/** The institution's colours, for the contexts that cannot read CSS: a
+ * generated image, an email letterhead, an SVG written to disk. The CSS tokens
+ * in `globals.css` carry the same values for everything that can. */
 export const INK = '#161719';
 export const CHAMPAGNE = '#C9B58A';
+export const IVORY = '#F4F0E8';
 
 /**
  * The mark as a raw SVG string.

@@ -7,6 +7,7 @@ import { authorise } from '@/lib/auth/guards';
 import { recordAudit } from '@/server/audit';
 import { prisma } from '@/server/db';
 import { RATE_LIMITS, enforceRateLimit } from '@/server/rate-limit';
+import { CONTACTS } from '@/lib/legal';
 
 /**
  * "I never asked to be in your archive."
@@ -69,7 +70,9 @@ export async function objectToRecord(
     return {
       status: 'error',
       message:
-        'That record is held by an account. If it is yours, sign in and edit or close it; if you believe it is held by the wrong person, write to concerns@palmaawards.com.',
+        'That record is held by an account. If it is yours, sign in and edit or close it; if you believe it is held by the wrong person, write to ' +
+        CONTACTS.integrity +
+        '.',
     };
   }
 
