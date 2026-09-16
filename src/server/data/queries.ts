@@ -3,7 +3,12 @@ import { cache } from 'react';
 import { prisma } from '@/server/db';
 import type { SeasonStage } from '@/domain/season';
 import { finalistsArePublic, winnersArePublic } from '@/domain/season';
-import { honourCategoryName, honourCategorySlug } from '@/domain/honours';
+import {
+  honourCategoryName,
+  honourCategorySlug,
+  HONOUR_STANDING,
+  matchesAchievementSlug,
+} from '@/domain/honours';
 import type {
   AchievementRecord,
   ArticleDetail,
@@ -180,6 +185,45 @@ export const listCreators = cache(async (filter: CreatorFilter = {}): Promise<Cr
       b.winCount !== a.winCount ? b.winCount - a.winCount : b.honourCount - a.honourCount,
     );
 });
+
+/**
+ * One honour, addressed by its quotable slug.
+ *
+ * Built on `getCreator` rather than its own query, so the credential page and
+ * the creator's record can never disagree about what somebody holds: they read
+ * the same rows through the same cache.
+ *
+ * Revoked honours resolve deliberately. A link a creator has already put in a
+ * press kit must not 404 the day an honour is withdrawn — the page has to be
+ * able to say it was revoked, which is the whole reason the record keeps
+ * revoked rows rather than deleting them.
+ */
+export const getCreatorAchievement = cache(
+  async (
+    creatorSlug: string,
+    honourSlug: string,
+  ): Promise<{ creator: CreatorProfile; honour: HonourEntry } | null> => {
+    const creator = await getCreator(creatorSlug);
+    if (!creator) return null;
+
+    const matches = creator.record.filter((honour) =>
+      matchesAchievementSlug(
+        { kind: honour.kind, categorySlug: honour.categorySlug, year: honour.year },
+        honourSlug,
+      ),
+    );
+    if (matches.length === 0) return null;
+
+    // Highest standing wins where a creator holds more than one honour in the
+    // same contest: pointing somebody at a finalist record when they won it is
+    // the worse of the two mistakes.
+    const honour = [...matches].sort(
+      (a, b) => HONOUR_STANDING[b.kind] - HONOUR_STANDING[a.kind],
+    )[0]!;
+
+    return { creator, honour };
+  },
+);
 
 export const getCreator = cache(async (slug: string): Promise<CreatorProfile | null> => {
   const row = await prisma.creator.findUnique({

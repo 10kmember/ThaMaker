@@ -13,6 +13,7 @@ import { JsonLd, absoluteUrl, awardJsonLd, breadcrumbJsonLd, buildMetadata } fro
 import { countryName } from '@/lib/format';
 import { pluralise } from '@/lib/utils';
 import { getCreator, listCreators } from '@/server/data/queries';
+import { achievementSlug } from '@/domain/honours';
 
 export const revalidate = 900;
 
@@ -206,6 +207,19 @@ export default async function CreatorPage({ params }: Params) {
                         revoked={entry.state === 'revoked'}
                       />
                       <div className="flex shrink-0 items-center gap-3 pl-7.5 sm:pl-0">
+                        {/* The quotable address. A creator finds it here,
+                            because a link nobody can find is a link nobody
+                            puts in their bio. */}
+                        <Link
+                          href={`/creators/${creator.slug}/${achievementSlug(
+                            entry.kind,
+                            entry.categorySlug,
+                            entry.year,
+                          )}`}
+                          className="palma-label text-olive hover:text-ink transition-colors"
+                        >
+                          Share
+                        </Link>
                         <Link
                           href={`/categories/${entry.categorySlug}?year=${entry.year}`}
                           className="palma-label text-taupe-deep hover:text-ink transition-colors"

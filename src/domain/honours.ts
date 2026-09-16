@@ -73,6 +73,69 @@ export function honourHref(kind: HonourKind, categorySlug: string, year: number)
   return `/categories/${categorySlug}?year=${year}`;
 }
 
+/**
+ * The quotable address of a single honour.
+ *
+ * `/creators/maya-rivers/the-palma-2027` rather than
+ * `/creators/maya-rivers?code=PM-2027-0042`. A verification code is provable
+ * but not sayable: nobody reads one down a phone, and nobody puts one in a bio
+ * without explaining it first. This is the form a creator can put in a link
+ * tree, a press kit or an email signature and have it mean something before it
+ * is clicked.
+ *
+ * The code remains the canonical proof and the page carries it. This is a
+ * second door onto the same record, not a second record.
+ *
+ * The shape is `{what}-{year}`: the category it was won in, or `the-palma`
+ * where there is no category. Year is part of it because a creator can hold
+ * the same category in more than one season, and the address has to say which.
+ */
+export function achievementSlug(kind: HonourKind, categorySlug: string, year: number): string {
+  return `${isThePalma(kind) ? THE_PALMA_SLUG : categorySlug}-${year}`;
+}
+
+/**
+ * Read one back.
+ *
+ * Returns null rather than guessing. A trailing four-digit year is the only
+ * thing this will accept, so `/creators/maya-rivers/portrait` can never be
+ * mistaken for an honour that happens to be missing.
+ */
+export function parseAchievementSlug(slug: string): { what: string; year: number } | null {
+  const match = /^(.+)-(\d{4})$/.exec(slug);
+  if (!match) return null;
+
+  const what = match[1];
+  const year = Number(match[2]);
+  if (!what || !Number.isInteger(year)) return null;
+
+  return { what, year };
+}
+
+/** Whether a slug names this honour. */
+export function matchesAchievementSlug(
+  honour: { kind: HonourKind; categorySlug: string; year: number },
+  slug: string,
+): boolean {
+  return achievementSlug(honour.kind, honour.categorySlug, honour.year) === slug;
+}
+
+/**
+ * Which honour a shared address should resolve to when more than one matches.
+ *
+ * A creator can hold both a finalist and a winner honour in one category and
+ * season. The address names the contest, so it resolves to the highest thing
+ * they hold in it: linking someone to your finalist record when you won is a
+ * worse failure than the reverse.
+ */
+export const HONOUR_STANDING: Record<HonourKind, number> = {
+  the_palma: 5,
+  winner: 4,
+  finalist: 3,
+  special_recognition: 2,
+  shortlist: 1,
+};
+
 /** Whether a kind mints a permanent, citable achievement record. */
 export function mintsAchievement(kind: HonourKind): boolean {
   return (
