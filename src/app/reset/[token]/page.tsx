@@ -1,4 +1,5 @@
 import { Container, Section } from '@/components/palma/layout';
+import { Reveal } from '@/components/palma/Reveal';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { ResetPasswordForm } from '@/components/account/AuthForms';
 import { Notice } from '@/components/ui/feedback';
@@ -35,7 +36,7 @@ export default async function ResetPasswordPage({
     <Section className="py-20">
       <Container size="narrow">
         <div className="mx-auto flex max-w-110 flex-col gap-10">
-          <div className="flex flex-col gap-4">
+          <Reveal className="flex flex-col gap-4">
             <Wordmark size="md" descriptor />
             <h1 className="text-4xl">Set a new password</h1>
             {usable ? (
@@ -44,20 +45,22 @@ export default async function ResetPasswordPage({
                 was signed in as you.
               </p>
             ) : null}
-          </div>
+          </Reveal>
 
-          {usable ? (
-            <ResetPasswordForm token={token} />
-          ) : (
-            <Notice tone="warning" title="This link is no longer valid">
-              A reset link lasts an hour and works once, and asking for a new one cancels the old.
-              Start again from the{' '}
-              <a href="/forgot" className="palma-link text-ink">
-                forgotten password
-              </a>{' '}
-              page.
-            </Notice>
-          )}
+          <Reveal delay={80}>
+            {usable ? (
+              <ResetPasswordForm token={token} />
+            ) : (
+              <Notice tone="warning" title="This link is no longer valid">
+                A reset link lasts an hour and works once, and asking for a new one cancels the old.
+                Start again from the{' '}
+                <a href="/forgot" className="palma-link text-ink">
+                  forgotten password
+                </a>{' '}
+                page, or ask whoever invited you for a fresh one.
+              </Notice>
+            )}
+          </Reveal>
         </div>
       </Container>
     </Section>

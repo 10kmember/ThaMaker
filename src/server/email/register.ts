@@ -57,6 +57,15 @@ export const TEMPLATES = {
     gate: 'always',
     dossier: false,
   },
+  operator_invite: {
+    key: 'operator_invite',
+    name: 'Staff invitation',
+    mailbox: 'security',
+    purpose:
+      'Sent when a super administrator creates a judge, moderator or administrator account. The only way a staff account is ever created.',
+    gate: 'always',
+    dossier: false,
+  },
   password_changed: {
     key: 'password_changed',
     name: 'Password changed',

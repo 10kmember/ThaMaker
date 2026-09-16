@@ -199,7 +199,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
           {state.message}
         </Notice>
         <Button asChild size="md" className="self-start">
-          <Link href="/creator">Sign in</Link>
+          <Link href={state.signInPath ?? '/creator'}>Sign in</Link>
         </Button>
       </div>
     );

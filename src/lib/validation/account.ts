@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { passwordSchema } from '@/lib/auth/password-policy';
+import { INVITABLE_ROLES } from '@/lib/auth/rbac';
 
 export const signInSchema = z.object({
   email: z.string().trim().toLowerCase().email('Enter a valid email address.'),
@@ -72,6 +73,23 @@ export const resetPasswordSchema = z
     path: ['confirmPassword'],
     message: 'Both passwords must match.',
   });
+
+/**
+ * Bringing a colleague onto the desk.
+ *
+ * No password field. Nothing here is ever entered by the person doing the
+ * inviting — the invited person sets it themselves, from a link, which is the
+ * whole point of the flow.
+ */
+export const inviteOperatorSchema = z.object({
+  name: z.string().trim().min(2, 'Enter their name.').max(120),
+  email: z.string().trim().toLowerCase().email('Enter a valid email address.'),
+  role: z.enum(INVITABLE_ROLES, { message: 'Choose what they will do at PALMA.' }),
+  /** Only meaningful, and only required, when role is judge. */
+  judgeDisplayName: z.string().trim().max(120).optional().or(z.literal('')),
+  judgeTitle: z.string().trim().max(120).optional().or(z.literal('')),
+  judgeOrganisation: z.string().trim().max(120).optional().or(z.literal('')),
+});
 
 /** Moving an account to a different address. The current password is required. */
 export const changeEmailSchema = z.object({

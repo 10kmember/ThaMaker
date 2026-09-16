@@ -146,6 +146,70 @@ export function sendPasswordReset(input: { to: string; userId: string; url: stri
   });
 }
 
+/**
+ * The only way a staff account is ever created.
+ *
+ * There is no sign-up form for a judge, moderator or administrator — a super
+ * administrator makes the account and this is what tells the person it
+ * exists. The link sets their first password; until they open it the account
+ * has no password anyone could enter, so it cannot be signed into by mistake
+ * or by force.
+ */
+export function sendOperatorInvite(input: {
+  to: string;
+  userId: string;
+  name: string;
+  entranceTitle: string;
+  entrancePath: string;
+  invitedBy: string;
+  url: string;
+}) {
+  const firstName = input.name.split(' ')[0] || input.name;
+
+  return dispatch({
+    template: 'operator_invite',
+    to: input.to,
+    userId: input.userId,
+    subject: 'Set up your PALMA staff account',
+    html: shell({
+      mailbox: 'security',
+      preheader: `${input.invitedBy} added you to PALMA — ${input.entranceTitle}.`,
+      body: [
+        lede(`Welcome to the desk, ${e(firstName)}.`),
+        paragraph(
+          `${e(input.invitedBy)} has given you a PALMA account with access to ${e(input.entranceTitle)}. The link below sets your password — nobody at PALMA, including whoever invited you, can see or set it for you.`,
+        ),
+        action({ href: input.url, label: 'Set your password' }),
+        fallbackLink(input.url),
+        facts([
+          ['Access', input.entranceTitle],
+          ['Sign in at', `${input.entrancePath} once your password is set`],
+          ['Valid for', '7 days'],
+        ]),
+        aside({
+          title: 'Not expecting this',
+          body: 'If you do not recognise PALMA or the person named above, ignore this message — the link expires on its own and no account will be usable without it.',
+          tone: 'warning',
+        }),
+        quiet(
+          'If this link expires before you use it, ask whoever invited you to send a new one from Users & roles — that page can reissue it at any time.',
+        ),
+      ].join('\n'),
+    }),
+    text: plain([
+      `Welcome to the desk, ${firstName}.`,
+      '',
+      `${input.invitedBy} has given you a PALMA account with access to ${input.entranceTitle}. This link sets your password:`,
+      '',
+      input.url,
+      '',
+      `Sign in afterwards at ${input.entrancePath}. The link is valid for 7 days.`,
+      '',
+      'If you do not recognise PALMA or the person named above, ignore this message.',
+    ]),
+  });
+}
+
 export function sendPasswordChanged(input: { to: string; userId: string; when: Date }) {
   const when = input.when.toUTCString();
 

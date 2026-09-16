@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { can, canAny, isStaff, permissionsFor, ROLES, SPONSOR_PERMISSIONS } from '@/lib/auth/rbac';
+import {
+  can,
+  canAny,
+  canSelfServiceReset,
+  isInvitableRole,
+  isStaff,
+  INVITABLE_ROLES,
+  permissionsFor,
+  ROLES,
+  SPONSOR_PERMISSIONS,
+} from '@/lib/auth/rbac';
 
 describe('role permissions', () => {
   it('gives a visitor nothing', () => {
@@ -53,5 +63,25 @@ describe('role permissions', () => {
   it('canAny matches any of the listed permissions', () => {
     expect(canAny('judge', ['admin:select_winners', 'judging:submit_score'])).toBe(true);
     expect(canAny('creator', ['admin:select_winners', 'judging:submit_score'])).toBe(false);
+  });
+
+  it('makes every platform-operator role invite-only, and no others', () => {
+    expect(INVITABLE_ROLES).toEqual(['judge', 'moderator', 'admin', 'super_admin']);
+    expect(isInvitableRole('judge')).toBe(true);
+    expect(isInvitableRole('moderator')).toBe(true);
+    expect(isInvitableRole('admin')).toBe(true);
+    expect(isInvitableRole('super_admin')).toBe(true);
+    expect(isInvitableRole('creator')).toBe(false);
+    expect(isInvitableRole('visitor')).toBe(false);
+    expect(isInvitableRole('not-a-role')).toBe(false);
+  });
+
+  it('reserves the self-service password reset for creators alone', () => {
+    expect(canSelfServiceReset('creator')).toBe(true);
+    expect(canSelfServiceReset('judge')).toBe(false);
+    expect(canSelfServiceReset('moderator')).toBe(false);
+    expect(canSelfServiceReset('admin')).toBe(false);
+    expect(canSelfServiceReset('super_admin')).toBe(false);
+    expect(canSelfServiceReset('visitor')).toBe(false);
   });
 });

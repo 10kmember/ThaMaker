@@ -2,7 +2,13 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { EmptyState, Notice } from '@/components/ui/feedback';
-import { AccountStateForm, RevokeSessionsForm, RoleForm } from '@/components/admin/PeopleForms';
+import {
+  AccountStateForm,
+  InviteOperatorForm,
+  IssueResetLinkForm,
+  RevokeSessionsForm,
+  RoleForm,
+} from '@/components/admin/PeopleForms';
 import { buildMetadata } from '@/lib/seo';
 import { requirePermission } from '@/lib/auth/guards';
 import { listAccounts } from '@/server/data/people';
@@ -43,6 +49,17 @@ export default async function UsersPage({
           would quietly merge two things PALMA keeps apart.
         </p>
       </div>
+
+      <section className="border-stone-deep mt-10 border p-6">
+        <h2 className="font-display text-xl">Invite a colleague</h2>
+        <p className="text-taupe-deep mt-2 max-w-160 leading-relaxed">
+          Judges, moderators and administrators have no sign-up form. This is the only way one of
+          these accounts comes to exist.
+        </p>
+        <div className="mt-6 max-w-160">
+          <InviteOperatorForm />
+        </div>
+      </section>
 
       <div className="border-stone-deep mt-10 flex flex-wrap items-center gap-x-6 gap-y-4 border-b pb-4">
         <nav aria-label="Account filters" className="flex flex-wrap gap-5">
@@ -150,6 +167,7 @@ export default async function UsersPage({
                 <div className="flex flex-col gap-4 lg:col-span-3">
                   <AccountStateForm userId={account.id} isActive={account.isActive} />
                   <RevokeSessionsForm userId={account.id} count={account.activeSessions} />
+                  {account.role !== 'creator' ? <IssueResetLinkForm userId={account.id} /> : null}
                 </div>
               </div>
             </article>

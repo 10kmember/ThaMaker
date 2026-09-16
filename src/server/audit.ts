@@ -66,6 +66,8 @@ export const AUDIT_ACTIONS = [
   'user.signed_in',
   'user.signed_out',
   'user.registered',
+  'user.operator_invited',
+  'user.operator_reset_issued',
   'user.wrong_entrance',
   'user.password_reset_requested',
   'user.password_reset',

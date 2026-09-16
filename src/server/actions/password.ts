@@ -1,8 +1,9 @@
 'use server';
 
-import { redirect } from 'next/navigation';
 import { hashPassword, randomToken, sha256, verifyPassword } from '@/lib/crypto';
-import { assertSameOrigin, destroySession, getSession } from '@/lib/auth/session';
+import { assertSameOrigin, getSession } from '@/lib/auth/session';
+import { canSelfServiceReset, type Role } from '@/lib/auth/rbac';
+import { homeForRole } from '@/lib/auth/entrances';
 import {
   changePasswordSchema,
   forgotPasswordSchema,
@@ -10,6 +11,7 @@ import {
 } from '@/lib/validation/account';
 import { fieldErrors } from '@/lib/validation/nomination';
 import { siteUrl } from '@/lib/env';
+import type { Prisma } from '@prisma/client';
 import { recordAudit } from '@/server/audit';
 import { prisma } from '@/server/db';
 import { RATE_LIMITS, enforceRateLimit } from '@/server/rate-limit';
@@ -23,19 +25,66 @@ import { clearSuppression } from '@/server/email/suppression';
  * a PALMA account. So the answer is the same sentence every time, whether we
  * sent an email or did nothing at all — and the work happens on the other side
  * of that identical response.
+ *
+ * That same sentence now also covers a second silent case: the address
+ * belongs to an account, but it is staff. See `canSelfServiceReset` — a
+ * public form that mints a password-setting link for any address on request
+ * is the wrong door for an account with `admin:manage_users` behind it, and
+ * the visitor asking must not be able to tell the difference between "no
+ * account" and "an account this form will not touch."
  */
 
 export type PasswordState = {
   status: 'idle' | 'error' | 'success';
   message?: string;
   errors?: Record<string, string>;
+  /** Where to sign in next, once a password has actually been set. */
+  signInPath?: string;
 };
 
 /** One hour. Long enough to find the email, short enough to matter. */
-const RESET_TTL_MS = 60 * 60 * 1000;
+export const RESET_TTL_MS = 60 * 60 * 1000;
+
+/** Seven days. Nobody invited to the desk sees the email in the same hour. */
+export const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 const SAME_ANSWER =
   'If that address has a PALMA account, a reset link is on its way. It is valid for one hour.';
+
+/**
+ * Mint a fresh, single-use link that lets whoever holds it set a password —
+ * the first one, on an invited staff account, or a replacement on any
+ * account.
+ *
+ * The three callers of this — a creator's own request, a super administrator
+ * inviting a colleague, and a super administrator reissuing a stuck
+ * colleague's link — all need the identical guarantee: exactly one live link
+ * per account, so a forwarded or intercepted older email stops working the
+ * moment a new one is asked for. One function holds that guarantee rather
+ * than three copies of a transaction agreeing to behave the same way.
+ */
+export async function issuePasswordSetToken(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  ttlMs: number,
+): Promise<string> {
+  const token = randomToken(32);
+
+  await tx.passwordResetToken.updateMany({
+    where: { userId, usedAt: null, expiresAt: { gt: new Date() } },
+    data: { usedAt: new Date() },
+  });
+
+  await tx.passwordResetToken.create({
+    data: {
+      userId,
+      tokenHash: sha256(token),
+      expiresAt: new Date(Date.now() + ttlMs),
+    },
+  });
+
+  return token;
+}
 
 export async function requestPasswordReset(
   _previous: PasswordState,
@@ -59,29 +108,17 @@ export async function requestPasswordReset(
 
   const user = await prisma.user.findUnique({
     where: { email: parsed.data.email },
-    select: { id: true, email: true, isActive: true },
+    select: { id: true, email: true, role: true, isActive: true },
   });
 
   // A closed account gets the same answer as a missing one, and no email.
-  if (user && user.isActive) {
-    const token = randomToken(32);
-
-    await prisma.$transaction(async (tx) => {
-      // One live link at a time. A second request invalidates the first, so a
-      // forwarded or intercepted older email stops working.
-      await tx.passwordResetToken.updateMany({
-        where: { userId: user.id, usedAt: null, expiresAt: { gt: new Date() } },
-        data: { usedAt: new Date() },
-      });
-
-      await tx.passwordResetToken.create({
-        data: {
-          userId: user.id,
-          tokenHash: sha256(token),
-          expiresAt: new Date(Date.now() + RESET_TTL_MS),
-        },
-      });
-    });
+  // So does a staff account — see the note above the type. Nothing in the
+  // response, the timing, or the audit log may let a caller tell that case
+  // apart from "no such address."
+  if (user && user.isActive && canSelfServiceReset(user.role as Role)) {
+    const token = await prisma.$transaction((tx) =>
+      issuePasswordSetToken(tx, user.id, RESET_TTL_MS),
+    );
 
     await sendPasswordReset({
       to: user.email,
@@ -93,7 +130,7 @@ export async function requestPasswordReset(
       action: 'user.password_reset_requested',
       entityType: 'User',
       entityId: user.id,
-      actor: { id: user.id, role: 'creator', label: user.email },
+      actor: { id: user.id, role: user.role as Role, label: user.email },
       summary: 'A password reset link was issued.',
     });
   }
@@ -183,9 +220,16 @@ export async function resetPassword(
     summary: 'Password reset from a link. Every session was revoked.',
   });
 
+  // Redemption is role-agnostic on purpose: this same link and this same
+  // action are what a staff invitation uses to set its first password, so a
+  // judge or moderator has to be able to finish here too. Only the sign-in
+  // destination differs, and it is decided from the account's real role
+  // rather than assumed — a link opened by an operator must not land them on
+  // the creator door.
   return {
     status: 'success',
     message: 'Your password is set and every other session has been signed out. Sign in below.',
+    signInPath: homeForRole(record.user.role as Role),
   };
 }
 
@@ -256,10 +300,4 @@ export async function changePassword(
     status: 'success',
     message: 'Your password is changed, and every other session has been signed out.',
   };
-}
-
-/** Used by the reset page after a successful reset, to land on the right door. */
-export async function signOutAfterReset(): Promise<void> {
-  await destroySession();
-  redirect('/creator');
 }

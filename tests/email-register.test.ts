@@ -41,6 +41,7 @@ describe('what a person may switch off', () => {
    */
   const NEVER_SUPPRESSIBLE = [
     'password_reset',
+    'operator_invite',
     'password_changed',
     'email_change_confirm',
     'email_change_notice',

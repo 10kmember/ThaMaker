@@ -19,6 +19,39 @@ export const ROLES = [
 
 export type Role = (typeof ROLES)[number];
 
+/**
+ * Who can be invited to work at PALMA.
+ *
+ * `visitor` is not an account and `creator` self-registers — nobody invites a
+ * creator, they claim a record or sign up. Everyone else is staff: they never
+ * had a public sign-up form and never will, so the only way one of these
+ * accounts comes to exist is a super administrator creating it on purpose.
+ */
+export const INVITABLE_ROLES = ['judge', 'moderator', 'admin', 'super_admin'] as const;
+export type InvitableRole = (typeof INVITABLE_ROLES)[number];
+
+export function isInvitableRole(value: string): value is InvitableRole {
+  return (INVITABLE_ROLES as readonly string[]).includes(value);
+}
+
+/**
+ * Whether this role may ask for its own password reset link, unauthenticated,
+ * from the public /forgot page.
+ *
+ * Creators are the public: there is no administrator standing between a
+ * creator and their own account, so self-service is the only door. Staff are
+ * the opposite case on purpose. An account with `admin:manage_users` or
+ * `honours:confer_the_palma` sitting behind it is a more valuable thing to
+ * steal than a mailbox, and a public form that will mint a password-setting
+ * link for any email address on request is exactly the door a stolen or
+ * guessed staff mailbox walks through. A colleague who forgets their password
+ * asks another operator to reissue the link from `/admin/users`, which is
+ * audited and requires someone already signed in to act.
+ */
+export function canSelfServiceReset(role: Role): boolean {
+  return role === 'creator';
+}
+
 export const PERMISSIONS = [
   // Creator surface
   'creator:claim_profile',

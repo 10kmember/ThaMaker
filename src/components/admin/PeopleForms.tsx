@@ -4,11 +4,13 @@ import * as React from 'react';
 import { useActionState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Notice } from '@/components/ui/feedback';
-import { Label, Select, Textarea } from '@/components/ui/form';
-import { ROLES, type Role } from '@/lib/auth/rbac';
+import { Input, Label, Select, Textarea } from '@/components/ui/form';
+import { INVITABLE_ROLES, ROLES, type Role } from '@/lib/auth/rbac';
 import {
   changeUserRole,
   decideConsequentialAction,
+  inviteOperator,
+  issueOperatorPasswordReset,
   proposeConsequentialAction,
   revokeSessions,
   setAccountState,
@@ -96,6 +98,104 @@ export function AccountStateForm({ userId, isActive }: { userId: string; isActiv
           Suspend account
         </Button>
       )}
+    </form>
+  );
+}
+
+/**
+ * Bring a colleague onto the desk.
+ *
+ * The only place a judge, moderator or administrator account is created.
+ * No password field — the invited person sets their own, from the link this
+ * sends them. The judge fields only matter, and only appear, when the role
+ * chosen is judge.
+ */
+export function InviteOperatorForm() {
+  const [state, action, pending] = useActionState(inviteOperator, idle);
+  const [role, setRole] = React.useState<(typeof INVITABLE_ROLES)[number]>('judge');
+  const formRef = React.useRef<HTMLFormElement>(null);
+
+  React.useEffect(() => {
+    if (state.status === 'success') formRef.current?.reset();
+  }, [state]);
+
+  return (
+    <form ref={formRef} action={action} className="flex flex-col gap-4">
+      <Feedback state={state} />
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="invite-name">Name</Label>
+          <Input id="invite-name" name="name" required maxLength={120} />
+        </div>
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="invite-email">Email</Label>
+          <Input id="invite-email" name="email" type="email" required maxLength={200} />
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="invite-role">What they will do at PALMA</Label>
+        <Select
+          id="invite-role"
+          name="role"
+          value={role}
+          onChange={(event) => setRole(event.target.value as typeof role)}
+        >
+          {INVITABLE_ROLES.map((entry) => (
+            <option key={entry} value={entry}>
+              {entry.replace('_', ' ')}
+            </option>
+          ))}
+        </Select>
+      </div>
+
+      {role === 'judge' ? (
+        <div className="border-stone-deep flex flex-col gap-4 border-l-2 pl-4">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="invite-judge-name">Name shown on the panel page</Label>
+            <Input id="invite-judge-name" name="judgeDisplayName" required maxLength={120} />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="invite-judge-title">Title</Label>
+              <Input id="invite-judge-title" name="judgeTitle" maxLength={120} />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="invite-judge-org">Organisation</Label>
+              <Input id="invite-judge-org" name="judgeOrganisation" maxLength={120} />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <Button type="submit" size="md" disabled={pending} className="self-start">
+        {pending ? 'Inviting…' : 'Send invitation'}
+      </Button>
+      <p className="text-taupe text-xs leading-relaxed">
+        This is the only way this kind of account is ever created. There is no sign-up form for one
+        — the account exists the moment you send this, but cannot be signed into until the
+        invitation link sets a password.
+      </p>
+    </form>
+  );
+}
+
+/** Reissue a set-password link. The only way back in for a locked-out operator. */
+export function IssueResetLinkForm({ userId }: { userId: string }) {
+  const [state, action, pending] = useActionState(issueOperatorPasswordReset, idle);
+
+  if (state.status === 'success') {
+    return <Notice tone="ceremonial">{state.message}</Notice>;
+  }
+
+  return (
+    <form action={action} className="flex flex-col gap-2">
+      <input type="hidden" name="userId" value={userId} />
+      <Feedback state={state} />
+      <Button type="submit" variant="quiet" size="sm" disabled={pending}>
+        {pending ? 'Sending…' : 'Send a new password link'}
+      </Button>
     </form>
   );
 }

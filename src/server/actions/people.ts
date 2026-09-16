@@ -3,10 +3,19 @@
 import { revalidatePath } from 'next/cache';
 import { authorise } from '@/lib/auth/guards';
 import { assertSameOrigin } from '@/lib/auth/session';
-import { ROLES, type Role } from '@/lib/auth/rbac';
+import { ROLES, isInvitableRole, type Role } from '@/lib/auth/rbac';
+import { entranceForRole } from '@/lib/auth/entrances';
+import { hashPassword, randomToken } from '@/lib/crypto';
+import { inviteOperatorSchema } from '@/lib/validation/account';
+import { siteUrl } from '@/lib/env';
 import { recordAudit } from '@/server/audit';
-import { sendEnforcementNotice } from '@/server/email/messages';
+import {
+  sendEnforcementNotice,
+  sendOperatorInvite,
+  sendPasswordReset,
+} from '@/server/email/messages';
 import { requireDb } from '@/server/db';
+import { INVITE_TTL_MS, RESET_TTL_MS, issuePasswordSetToken } from '@/server/actions/password';
 
 export type PeopleState = { status: 'idle' | 'error' | 'success'; message?: string };
 
@@ -380,4 +389,183 @@ export async function decideConsequentialAction(
   revalidatePath('/admin/enforcement');
   revalidatePath('/paroh');
   return { status: 'success', message: 'Approved and carried out. Both names are on the record.' };
+}
+
+/**
+ * Bring a colleague onto the desk.
+ *
+ * The only way a judge, moderator or administrator account is ever created.
+ * There has never been a sign-up form for one, and this does not add one — it
+ * lets a super administrator create the account directly, with a password
+ * nobody, including the person creating it, ever sets or sees. What is
+ * emailed is a single-use link that lets the invited person set their own
+ * first password; until they do, the account exists but cannot be signed
+ * into by anyone.
+ */
+export async function inviteOperator(
+  _previous: PeopleState,
+  formData: FormData,
+): Promise<PeopleState> {
+  await assertSameOrigin();
+
+  let session;
+  try {
+    session = await authorise('admin:manage_users');
+  } catch {
+    return { status: 'error', message: 'You are not authorised to invite anyone.' };
+  }
+
+  const parsed = inviteOperatorSchema.safeParse({
+    name: formData.get('name'),
+    email: formData.get('email'),
+    role: formData.get('role'),
+    judgeDisplayName: formData.get('judgeDisplayName'),
+    judgeTitle: formData.get('judgeTitle'),
+    judgeOrganisation: formData.get('judgeOrganisation'),
+  });
+
+  if (!parsed.success) {
+    return { status: 'error', message: 'Check the details and try again.' };
+  }
+
+  const { name, email, role, judgeDisplayName, judgeTitle, judgeOrganisation } = parsed.data;
+
+  // Belt and braces beside the schema: nothing reaches this point that is not
+  // one of the four roles nobody can hold without being invited to it.
+  if (!isInvitableRole(role)) {
+    return { status: 'error', message: 'Choose what they will do at PALMA.' };
+  }
+
+  if (role === 'judge' && !judgeDisplayName?.trim()) {
+    return { status: 'error', message: 'A judge needs the name shown on the panel page.' };
+  }
+
+  const db = requireDb();
+
+  const existing = await db.user.findUnique({ where: { email }, select: { id: true } });
+  if (existing) {
+    // Unlike the public forms, this is an authenticated internal tool talking
+    // to a super administrator — there is no stranger here to keep an address
+    // secret from, so the plain answer is the more useful one.
+    return { status: 'error', message: 'That address already has a PALMA account.' };
+  }
+
+  const { user, token } = await db.$transaction(async (tx) => {
+    // A password nobody will ever type. `hashPassword` runs on a value that
+    // is thrown away immediately, so the stored hash matches no string
+    // anyone will ever enter — the account is real from the moment it is
+    // created, and unusable until the invite link sets a real one.
+    const passwordHash = await hashPassword(randomToken(32));
+
+    const created = await tx.user.create({
+      data: {
+        name,
+        email,
+        passwordHash,
+        role,
+        notificationPrefs: { create: {} },
+      },
+    });
+
+    if (role === 'judge') {
+      await tx.judge.create({
+        data: {
+          userId: created.id,
+          displayName: judgeDisplayName!.trim(),
+          title: judgeTitle?.trim() || null,
+          organisation: judgeOrganisation?.trim() || null,
+        },
+      });
+    }
+
+    const setToken = await issuePasswordSetToken(tx, created.id, INVITE_TTL_MS);
+    return { user: created, token: setToken };
+  });
+
+  const entrance = entranceForRole(role);
+
+  await sendOperatorInvite({
+    to: user.email,
+    userId: user.id,
+    name: user.name,
+    entranceTitle: entrance.title,
+    entrancePath: entrance.path,
+    invitedBy: session.user.email,
+    url: `${siteUrl}/reset/${token}`,
+  });
+
+  await recordAudit({
+    action: 'user.operator_invited',
+    entityType: 'User',
+    entityId: user.id,
+    actor: { id: session.user.id, role: session.user.role, label: session.user.email },
+    summary: `${session.user.email} invited ${email} to PALMA as ${role.replace('_', ' ')}`,
+    after: { email, role },
+  });
+
+  revalidatePath('/admin/users');
+
+  return {
+    status: 'success',
+    message: `Invited. ${email} has an account and a link to set their password — nothing works until they open it.`,
+  };
+}
+
+/**
+ * Reissue a set-password link for an existing account.
+ *
+ * The only door back in for staff. A creator who forgets their password uses
+ * the public page at /forgot; a judge, moderator or administrator cannot,
+ * by design — see `canSelfServiceReset` — so when one is locked out, another
+ * operator with this permission sends them a fresh link from here instead.
+ * Restricted to non-creator accounts so it never becomes a second, unaudited
+ * route to the same thing the public form already does properly.
+ */
+export async function issueOperatorPasswordReset(
+  _previous: PeopleState,
+  formData: FormData,
+): Promise<PeopleState> {
+  await assertSameOrigin();
+
+  let session;
+  try {
+    session = await authorise('admin:manage_users');
+  } catch {
+    return { status: 'error', message: 'You are not authorised to do that.' };
+  }
+
+  const userId = String(formData.get('userId') ?? '');
+  const db = requireDb();
+
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, role: true, isActive: true },
+  });
+
+  if (!user) return { status: 'error', message: 'That account does not exist.' };
+  if (user.role === 'creator') {
+    return {
+      status: 'error',
+      message: 'Creator accounts use the public forgotten-password page, not this.',
+    };
+  }
+  if (!user.isActive) {
+    return { status: 'error', message: 'That account is suspended. Restore it first.' };
+  }
+
+  const token = await db.$transaction((tx) => issuePasswordSetToken(tx, user.id, RESET_TTL_MS));
+
+  await sendPasswordReset({ to: user.email, userId: user.id, url: `${siteUrl}/reset/${token}` });
+
+  await recordAudit({
+    action: 'user.operator_reset_issued',
+    entityType: 'User',
+    entityId: user.id,
+    actor: { id: session.user.id, role: session.user.role, label: session.user.email },
+    summary: `${session.user.email} issued a new password-set link to ${user.email}`,
+  });
+
+  revalidatePath('/admin/users');
+
+  return { status: 'success', message: `A new link has been sent to ${user.email}.` };
 }
