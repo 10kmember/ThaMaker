@@ -147,6 +147,21 @@ export default async function CreatorPage({ params }: Params) {
                 </span>
               </div>
 
+              {/* One address for the person. It leads with whatever they won
+                  most recently and keeps working as they win more, which is why
+                  it is the one PALMA tells a creator to use. */}
+              {active.length > 0 || palmas.length > 0 ? (
+                <div className="border-stone-deep mt-8 flex flex-wrap items-center gap-4 border-t pt-6">
+                  <span className="palma-label text-taupe-deep">Their PALMA link</span>
+                  <Link
+                    href={`/c/${creator.slug}`}
+                    className="palma-link font-mono text-sm break-all"
+                  >
+                    palmaawards.com/c/{creator.slug}
+                  </Link>
+                </div>
+              ) : null}
+
               {palmas.map((entry) => (
                 <div key={entry.id} className="on-ink bg-ink text-ivory relative isolate mt-8">
                   <div
@@ -207,18 +222,19 @@ export default async function CreatorPage({ params }: Params) {
                         revoked={entry.state === 'revoked'}
                       />
                       <div className="flex shrink-0 items-center gap-3 pl-7.5 sm:pl-0">
-                        {/* The quotable address. A creator finds it here,
-                            because a link nobody can find is a link nobody
-                            puts in their bio. */}
+                        {/* This honour on its own, for citing one specifically.
+                            The link a creator hands out is /c/{slug}, which is
+                            one address for the person rather than one per
+                            honour, and it sits above the list. */}
                         <Link
                           href={`/creators/${creator.slug}/${achievementSlug(
                             entry.kind,
                             entry.categorySlug,
                             entry.year,
                           )}`}
-                          className="palma-label text-olive hover:text-ink transition-colors"
+                          className="palma-label text-taupe-deep hover:text-ink transition-colors"
                         >
-                          Share
+                          This honour
                         </Link>
                         <Link
                           href={`/categories/${entry.categorySlug}?year=${entry.year}`}
