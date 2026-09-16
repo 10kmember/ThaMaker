@@ -2,6 +2,7 @@ import { renderShareCard, SHARE_CARD_SIZE } from '@/lib/share-card';
 import { getAchievementByCode } from '@/server/data/queries';
 import { normaliseCode, isValidCodeFormat, verifyAchievement } from '@/lib/verification';
 import { signingSecret } from '@/lib/env';
+import { isThePalma } from '@/domain/honours';
 
 export const alt = 'PALMA verified achievement';
 export const size = SHARE_CARD_SIZE;
@@ -41,10 +42,16 @@ export default async function Image({ params }: { params: Promise<{ code: string
     });
   }
 
+  // The card that travels. A laureate's read "2026 Finalist" here, because the
+  // eyebrow only knew two kinds of honour and treated everything that was not a
+  // winner as a finalist. THE PALMA has no category either, so it carries the
+  // honour on one line rather than repeating its own name on two.
   return renderShareCard({
-    eyebrow: `${record.year} ${record.kind === 'winner' ? 'Winner' : 'Finalist'}`,
+    eyebrow: isThePalma(record.kind)
+      ? `${record.year} Laureate`
+      : `${record.year} ${record.kind === 'winner' ? 'Winner' : 'Finalist'}`,
     name: record.creatorName,
-    line: record.categoryName,
+    line: isThePalma(record.kind) ? 'THE PALMA' : record.categoryName,
     footer: record.code,
   });
 }

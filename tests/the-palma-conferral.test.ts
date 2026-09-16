@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { ROLES, can, OUTCOME_PERMISSIONS } from '@/lib/auth/rbac';
 import {
@@ -126,5 +129,48 @@ describe('the conferral rules', () => {
       citation: null,
     });
     expect(objections.length).toBeGreaterThanOrEqual(5);
+  });
+});
+
+/**
+ * The proof surfaces.
+ *
+ * A verification link is the thing a creator puts in a bio, a press kit and an
+ * email signature, and it is the answer to "prove it". These assertions exist
+ * because all three of them were wrong for THE PALMA at once: the page stamped
+ * a laureate's seal "Finalist", the share card that travels said "2026
+ * Finalist", and both linked to /categories/the-palma, which does not exist.
+ *
+ * The cause was the same in each: code that knew two kinds of honour and
+ * treated everything that was not a winner as a finalist.
+ */
+describe('the verification surfaces handle every kind of honour', () => {
+  const read = (file: string) =>
+    readFileSync(join(fileURLToPath(new URL('.', import.meta.url)), '..', file), 'utf8');
+
+  const surfaces = ['src/app/verify/[code]/page.tsx', 'src/app/verify/[code]/opengraph-image.tsx'];
+
+  it('never treats "not a winner" as "finalist" without asking about THE PALMA', () => {
+    for (const file of surfaces) {
+      const body = read(file);
+      const guesses = body.split("'Winner' : 'Finalist'").length - 1;
+      if (guesses === 0) continue;
+      // Where the two-kind shorthand survives it must sit inside a branch that
+      // has already dealt with THE PALMA.
+      expect(body, `${file} guesses the honour kind`).toContain('isThePalma');
+    }
+  });
+
+  it('never sends a laureate to a category page that cannot exist', () => {
+    for (const file of surfaces) {
+      const body = read(file);
+      expect(body, file).not.toContain('/categories/the-palma');
+    }
+  });
+
+  it('does not name THE PALMA twice by printing it as its own category', () => {
+    // "Verified PALMA record: Jordan Smith, THE PALMA, THE PALMA, PALMA 2026."
+    const body = read('src/app/verify/[code]/page.tsx');
+    expect(body).toContain('isThePalma(record.kind)');
   });
 });

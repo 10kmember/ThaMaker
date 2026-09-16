@@ -12,6 +12,7 @@ import { countryName, formatDate } from '@/lib/format';
 import { signingSecret } from '@/lib/env';
 import { isValidCodeFormat, normaliseCode, verifyAchievement } from '@/lib/verification';
 import { HONOUR_LABEL } from '@/components/palma/badges';
+import { isThePalma } from '@/domain/honours';
 import { getAchievementByCode } from '@/server/data/queries';
 
 export const revalidate = 300;
@@ -34,7 +35,12 @@ export async function generateMetadata({ params }: Params) {
 
   return buildMetadata({
     title: `${record.creatorName} — PALMA ${record.year}`,
-    description: `Verified PALMA record: ${record.creatorName}, ${HONOUR_LABEL[record.kind]}, ${record.categoryName}, PALMA ${record.year}.`,
+    // THE PALMA's honour and "category" are the same words, so naming both
+    // produced "THE PALMA, THE PALMA". The category is dropped where it is not
+    // a category.
+    description: isThePalma(record.kind)
+      ? `Verified PALMA record: ${record.creatorName}, THE PALMA, PALMA ${record.year}.`
+      : `Verified PALMA record: ${record.creatorName}, ${HONOUR_LABEL[record.kind]}, ${record.categoryName}, PALMA ${record.year}.`,
     path: `/verify/${record.code}`,
     image: `/verify/${record.code}/opengraph-image`,
   });
@@ -85,14 +91,22 @@ export default async function VerifyPage({ params }: Params) {
                   {HONOUR_LABEL[record.kind]}
                 </span>
                 <span className="palma-label text-ivory/55">
-                  {record.categoryName} · PALMA {record.year}
+                  {isThePalma(record.kind)
+                    ? `PALMA ${record.year}`
+                    : `${record.categoryName} · PALMA ${record.year}`}
                 </span>
               </div>
 
               <PalmaSeal
                 legend={`PALMA ${record.year}`}
                 sublegend="THE CREATOR HONOURS"
-                centre={record.kind === 'winner' ? 'Winner' : 'Finalist'}
+                centre={
+                  isThePalma(record.kind)
+                    ? 'Laureate'
+                    : record.kind === 'winner'
+                      ? 'Winner'
+                      : 'Finalist'
+                }
                 className="text-champagne/90 h-44 w-44"
               />
 
@@ -143,12 +157,21 @@ export default async function VerifyPage({ params }: Params) {
             <div className="border-stone-deep flex flex-col gap-2 border-t pt-5">
               <dt className="palma-label text-taupe-deep">Category</dt>
               <dd className="font-display text-xl">
-                <Link
-                  href={`/categories/${record.categorySlug}?year=${record.year}`}
-                  className="hover:text-olive"
-                >
-                  {record.categoryName}
-                </Link>
+                {isThePalma(record.kind) ? (
+                  // Not a category. This used to link into the category
+                  // section under its own slug, which is a page that does not
+                  // exist and never will, so it points at THE PALMA instead.
+                  <Link href="/the-palma" className="hover:text-olive">
+                    Conferred on a career
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/categories/${record.categorySlug}?year=${record.year}`}
+                    className="hover:text-olive"
+                  >
+                    {record.categoryName}
+                  </Link>
+                )}
               </dd>
             </div>
             <div className="border-stone-deep flex flex-col gap-2 border-t pt-5">
