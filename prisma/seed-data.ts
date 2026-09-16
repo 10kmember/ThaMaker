@@ -516,9 +516,88 @@ export const articleCategories = [
   { slug: 'announcements', name: 'Announcements', position: 0 },
   { slug: 'the-institution', name: 'The institution', position: 1 },
   { slug: 'craft', name: 'Craft', position: 2 },
+  // Occupational health, written as occupational health. PALMA is not a clinic
+  // and these pieces never pretend to be one: they describe the working
+  // practices an industry has settled on and send people to services that are
+  // qualified to advise them.
+  { slug: 'health', name: 'Health and working practice', position: 3 },
 ];
 
 export const articles = [
+  {
+    slug: 'screening-as-a-working-practice',
+    title: 'Screening, as a working practice',
+    standfirst:
+      'Routine sexual health screening is occupational maintenance, not a reaction to a scare.',
+    categorySlug: 'health',
+    status: 'published' as const,
+    publishedAt: '2026-06-10T09:00:00.000Z',
+    body: `Regular sexual health screening is part of working in this industry, in the same way that a pension and an accountant are. It is maintenance rather than a response to something going wrong, and the creators who treat it that way spend far less time worrying about it.
+
+PALMA is not a clinic and will not tell you how often to test. That is a conversation with a sexual health service, and the honest answer depends on what you do, who with, and how often. What PALMA will say is that the decision belongs with a qualified clinician rather than with a forum, a producer, or a platform.
+
+Most sexual health services in the UK are free, confidential and open to anyone regardless of immigration status or registration with a GP. Many offer postal testing kits, which for a self-employed person is usually the difference between a test happening and a test being postponed indefinitely. Confidentiality is the default: a service does not tell your GP, your family or anyone you work with unless you ask it to.
+
+Three practical notes from people who have been doing this a long time.
+
+Book the next one while you are still at the current one. The gap between intending to test and testing is where the risk actually lives, and a calendar entry closes it.
+
+Keep your own records. Not for anyone else to inspect, but because a date you can check is worth more than a date you half remember, and because some collaborations will ask and you want to answer from a note rather than from memory.
+
+Ask about vaccination. Several relevant vaccines are offered free to people in higher-risk groups, and a service can tell you in one appointment what you are eligible for.
+
+If something is worrying you now, do not wait for a routine appointment. Sexual health services will see people urgently, and the thing you are worried about is almost always more treatable than the version of it in your head at three in the morning.`,
+  },
+  {
+    slug: 'limits-are-a-document',
+    title: 'Limits are a document, not a mood',
+    standfirst: 'Everything agreed in a message thread, before anybody is in the room.',
+    categorySlug: 'health',
+    status: 'published' as const,
+    publishedAt: '2026-07-22T09:00:00.000Z',
+    body: `The creators who have the fewest bad days are the ones who write things down. Not a contract drafted by a solicitor, though that matters for money. A list, in writing, agreed before anyone arrives: what is happening, what is not happening, who is present, how long, and what the word is that stops it.
+
+This is not a formality and it is not distrust. It is the difference between a disagreement about what was agreed and a disagreement about whether something was agreed at all, and only one of those is survivable.
+
+Four things worth having in writing every time.
+
+What the work is. Specific enough that nobody arrives with a different film in their head.
+
+What it is not. The list of things that are not happening is the more useful list, and it should be written by whoever has the most to lose by it being vague.
+
+How it stops. An agreed word or gesture that ends the take immediately, with no negotiation afterwards about whether it was meant. Anyone present can use it.
+
+Where it goes. Which platforms, which territories, how long, and whether it can be resold. A creator who has not agreed distribution has agreed nothing.
+
+Agreement given before the day can be withdrawn on the day, and withdrawal is not a breach of anything. Someone who treats a prior message as a commitment that overrides what a person says in the room has misunderstood the document and probably the law.
+
+Keep the thread. Not as ammunition, but because memory is unreliable and a dated message is not. PALMA's own enforcement process asks for evidence, and the people who can produce it are consistently the people who kept the boring paperwork.`,
+  },
+  {
+    slug: 'the-part-nobody-schedules',
+    title: 'The part nobody schedules',
+    standfirst:
+      'Rest is not what happens when the work runs out. It has to be booked like the work.',
+    categorySlug: 'health',
+    status: 'published' as const,
+    publishedAt: '2026-08-14T09:00:00.000Z',
+    body: `Self-employment removes the two things that used to enforce rest: a closing time and a colleague who notices. What replaces them has to be deliberate, because nothing about this work will stop you on its own.
+
+The pattern PALMA sees repeatedly is not dramatic. It is a creator who has not had a full day off in five months, whose output is still good, and who is quietly certain that stopping would cost them everything. They are usually wrong about the second part, and by the time the work does drop off it takes far longer to recover than the break would have taken.
+
+Some things that help, from people who have come out the other side.
+
+Put days off in the calendar before you fill it. A day that is already booked is much harder to give away than a day that is merely empty.
+
+Separate the accounts from the work. Doing your invoices at midnight after shooting is how a bad month starts to feel like a bad career. They are different jobs and they deserve different hours.
+
+Have somebody outside the industry you talk to properly. Not for advice about the work, but so that your entire sense of how you are doing does not come from an audience.
+
+Notice the early signs rather than the late ones: sleep going first, then appetite, then the thing you used to enjoy about the work feeling like admin.
+
+If it has gone further than tiredness, that is a health matter and not a character flaw. A GP is a reasonable first call and so is any of the free listening services that operate around the clock. This industry has a higher-than-average share of people carrying things alone, and almost none of them needed to be.`,
+  },
+
   {
     slug: 'palma-2027-nominations-open',
     title: 'Nominations for PALMA 2027 are open',
@@ -580,5 +659,156 @@ A judge cannot reach the scale without declaring whether they have a conflict, a
 Where four or more judges have scored a candidacy, the highest and lowest scores are dropped before ranking. Panels disagree, and one outlier — enthusiastic or hostile — should not decide a PALMA.
 
 A submitted assessment cannot be edited. If PALMA needs a correction it goes through an administrator, and the state before and after is written to the audit log.`,
+  },
+];
+
+/**
+ * The Product Library, seeded.
+ *
+ * **The brands here are invented.** That is deliberate and it is not laziness:
+ * a verdict is PALMA's editorial opinion, and seeding opinions about real
+ * products would put reviews nobody wrote into the mouth of the institution.
+ * These exercise every field and every category so the surface can be built and
+ * judged, and they are replaced the day the desk reviews something real.
+ *
+ * Every entry carries at least one limitation, because `publishObjections`
+ * refuses to publish one that does not: an entry with strengths and no
+ * limitations is an advertisement, and the Library's only claim is that it is
+ * not one. None carries a sponsor.
+ */
+export const productSeeds = [
+  {
+    slug: 'aperture-house-ah-2-key-light',
+    brand: 'Aperture House',
+    name: 'AH-2 Key Light',
+    category: 'production',
+    /** Out of ten, stored in tenths. */
+    verdict: 8.4,
+    bestFor: 'A one-person set where the light has to be right before anyone is on camera.',
+    strengths: [
+      'Holds colour temperature across its whole dimming range, so skin does not turn green at low output.',
+      'Silent. No fan, which matters more than anything else in a room where sound is recorded.',
+      'Mounts on a standard spigot, so it fits stands you already own.',
+    ],
+    limitations: [
+      'The app is required for fine colour control, and it is poor.',
+      'Not bright enough to fight daylight through a large window.',
+      'Expensive for the output compared with a studio fixture, which is the trade for silence.',
+    ],
+    review:
+      'The reason to buy this is the fan, or rather the absence of one. Most lights at this price cool themselves audibly, which is invisible in a photograph and ruinous in anything with sound. The AH-2 runs silent at full output and holds its colour as it dims, so the light you set up at the start of the day is the light you still have at the end of it. The app is the weak part: it is slow, it drops the connection, and the on-unit controls are better for everything except fine colour work. Buy it for a room where sound is being recorded. If sound is not a concern, a cheaper fixture will do more for the money.',
+    // Reads after the label, which already says "Tested by".
+    testedBy: "PALMA's own portrait sessions, across a full season.",
+    externalUrl: null,
+  },
+  {
+    slug: 'northgate-acoustics-panel-set',
+    brand: 'Northgate Acoustics',
+    name: 'Broadband Panel Set',
+    category: 'studio',
+    verdict: 7.8,
+    bestFor: 'A domestic room with hard walls that sounds like a bathroom on camera.',
+    strengths: [
+      'Treats the reflections that actually matter rather than the ones that look impressive in photographs.',
+      'Mounts without permanent fixings, which matters to anyone renting.',
+      'Covers are removable and washable.',
+    ],
+    limitations: [
+      'Does almost nothing for low frequencies. Room boom needs bass traps and these are not those.',
+      'The supplied adhesive strips fail in humidity; use the mechanical fixings instead.',
+      'Reads as obviously acoustic treatment on camera, so it needs to be behind the lens.',
+    ],
+    review:
+      'Most rooms creators work in were designed for living rather than recording, and the result is a short slapback that makes everything sound amateur before a word is said. This set covers the first reflection points properly and the difference is immediate on a voice. What it does not do is anything below roughly 200Hz, and the marketing is quieter about that than it should be: if your problem is boom rather than echo, this is not the fix. The adhesive strips are the weakest part and they let go in a warm room. Use the mechanical fixings from the start and it is a genuinely good buy for the money.',
+    testedBy: null,
+    externalUrl: null,
+  },
+  {
+    slug: 'atelier-vance-stage-robe',
+    brand: 'Atelier Vance',
+    name: 'Stage Robe',
+    category: 'wardrobe',
+    verdict: 7.1,
+    bestFor: 'Between takes, on a set where the walk from camera to chair is cold and public.',
+    strengths: [
+      'Heavy enough to hang properly on camera rather than clinging.',
+      'Washes repeatedly without the colour going chalky.',
+      'Pockets deep enough for a phone, which sounds trivial and is not.',
+    ],
+    limitations: [
+      'One length only, which is short on anyone tall.',
+      'The tie is the weak point and will need replacing before the robe does.',
+      'Dark colours mark visibly with make-up and do not fully recover.',
+    ],
+    review:
+      'A robe is not a glamorous purchase and it is one of the things experienced creators replace first, because the cheap ones are cold, cling badly and look wrong if they end up in shot. This one has enough weight to hang, survives frequent washing, and has pockets that hold a phone rather than gesturing at the idea. The sizing is the real limitation: a single length is generous on most people and short on anyone over about five foot nine, and there is no way to work around that. The tie will fray first and is not sold separately, which is an irritation on something otherwise built to last.',
+    testedBy: null,
+    externalUrl: null,
+  },
+  {
+    slug: 'calder-body-sterilising-pouch',
+    brand: 'Calder Body',
+    name: 'Sterilising Pouch',
+    category: 'toys',
+    verdict: 8.9,
+    bestFor: 'Anyone whose cleaning routine currently depends on remembering to do it properly.',
+    strengths: [
+      'Takes the decision-making out of cleaning, which is the step people actually skip.',
+      'Large enough for most items without disassembly.',
+      'Runs a fixed cycle with a clear finished indicator, so it cannot be cut short by accident.',
+    ],
+    limitations: [
+      'Not suitable for every material. Check what you own before buying, because some will be damaged.',
+      'Not a substitute for cleaning to a manufacturer instruction where one exists.',
+      'Bulky to store and not remotely portable.',
+    ],
+    review:
+      'Hygiene is the part of this work where good intentions fail most often, not because people do not care but because a proper routine is tedious and the shortcut is invisible. A fixed-cycle device removes the judgement call, which is the whole value: it either ran or it did not. This one is well made, holds most items without taking them apart, and signals clearly when it has finished. Two warnings. It is not appropriate for every material, and the manufacturer is clearer about that in the manual than on the box, so check what you own first. And it does not replace a cleaning instruction that came with an item. Used alongside those rather than instead of them, it is the most useful thing in this category PALMA has looked at.',
+    testedBy: null,
+    externalUrl: null,
+  },
+  {
+    slug: 'ledger-and-crown-accounts',
+    brand: 'Ledger & Crown',
+    name: 'Accounts for the Self-Employed',
+    category: 'software',
+    verdict: 6.9,
+    bestFor: 'A creator with several income streams who has been keeping receipts in a drawer.',
+    strengths: [
+      'Handles income from multiple platforms in multiple currencies without manual conversion.',
+      'Exports in a format an accountant will accept without reformatting it first.',
+      'Does not require a business bank account to be connected.',
+    ],
+    limitations: [
+      'The mobile app is substantially worse than the browser version.',
+      'Support is email-only with a working-day response, which is painful near a filing deadline.',
+      'Priced per month with no annual discount, so it costs more over a year than its rivals.',
+    ],
+    review:
+      'The problem this solves is specific: money arriving from several platforms, in several currencies, on no fixed schedule, which is the ordinary situation for a working creator and the thing generic accounting software handles worst. Ledger & Crown does the conversion properly and exports something an accountant can use without a phone call. It is let down by the app, which feels like a port rather than a product, and by support that is fine in February and agonising in January. The pricing is the real complaint: monthly only, and over a year it is the most expensive option in this category by some margin. Worth it if multi-currency is your actual problem. Overkill if it is not.',
+    testedBy: null,
+    externalUrl: null,
+  },
+  {
+    slug: 'harbour-mutual-income-protection',
+    brand: 'Harbour Mutual',
+    name: 'Income Protection for Freelancers',
+    category: 'business',
+    verdict: 7.5,
+    bestFor: 'A full-time creator with no employer sick pay and nothing behind them if they stop.',
+    strengths: [
+      'Underwrites self-employed applicants without requiring two years of filed accounts.',
+      'Pays on inability to do your own occupation rather than any occupation, which is the clause that matters.',
+      'Mental health is covered on the same terms as physical illness.',
+    ],
+    limitations: [
+      'A deferred period of at least four weeks, so it is not cover for a bad fortnight.',
+      'Premiums rise steeply with age and are not fixed at the outset.',
+      'The application asks detailed health questions, and an inaccurate answer can void a claim.',
+    ],
+    review:
+      'Nobody in this industry gets sick pay, and almost nobody has planned for the month where they cannot work. Income protection is the unglamorous answer and the terms vary enormously between providers, so the detail is the whole product. Two things here are better than average: the definition is own-occupation, which is what you want, and mental health is not carved out into worse terms, which it frequently is elsewhere. The deferred period means this covers a serious interruption rather than an ordinary bad run, and the premium structure means it costs more every year you hold it. Read the health questions slowly and answer them exactly. This is not a product PALMA can tell you is right for you, and an independent adviser is worth the fee.',
+    testedBy: null,
+    externalUrl: null,
   },
 ];

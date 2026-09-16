@@ -14,6 +14,7 @@
  * up with fourteen creators nobody chose.
  */
 import { totalScore } from '../src/domain/judging';
+import { publishObjections } from '../src/domain/product-library';
 import { PrismaClient } from '@prisma/client';
 import { randomBytes, createHmac, scrypt as scryptCallback } from 'node:crypto';
 import { promisify } from 'node:util';
@@ -21,6 +22,7 @@ import {
   articleCategories,
   articles,
   categorySeeds,
+  productSeeds,
   citations,
   people,
   seasonSeeds,
@@ -102,6 +104,12 @@ async function reset() {
   // Proposals point at seasons and creators that are about to be deleted, so
   // they go first. Left behind, a proposal survives a reseed and reappears on
   // the desk pointing at an award year that no longer exists.
+  // The Library is seeded with a unique slug per entry, so a second run
+  // collides unless the previous one is cleared. Without this the seed died
+  // part-way through and left the Journal unseeded, which is the kind of
+  // failure that looks like a missing feature rather than a crash.
+  await prisma.productEntry.deleteMany();
+  await prisma.featureSetting.deleteMany();
   await prisma.consequentialAction.deleteMany({
     where: { kind: { in: ['the_palma_conferral', 'honour_revocation'] } },
   });
@@ -579,6 +587,68 @@ async function main() {
     `  judged: ${candidacyCount} candidacies, ${nominationCount} nominations, ${honourCount} honours, ${declined} category declined`,
   );
   console.log(`  THE PALMA: ${palmas} conferred, one a season`);
+
+  // ── The Product Library ───────────────────────────────────────────────────
+  //
+  // Authored by the desk, because the Library is the desk's work: a verdict is
+  // editorial, and the people who write verdicts own them.
+  const deskId = accounts.get('tom@palmaawards.com')!;
+  //
+  // Run through `publishObjections` before writing, exactly as the desk's own
+  // form does. Seed data that could not be published through the product is
+  // seed data that is lying about what the product accepts, and this caught a
+  // review under the 200-character minimum on the first run.
+  for (const product of productSeeds) {
+    const objections = publishObjections({
+      name: product.name,
+      brand: product.brand,
+      category: product.category,
+      verdict: product.verdict,
+      bestFor: product.bestFor,
+      strengths: product.strengths,
+      limitations: product.limitations,
+      review: product.review,
+      externalUrl: product.externalUrl,
+      sponsorId: null,
+    });
+
+    if (objections.length > 0) {
+      throw new Error(`Seed product ${product.slug} cannot be published: ${objections.join(' ')}`);
+    }
+
+    await prisma.productEntry.create({
+      data: {
+        slug: product.slug,
+        name: product.name,
+        brand: product.brand,
+        category: product.category,
+        verdict: Math.round(product.verdict * 10),
+        bestFor: product.bestFor,
+        strengths: product.strengths,
+        limitations: product.limitations,
+        review: product.review,
+        testedBy: product.testedBy,
+        externalUrl: product.externalUrl,
+        isPublished: true,
+        publishedAt: new Date('2026-08-20T09:00:00.000Z'),
+        createdById: deskId,
+        updatedById: deskId,
+      },
+    });
+  }
+  // Switched on here and nowhere else.
+  //
+  // Every commercial feature ships dark: the code default is off and no
+  // FeatureSetting row is created in production, so the Library 404s until an
+  // operator throws the switch on the Features panel. This row exists only in
+  // the seeded development database, because six reviewed entries behind a
+  // closed door cannot be looked at, and the point of seeding them is that
+  // somebody can look at them.
+  await prisma.featureSetting.create({
+    data: { key: 'product_library', awardYearId: null, enabled: true },
+  });
+
+  console.log(`  library: ${productSeeds.length} entries, none sponsored, feature on (dev only)`);
 
   // ── Journal ───────────────────────────────────────────────────────────────
   const editorId = accounts.get('tom@palmaawards.com')!;
