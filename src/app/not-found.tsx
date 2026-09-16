@@ -64,21 +64,48 @@ export default function NotFound() {
                 </Button>
               </div>
 
-              <nav aria-label="Elsewhere" className="flex flex-wrap gap-x-7 gap-y-3 pt-2">
-                {[
-                  { href: '/', label: 'Home' },
-                  { href: '/the-palma', label: 'THE PALMA' },
-                  { href: '/categories', label: 'Categories' },
-                  { href: '/winners', label: 'Winners' },
-                ].map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="palma-quiet-link text-ivory/55 hover:text-ivory text-sm"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+              {/* An index, not four links left under the buttons.
+
+                  On a phone these are the routes a lost reader is most likely
+                  to take, so they get the width: a two-by-two block of ruled
+                  cells with aligned edges and a mark that moves on press. From
+                  `sm` up the row has room to sit inline and a grid would only
+                  add furniture. */}
+              <nav aria-label="Elsewhere on PALMA" className="pt-2">
+                <h2 className="palma-label text-ivory/35 text-[0.6875rem] tracking-[0.2em]">
+                  Elsewhere
+                </h2>
+                <ul className="mt-3 grid grid-cols-2 gap-x-6 sm:mt-4 sm:flex sm:flex-wrap sm:gap-x-7">
+                  {[
+                    { href: '/', label: 'Home' },
+                    { href: '/the-palma', label: 'THE PALMA' },
+                    { href: '/categories', label: 'Categories' },
+                    { href: '/winners', label: 'Winners' },
+                  ].map((item) => (
+                    <li key={item.href} className="border-ivory/12 border-t sm:border-0">
+                      <Link
+                        href={item.href}
+                        className="group/out text-ivory/60 hover:text-ivory flex items-center justify-between gap-3 py-3 text-sm transition-colors sm:justify-start sm:py-0"
+                      >
+                        <span className="palma-quiet-link">{item.label}</span>
+                        <svg
+                          viewBox="0 0 12 12"
+                          aria-hidden="true"
+                          className="text-champagne/45 group-hover/out:text-champagne h-2.5 w-2.5 shrink-0 transition-all duration-200 group-hover/out:translate-x-0.5 sm:hidden"
+                        >
+                          <path
+                            d="M3 9 9 3M9 3H4.4M9 3v4.6"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.4"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               </nav>
             </div>
           </div>
