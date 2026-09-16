@@ -396,11 +396,14 @@ export async function decideConsequentialAction(
  *
  * The only way a judge, moderator or administrator account is ever created.
  * There has never been a sign-up form for one, and this does not add one — it
- * lets a super administrator create the account directly, with a password
- * nobody, including the person creating it, ever sets or sees. What is
- * emailed is a single-use link that lets the invited person set their own
- * first password; until they do, the account exists but cannot be signed
- * into by anyone.
+ * lets an administrator create the account directly, with a password nobody,
+ * including the person creating it, ever sets or sees. What is emailed is a
+ * single-use link that lets the invited person set their own first password;
+ * until they do, the account exists but cannot be signed into by anyone.
+ *
+ * Inviting another super administrator is the one exception: that stays
+ * reserved for a super administrator, checked below, the same way granting
+ * the role to an existing account already is in `changeUserRole`.
  */
 export async function inviteOperator(
   _previous: PeopleState,
@@ -438,6 +441,18 @@ export async function inviteOperator(
 
   if (role === 'judge' && !judgeDisplayName?.trim()) {
     return { status: 'error', message: 'A judge needs the name shown on the panel page.' };
+  }
+
+  // An administrator runs the desk's roster, not the desk's ceiling: creating
+  // a super administrator account is how the ceiling is reached, so it stays
+  // reserved for someone who already stands on it — the same rule that
+  // already keeps `changeUserRole` from letting an administrator grant the
+  // role to an existing account.
+  if (role === 'super_admin' && session.user.role !== 'super_admin') {
+    return {
+      status: 'error',
+      message: 'Only a super administrator can invite another super administrator.',
+    };
   }
 
   const db = requireDb();
@@ -551,6 +566,9 @@ export async function issueOperatorPasswordReset(
   }
   if (!user.isActive) {
     return { status: 'error', message: 'That account is suspended. Restore it first.' };
+  }
+  if (user.role === 'super_admin' && session.user.role !== 'super_admin') {
+    return { status: 'error', message: 'Only a super administrator can do that.' };
   }
 
   const token = await db.$transaction((tx) => issuePasswordSetToken(tx, user.id, RESET_TTL_MS));

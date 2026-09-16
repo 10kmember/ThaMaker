@@ -25,7 +25,10 @@ export type Role = (typeof ROLES)[number];
  * `visitor` is not an account and `creator` self-registers — nobody invites a
  * creator, they claim a record or sign up. Everyone else is staff: they never
  * had a public sign-up form and never will, so the only way one of these
- * accounts comes to exist is a super administrator creating it on purpose.
+ * accounts comes to exist is an administrator creating it on purpose. A
+ * super administrator account is the one exception within this list — see
+ * the guard in `inviteOperator` — reserved for a super administrator to
+ * create, the same way granting that role to an existing account already is.
  */
 export const INVITABLE_ROLES = ['judge', 'moderator', 'admin', 'super_admin'] as const;
 export type InvitableRole = (typeof INVITABLE_ROLES)[number];
@@ -250,6 +253,13 @@ const ADMIN: Permission[] = [
   'commercial:manage_event_commerce',
   'commercial:manage_features',
   'commercial:assign_placement',
+  // Inviting a colleague and reissuing a stuck one's link. Held apart from
+  // `admin:manage_system` on purpose — this is the day-to-day of running the
+  // desk, not the handful of settings that reach the whole platform. The
+  // actions behind this permission still refuse anything that reaches a
+  // super administrator's own role or account: an administrator runs the
+  // desk's roster, not the desk's ceiling.
+  'admin:manage_users',
 ];
 
 const MATRIX: Record<Role, readonly Permission[]> = {

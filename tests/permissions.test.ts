@@ -44,8 +44,8 @@ describe('role permissions', () => {
     expect(can('moderator', 'moderation:act')).toBe(true);
   });
 
-  it('reserves user and system administration for super administrators', () => {
-    expect(can('admin', 'admin:manage_users')).toBe(false);
+  it('lets administrators manage the roster, but reserves the whole system for super administrators', () => {
+    expect(can('admin', 'admin:manage_users')).toBe(true);
     expect(can('admin', 'admin:manage_system')).toBe(false);
     expect(can('super_admin', 'admin:manage_users')).toBe(true);
     expect(can('super_admin', 'admin:manage_system')).toBe(true);
