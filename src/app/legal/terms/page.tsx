@@ -411,9 +411,9 @@ export default function TermsPage() {
             legitimately published as part of the PALMA record.
           </p>
           <p>
-            Where a creator has provided an approved profile image, PALMA may use that image in
-            connection with the creator&rsquo;s PALMA record, awards, editorial coverage,
-            announcements and archival presentation subject to the applicable permissions.
+            Where a creator has uploaded a profile image, PALMA may use that image in connection
+            with the creator&rsquo;s PALMA record, awards, editorial coverage, announcements and
+            archival presentation subject to the applicable permissions.
           </p>
           <p>
             No provision of these Terms requires you to grant PALMA ownership of your name, stage

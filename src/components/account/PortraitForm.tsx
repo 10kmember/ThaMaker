@@ -12,19 +12,24 @@ import { removePortrait, uploadPortrait, type PortraitState } from '@/server/act
 const initial: PortraitState = { status: 'idle' };
 
 export type PortraitStanding = {
-  status: 'none' | 'pending' | 'approved' | 'rejected';
+  status: 'none' | 'published' | 'withdrawn';
   url: string | null;
   alt: string | null;
-  rejectionReason: string | null;
+  withdrawnReason: string | null;
 };
 
 /**
  * Uploading a portrait.
  *
+ * There is no review step, so the rule has to be visible before the file is
+ * chosen rather than delivered afterwards as a refusal. It sits above the
+ * picker, in the plainest words available, and it is the first thing on the
+ * page: nobody has ever read a content policy they had to go looking for.
+ *
  * The preview is the file the creator chose, drawn locally. What PALMA
- * eventually publishes is a re-encoded square crop of it — so the preview is
- * shown in the same aspect the record uses, rather than letting somebody
- * approve a tall photograph and be surprised by the crop.
+ * publishes is a re-encoded square crop of it — so the preview is shown in the
+ * same aspect the record uses, rather than letting somebody upload a tall
+ * photograph and be surprised by the crop.
  */
 export function PortraitForm({ standing, name }: { standing: PortraitStanding; name: string }) {
   const [state, action, pending] = useActionState(uploadPortrait, initial);
@@ -46,25 +51,27 @@ export function PortraitForm({ standing, name }: { standing: PortraitStanding; n
 
   return (
     <div className="flex flex-col gap-6">
+      <Notice tone="warning" title="No nudes">
+        Your portrait goes straight onto your record — nobody approves it first, so read this before
+        you choose a file. It has to be safe for every audience: no nudity, nothing sexual, nothing
+        explicit. PALMA honours adult creators and is not an adult site, and the difference is held
+        here. Anything that crosses it is taken down and deleted, and doing it on purpose is grounds
+        for losing the account.
+      </Notice>
+
       {state.status !== 'idle' && state.message ? (
         <Notice
           tone={state.status === 'error' ? 'error' : 'ceremonial'}
-          title={state.status === 'error' ? 'Not accepted' : 'Received'}
+          title={state.status === 'error' ? 'Not accepted' : 'Published'}
         >
           {state.message}
         </Notice>
       ) : null}
 
-      {standing.status === 'pending' && state.status === 'idle' ? (
-        <Notice title="With a moderator">
-          Your portrait is waiting to be looked at. Your record shows the PALMA plate until it is
-          approved.
-        </Notice>
-      ) : null}
-
-      {standing.status === 'rejected' && standing.rejectionReason ? (
-        <Notice tone="warning" title="Not published">
-          {standing.rejectionReason} The image was deleted. Upload a different one when you like.
+      {standing.status === 'withdrawn' && standing.withdrawnReason ? (
+        <Notice tone="error" title="PALMA took this one down">
+          {standing.withdrawnReason} The image was deleted. Upload a different one whenever you like
+          — this note goes with it.
         </Notice>
       ) : null}
 
@@ -89,7 +96,11 @@ export function PortraitForm({ standing, name }: { standing: PortraitStanding; n
             />
           )}
           <p className="palma-label text-taupe mt-3 text-center">
-            {preview ? 'Chosen' : standing.status === 'approved' ? 'On your record' : 'PALMA plate'}
+            {preview
+              ? 'Chosen'
+              : standing.status === 'published'
+                ? 'On your record'
+                : 'PALMA plate'}
           </p>
         </div>
 
@@ -119,22 +130,22 @@ export function PortraitForm({ standing, name }: { standing: PortraitStanding; n
 
           <div className="flex flex-wrap items-center gap-3">
             <Button type="submit" size="md" disabled={pending}>
-              {pending ? 'Sending…' : 'Submit for review'}
+              {pending
+                ? 'Publishing…'
+                : standing.status === 'published'
+                  ? 'Replace it'
+                  : 'Publish it'}
             </Button>
             {standing.status !== 'none' ? (
-              <Badge variant={standing.status === 'approved' ? 'olive' : 'muted'}>
-                {standing.status === 'approved'
-                  ? 'Published'
-                  : standing.status === 'pending'
-                    ? 'In review'
-                    : 'Refused'}
+              <Badge variant={standing.status === 'published' ? 'olive' : 'muted'}>
+                {standing.status === 'published' ? 'On your record' : 'Taken down'}
               </Badge>
             ) : null}
           </div>
         </form>
       </div>
 
-      {standing.status !== 'none' ? (
+      {standing.status === 'published' ? (
         <form action={removePortrait}>
           <Button type="submit" variant="ghost" size="sm">
             Remove it from my record
@@ -145,8 +156,8 @@ export function PortraitForm({ standing, name }: { standing: PortraitStanding; n
       <p className="text-taupe text-xs leading-relaxed">
         PALMA does not store the file you send. It is decoded, stripped of every scrap of metadata,
         including the GPS coordinates a phone writes into a photograph, resized and re-encoded, and
-        only that version is kept. A moderator looks before it appears publicly, because PALMA hosts
-        no explicit imagery and an upload is the one route by which some would arrive.
+        only that version is kept. Replacing a portrait replaces its address too, so nothing is left
+        holding the old one.
       </p>
     </div>
   );

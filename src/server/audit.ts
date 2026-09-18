@@ -93,9 +93,8 @@ export const AUDIT_ACTIONS = [
   'record.objection_received',
   'record.objection_upheld',
   'record.objection_refused',
-  'creator.portrait_submitted',
-  'creator.portrait_approved',
-  'creator.portrait_rejected',
+  'creator.portrait_published',
+  'creator.portrait_withdrawn',
   'creator.portrait_removed',
 
   // The Product Library. The sponsorship entries are separate from the

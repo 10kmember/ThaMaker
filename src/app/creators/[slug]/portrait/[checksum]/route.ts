@@ -2,15 +2,16 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
 
 /**
- * Serving an approved portrait.
+ * Serving a portrait.
  *
  * The checksum is in the path rather than a query string, which buys two
  * things: the URL is immutable, so it can be cached for a year by anything
  * that sees it; and replacing a portrait produces a different URL, so no cache
  * anywhere is left holding an image the creator has taken down.
  *
- * Only an approved portrait is ever served. A pending one exists in the
- * database and is visible to the moderator reviewing it, and to nobody else.
+ * A withdrawn portrait is never served, and in practice cannot be: withdrawing
+ * one deletes the bytes, so the row it leaves behind holds a reason and
+ * nothing renderable.
  */
 export async function GET(
   _request: Request,
@@ -20,7 +21,7 @@ export async function GET(
 
   const portrait = await prisma.creatorPortrait.findFirst({
     where: {
-      status: 'approved',
+      status: 'published',
       checksum,
       creator: { slug, isPublished: true },
     },

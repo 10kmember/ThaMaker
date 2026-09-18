@@ -3,6 +3,7 @@ import { PortalShell } from '@/components/palma/PortalShell';
 import { Button } from '@/components/ui/button';
 import { Notice } from '@/components/ui/feedback';
 import { EmailPreferencesForm } from '@/components/account/EmailPreferencesForm';
+import { PreferencesForm } from '@/components/account/PortalForms';
 import { buildMetadata } from '@/lib/seo';
 import { requireSession } from '@/lib/auth/guards';
 import { homeForRole } from '@/lib/auth/entrances';
@@ -31,16 +32,43 @@ export const metadata = buildMetadata({
  * switch beside these because an account that could mute the news that its
  * honour was revoked is not being kept informed, it is being managed.
  *
- * Below it: five subscriptions, each opt-in on its own, none pre-ticked, and
+ * Between them: the announcements. Mail PALMA would send you about your own
+ * record and the season around it, which you can switch off one at a time.
+ * These used to be a panel on the creator portal, two pages away from the
+ * subscriptions they are constantly confused with, which meant nobody could
+ * answer "what does PALMA send me" without visiting both.
+ *
+ * Below: five subscriptions, each opt-in on its own, none pre-ticked, and
  * leaving one leaving exactly one.
  */
 export default async function EmailPreferencesPage() {
   const session = await requireSession('/account/email-preferences');
 
-  const subscriptions = await prisma.emailSubscription.findMany({
-    where: { email: session.user.email },
-    select: { type: true, status: true, confirmedAt: true, consentAt: true, source: true },
-  });
+  const [subscriptions, prefs] = await Promise.all([
+    prisma.emailSubscription.findMany({
+      where: { email: session.user.email },
+      select: { type: true, status: true, confirmedAt: true, consentAt: true, source: true },
+    }),
+    prisma.notificationPreference.findUnique({
+      where: { userId: session.user.id },
+      select: {
+        seasonAnnouncements: true,
+        nominationUpdates: true,
+        honourAnnouncements: true,
+        journalDigest: true,
+      },
+    }),
+  ]);
+
+  // An account that has never touched these has no row, and the defaults are
+  // the ones the portal used: on, except the digest, which is a publication
+  // rather than news about you.
+  const announcements = {
+    seasonAnnouncements: prefs?.seasonAnnouncements ?? true,
+    nominationUpdates: prefs?.nominationUpdates ?? true,
+    honourAnnouncements: prefs?.honourAnnouncements ?? true,
+    journalDigest: prefs?.journalDigest ?? false,
+  };
 
   const availability = await Promise.all(
     EMAIL_LIST_ORDER.map(async (key) => {
@@ -107,6 +135,17 @@ export default async function EmailPreferencesPage() {
               </Link>
               .
             </p>
+          </section>
+
+          <section>
+            <h2 className="palma-label text-taupe-deep mb-2">Announcements about you</h2>
+            <p className="text-taupe-deep mb-8 max-w-140 text-sm leading-relaxed">
+              News, rather than decisions. Switching one off is only ever a choice not to hear about
+              it early, anything PALMA actually decides about your record still reaches you through
+              the list above and is written into your Dossier either way.
+            </p>
+
+            <PreferencesForm defaults={announcements} />
           </section>
 
           <section>

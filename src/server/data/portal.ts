@@ -69,10 +69,10 @@ export type CreatorPortal = {
   subscriptions: string[];
   /** Where the creator's portrait has got to. */
   portrait: {
-    status: 'none' | 'pending' | 'approved' | 'rejected';
+    status: 'none' | 'published' | 'withdrawn';
     url: string | null;
     alt: string | null;
-    rejectionReason: string | null;
+    withdrawnReason: string | null;
   };
 };
 
@@ -169,11 +169,10 @@ export async function getCreatorPortal(userId: string): Promise<CreatorPortal | 
     dossier,
     subscriptions: subscriptions.map((row) => row.type),
     portrait: {
-      status: (user.creator?.portrait?.status ?? 'none') as
-        'none' | 'pending' | 'approved' | 'rejected',
+      status: (user.creator?.portrait?.status ?? 'none') as 'none' | 'published' | 'withdrawn',
       url: user.creator?.portraitUrl ?? null,
       alt: user.creator?.portrait?.alt ?? user.creator?.portraitAlt ?? null,
-      rejectionReason: user.creator?.portrait?.rejectionReason ?? null,
+      withdrawnReason: user.creator?.portrait?.withdrawnReason ?? null,
     },
   };
 }

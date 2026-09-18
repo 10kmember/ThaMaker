@@ -17,6 +17,7 @@ import { prisma } from '@/server/db';
 import { RATE_LIMITS, enforceRateLimit } from '@/server/rate-limit';
 import { sendPasswordChanged, sendPasswordReset } from '@/server/email/messages';
 import { clearSuppression } from '@/server/email/suppression';
+import { RESET_TTL_MS } from '@/domain/password-tokens';
 
 /**
  * Getting back in.
@@ -41,12 +42,6 @@ export type PasswordState = {
   /** Where to sign in next, once a password has actually been set. */
   signInPath?: string;
 };
-
-/** One hour. Long enough to find the email, short enough to matter. */
-export const RESET_TTL_MS = 60 * 60 * 1000;
-
-/** Seven days. Nobody invited to the desk sees the email in the same hour. */
-export const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 const SAME_ANSWER =
   'If that address has a PALMA account, a reset link is on its way. It is valid for one hour.';

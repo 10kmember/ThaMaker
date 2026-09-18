@@ -11,17 +11,23 @@ import { MAX_UPLOAD_BYTES, portraitPath, preparePortrait } from '@/server/servic
 /**
  * A creator's portrait.
  *
- * Two rules shape this, and both come from elsewhere in PALMA rather than from
- * anything about images.
- *
  * A portrait is a *claimed-record* field. PALMA does not find a picture of an
  * unclaimed creator and put it on their record — the only way one exists is
  * that the person in it uploaded it, from their own account.
  *
- * And it is reviewed before it is public. PALMA is deliberately SFW and hosts
- * no explicit imagery; an upload is the one route by which someone could try,
- * so a person looks first. The Terms already promise an "approved profile
- * image", and this is what makes that word true.
+ * It goes live on upload. There used to be a queue: every headshot waited for
+ * a moderator, because PALMA is deliberately SFW and an upload is the one
+ * route by which explicit imagery could arrive. The queue was the wrong shape
+ * for the risk. Everyone uploading is a verified creator putting a photograph
+ * of themselves on a record that carries their name, so the queue made all of
+ * them wait for the rare bad one, and a creator who could not see their own
+ * face on their own record for three days reasonably concluded the upload had
+ * failed.
+ *
+ * What replaces it is stated up front and acted on after: the rule is on the
+ * form, in words, before the file is chosen — no nudity, nothing explicit —
+ * and `withdrawPortrait` below lets the desk take one down, which deletes the
+ * bytes. So the control did not disappear; it stopped being a turnstile.
  */
 
 export type PortraitState = { status: 'idle' | 'error' | 'success'; message?: string };
@@ -78,60 +84,70 @@ export async function uploadPortrait(
   const creatorId = session.user.creatorId;
   const { portrait } = prepared;
 
+  // The slug is the first segment of the serving path, so it is read from the
+  // record rather than taken from the session, which was written at sign-in
+  // and may predate a rename.
+  const creator = await prisma.creator.findUnique({
+    where: { id: creatorId },
+    select: { slug: true },
+  });
+
+  if (!creator) {
+    return { status: 'error', message: 'That record could not be found.' };
+  }
+
+  const stored = {
+    data: portrait.data,
+    contentType: portrait.contentType,
+    width: portrait.width,
+    height: portrait.height,
+    byteSize: portrait.byteSize,
+    checksum: portrait.checksum,
+    alt: alt || null,
+    status: 'published' as const,
+  };
+
   await prisma.$transaction(async (tx) => {
     await tx.creatorPortrait.upsert({
       where: { creatorId },
-      create: {
-        creatorId,
-        data: portrait.data,
-        contentType: portrait.contentType,
-        width: portrait.width,
-        height: portrait.height,
-        byteSize: portrait.byteSize,
-        checksum: portrait.checksum,
-        alt: alt || null,
-        status: 'pending',
-      },
-      // Replacing a portrait sends it back for review. A creator who could
-      // swap an approved image for a different one afterwards would make the
-      // review meaningless.
-      update: {
-        data: portrait.data,
-        contentType: portrait.contentType,
-        width: portrait.width,
-        height: portrait.height,
-        byteSize: portrait.byteSize,
-        checksum: portrait.checksum,
-        alt: alt || null,
-        status: 'pending',
-        reviewedAt: null,
-        reviewedById: null,
-        rejectionReason: null,
-      },
+      create: { creatorId, ...stored },
+      // A replacement clears any earlier withdrawal. Somebody told to take a
+      // portrait down and uploading a different one has done the thing that
+      // was asked, and the record should not keep telling them off for it.
+      update: { ...stored, withdrawnAt: null, withdrawnById: null, withdrawnReason: null },
     });
 
-    // The public record shows nothing until a person has looked.
+    // This is the line that makes it public: the serving path carries the
+    // checksum, so replacing a portrait is a different URL and no cache
+    // anywhere is left holding the old one.
     await tx.creator.update({
       where: { id: creatorId },
-      data: { portraitUrl: null, portraitAlt: null },
+      data: {
+        portraitUrl: portraitPath(creator.slug, portrait.checksum),
+        portraitAlt: alt || null,
+      },
     });
   });
 
   await recordAudit({
-    action: 'creator.portrait_submitted',
+    action: 'creator.portrait_published',
     entityType: 'Creator',
     entityId: creatorId,
     actor: { id: session.user.id, role: session.user.role, label: session.user.email },
-    summary: `Portrait submitted (${Math.round(portrait.byteSize / 1024)}KB, ${portrait.width}×${portrait.height})`,
+    summary: `Portrait published (${Math.round(portrait.byteSize / 1024)}KB, ${portrait.width}×${portrait.height})`,
   });
 
   revalidatePath('/creator');
+  revalidatePath('/creator/profile');
   revalidatePath('/portal/portraits');
+  revalidatePath('/creators');
+  revalidatePath(`/creators/${creator.slug}`);
+  revalidatePath(`/nominate/${creator.slug}`);
 
   return {
     status: 'success',
     message:
-      'Received. PALMA re-encoded it and discarded every scrap of metadata that came with it, including location. A moderator looks before it appears on your record.',
+      'It is on your record now. PALMA re-encoded it and discarded every scrap of metadata that came with it, including the location a phone writes into a photograph.',
   };
 }
 
@@ -170,13 +186,18 @@ export async function removePortrait(): Promise<void> {
 }
 
 /**
- * Reviewing one.
+ * Taking one down.
  *
- * Approval writes the serving path onto the record, which is what makes it
- * public. The path carries the checksum, so a replaced portrait is a different
- * URL and no cache anywhere is holding the old one.
+ * The desk's half of a portrait system with no queue in it. Nothing waits on
+ * this and most portraits never meet it, but it is what makes publishing on
+ * upload defensible rather than merely convenient: an unsuitable image is
+ * removed the moment somebody reports or notices it, and the bytes go with it.
+ *
+ * A reason is required because the creator is told what it says. "Refused" on
+ * its own, with no account of why, is how an institution loses an argument it
+ * was right about.
  */
-export async function reviewPortrait(
+export async function withdrawPortrait(
   _previous: PortraitState,
   formData: FormData,
 ): Promise<PortraitState> {
@@ -186,20 +207,16 @@ export async function reviewPortrait(
   try {
     session = await authorise('editorial:edit_creator');
   } catch {
-    return { status: 'error', message: 'You are not authorised to review portraits.' };
+    return { status: 'error', message: 'You are not authorised to take a portrait down.' };
   }
 
   const portraitId = String(formData.get('portraitId') ?? '');
-  const decision = String(formData.get('decision') ?? '');
   const reason = String(formData.get('reason') ?? '').trim();
 
-  if (decision !== 'approve' && decision !== 'reject') {
-    return { status: 'error', message: 'Choose a decision.' };
-  }
-  if (decision === 'reject' && reason.length < 10) {
+  if (reason.length < 10) {
     return {
       status: 'error',
-      message: 'A rejection has to carry a reason. The creator is told what it says.',
+      message: 'A withdrawal has to carry a reason. The creator is told what it says.',
     };
   }
 
@@ -209,76 +226,45 @@ export async function reviewPortrait(
   });
 
   if (!portrait) return { status: 'error', message: 'That portrait does not exist.' };
-
-  const actor = { id: session.user.id, role: session.user.role, label: session.user.email };
-  const now = new Date();
-
-  if (decision === 'reject') {
-    await prisma.$transaction(async (tx) => {
-      // The bytes go with the refusal. PALMA does not keep a copy of an image
-      // it has decided not to publish.
-      await tx.creatorPortrait.update({
-        where: { id: portrait.id },
-        data: {
-          status: 'rejected',
-          reviewedAt: now,
-          reviewedById: session.user.id,
-          rejectionReason: reason,
-          data: new Uint8Array(new ArrayBuffer(0)),
-          byteSize: 0,
-        },
-      });
-      await tx.creator.update({
-        where: { id: portrait.creator.id },
-        data: { portraitUrl: null, portraitAlt: null },
-      });
-    });
-
-    await recordAudit({
-      action: 'creator.portrait_rejected',
-      entityType: 'Creator',
-      entityId: portrait.creator.id,
-      actor,
-      summary: `Portrait for ${portrait.creator.displayName} refused: ${reason}`,
-    });
-
-    revalidatePath('/portal/portraits');
-    revalidatePath(`/creators/${portrait.creator.slug}`);
-    return { status: 'success', message: 'Refused, and the image deleted.' };
+  if (portrait.status === 'withdrawn') {
+    return { status: 'error', message: 'That portrait is already down.' };
   }
 
   await prisma.$transaction(async (tx) => {
+    // The bytes go with the decision. PALMA does not keep a copy of an image
+    // it has taken off a record, and the row survives only to hold the reason
+    // the creator was given.
     await tx.creatorPortrait.update({
       where: { id: portrait.id },
       data: {
-        status: 'approved',
-        reviewedAt: now,
-        reviewedById: session.user.id,
-        rejectionReason: null,
+        status: 'withdrawn',
+        withdrawnAt: new Date(),
+        withdrawnById: session.user.id,
+        withdrawnReason: reason,
+        data: new Uint8Array(new ArrayBuffer(0)),
+        byteSize: 0,
       },
     });
     await tx.creator.update({
       where: { id: portrait.creator.id },
-      data: {
-        portraitUrl: portraitPath(portrait.creator.slug, portrait.checksum),
-        portraitAlt: portrait.alt,
-      },
+      data: { portraitUrl: null, portraitAlt: null },
     });
   });
 
   await recordAudit({
-    action: 'creator.portrait_approved',
+    action: 'creator.portrait_withdrawn',
     entityType: 'Creator',
     entityId: portrait.creator.id,
-    actor,
-    summary: `Portrait for ${portrait.creator.displayName} published`,
+    actor: { id: session.user.id, role: session.user.role, label: session.user.email },
+    summary: `Portrait for ${portrait.creator.displayName} taken down: ${reason}`,
   });
 
   revalidatePath('/portal/portraits');
   revalidatePath('/creator');
+  revalidatePath('/creator/profile');
   revalidatePath('/creators');
   revalidatePath(`/creators/${portrait.creator.slug}`);
   revalidatePath(`/nominate/${portrait.creator.slug}`);
 
-  return { status: 'success', message: 'Published on the record.' };
+  return { status: 'success', message: 'Taken down, and the image deleted.' };
 }

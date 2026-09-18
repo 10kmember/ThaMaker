@@ -1424,10 +1424,11 @@ model CreatorPortrait {
   /// The creator's own description of the image, for anyone who cannot see it.
   alt String?
 
-  status          PortraitStatus @default(pending)
-  reviewedAt      DateTime?
-  reviewedById    String?
-  rejectionReason String?
+  /// Live from the moment it is uploaded. See PortraitStatus.
+  status          PortraitStatus @default(published)
+  withdrawnAt     DateTime?
+  withdrawnById   String?
+  withdrawnReason String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1437,13 +1438,21 @@ model CreatorPortrait {
   @@index([status, createdAt])
 }
 
+/// A portrait is published when it is uploaded, not when somebody approves it.
+///
+/// PALMA used to hold every upload in a queue until a moderator looked. That
+/// bought very little: the people uploading are creators putting a headshot on
+/// their own record, and making each of them wait days for a photograph to
+/// appear taxed all of them for the rare one. What replaced it is reactive —
+/// the upload goes live, the desk can take it down, and the rule it is judged
+/// against is stated plainly on the upload form rather than discovered
+/// afterwards.
 enum PortraitStatus {
-  /// Uploaded, waiting for a person to look at it.
-  pending
-  /// Published on the record.
-  approved
-  /// Refused, with a reason the creator is told.
-  rejected
+  /// On the record, visible to anyone.
+  published
+  /// Taken down by the desk, with a reason the creator is told. The bytes are
+  /// deleted at the same time: PALMA does not keep an image it has removed.
+  withdrawn
 }
 
 /// An objection to an unclaimed record, under UK GDPR Article 21.

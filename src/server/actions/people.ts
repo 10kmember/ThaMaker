@@ -15,7 +15,8 @@ import {
   sendPasswordReset,
 } from '@/server/email/messages';
 import { requireDb } from '@/server/db';
-import { INVITE_TTL_MS, RESET_TTL_MS, issuePasswordSetToken } from '@/server/actions/password';
+import { issuePasswordSetToken } from '@/server/actions/password';
+import { INVITE_TTL_MS, RESET_TTL_MS } from '@/domain/password-tokens';
 
 export type PeopleState = { status: 'idle' | 'error' | 'success'; message?: string };
 

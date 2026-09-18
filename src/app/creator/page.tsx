@@ -6,19 +6,12 @@ import { Table, TBody, THead } from '@/components/ui/table';
 import { EmptyState, Notice } from '@/components/ui/feedback';
 import { Button } from '@/components/ui/button';
 import { CopyLink } from '@/components/palma/CopyLink';
-import { PortraitForm } from '@/components/account/PortraitForm';
-import {
-  LinksForm,
-  PreferencesForm,
-  ProfileForm,
-  VerificationForm,
-} from '@/components/account/PortalForms';
 import { buildMetadata, absoluteUrl } from '@/lib/seo';
 import { requireSession } from '@/lib/auth/guards';
 import { getCreatorPortal } from '@/server/data/portal';
-import { formatShortDate } from '@/lib/format';
 import { titleCase } from '@/lib/utils';
 import { isStaff } from '@/lib/auth/rbac';
+import { CREATOR_NAV } from '@/lib/creator-nav';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,6 +43,8 @@ export default async function PortalPage() {
       title="PALMA Portal"
       subtitle={portal.displayName ?? session.user.name}
       userName={session.user.email}
+      nav={CREATOR_NAV}
+      activeHref="/creator"
     >
       <div className="border-stone-deep grid gap-10 border-b pb-10 sm:grid-cols-4">
         <Stat label="PALMA honours" value={portal.achievements.length} />
@@ -187,42 +182,21 @@ export default async function PortalPage() {
               not decide outcomes, and a running total would only invite you to campaign for one.
             </p>
           </section>
-
-          {/* Editable whether or not the record is published, the person
-              waiting on a moderator is exactly the one who needs to fix it. */}
-          {portal.profile ? (
-            <>
-              <section>
-                <h2 className="palma-label text-taupe-deep mb-2">Your portrait</h2>
-                <p className="text-taupe-deep mb-6 max-w-140 text-sm leading-relaxed">
-                  One picture, shown on your record, on your nomination link and wherever PALMA
-                  names you. Without one your record carries the PALMA plate, which is a deliberate
-                  design rather than a gap, but the plate is not you.
-                </p>
-                <PortraitForm
-                  standing={portal.portrait}
-                  name={portal.displayName ?? session.user.name}
-                />
-              </section>
-
-              <section>
-                <h2 className="palma-label text-taupe-deep mb-6">Profile details</h2>
-                <ProfileForm defaults={portal.profile} />
-              </section>
-
-              <section>
-                <h2 className="palma-label text-taupe-deep mb-2">Where your work lives</h2>
-                <p className="text-taupe-deep mb-6 max-w-140 text-sm leading-relaxed">
-                  The editorial desk reads your record from these. Keep them current: a dead link is
-                  worse than no link, and PALMA will not publish a record it cannot check.
-                </p>
-                <LinksForm defaults={portal.links} />
-              </section>
-            </>
-          ) : null}
         </div>
 
         <aside className="flex min-w-0 flex-col gap-10 lg:col-span-5">
+          {portal.profile ? (
+            <section className="border-stone-deep border p-7">
+              <h2 className="palma-label text-taupe-deep mb-4">Your profile</h2>
+              <p className="text-taupe-deep mb-5 text-sm leading-relaxed">
+                Your portrait, your details and the links the editorial desk reads your record from.
+              </p>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/creator/profile">Edit your profile</Link>
+              </Button>
+            </section>
+          ) : null}
+
           <section className="border-stone-deep border p-7">
             <div className="flex items-center justify-between gap-4">
               <h2 className="palma-label text-taupe-deep">Verification</h2>
@@ -230,61 +204,25 @@ export default async function PortalPage() {
                 {titleCase(portal.verification.status)}
               </Badge>
             </div>
-            <div className="mt-5">
-              <VerificationForm status={portal.verification.status} />
-            </div>
-            {portal.verification.verifiedAt ? (
-              <p className="text-taupe-deep mt-4 text-xs">
-                Verified {formatShortDate(portal.verification.verifiedAt)}
-                {portal.verification.expiresAt
-                  ? ` · renews ${formatShortDate(portal.verification.expiresAt)}`
-                  : ''}
-              </p>
-            ) : null}
-          </section>
-
-          <section className="border-stone-deep border p-7">
-            <h2 className="palma-label text-taupe-deep mb-5">Your nomination link</h2>
-            {portal.referralPath ? (
-              <>
-                <p className="text-taupe-deep mb-4 text-sm leading-relaxed">
-                  Share this with your audience. It opens a nomination page with you already chosen
-                  . Nothing more. It carries no extra weight with the panel, and the number of
-                  nominations it brings in does not decide anything.
-                </p>
-                <p className="border-stone-deep bg-stone/25 mb-4 border px-4 py-3 font-mono text-sm break-all">
-                  {absoluteUrl(portal.referralPath)}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <CopyLink value={absoluteUrl(portal.referralPath)} label="Copy nomination link" />
-                  <Button asChild size="sm" variant="ghost">
-                    <Link href={portal.referralPath}>Preview it</Link>
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <p className="text-taupe-deep text-sm leading-relaxed">
-                Your nomination link is issued once your profile is claimed and verified. Complete
-                verification above to receive it.
-              </p>
-            )}
-          </section>
-
-          <section className="border-stone-deep border p-7">
-            <h2 className="palma-label text-taupe-deep mb-5">PALMA assets</h2>
-            <p className="text-taupe-deep mb-5 text-sm leading-relaxed">
-              Winners and finalists may use the PALMA mark to state the honour they hold. Share
-              cards are generated from the record, so they cannot misstate it.
+            <p className="text-taupe-deep mt-4 mb-5 text-sm leading-relaxed">
+              PALMA confers nothing on an unverified record.
             </p>
-            {portal.achievements.length > 0 ? (
-              <Button asChild variant="outline" size="sm">
-                <a href={`/verify/${portal.achievements[0]!.code}/opengraph-image`} download>
-                  Download share card
-                </a>
-              </Button>
-            ) : (
-              <p className="text-taupe text-sm">Available once you hold an honour.</p>
-            )}
+            <Button asChild size="sm" variant="outline">
+              <Link href="/creator/verification">
+                {verified ? 'View verification' : 'Complete verification'}
+              </Link>
+            </Button>
+          </section>
+
+          <section className="border-stone-deep border p-7">
+            <h2 className="palma-label text-taupe-deep mb-5">Your links</h2>
+            <p className="text-taupe-deep mb-5 text-sm leading-relaxed">
+              The link you share to be nominated, and the permanent one that proves what you hold.
+              They do opposite jobs.
+            </p>
+            <Button asChild size="sm" variant="outline">
+              <Link href="/creator/share">Open your links</Link>
+            </Button>
           </section>
 
           <section className="border-stone-deep border p-7">
@@ -312,23 +250,9 @@ export default async function PortalPage() {
             <div className="border-stone-deep mt-7 border-t pt-6">
               <h3 className="palma-label text-taupe-deep mb-2">What reaches your inbox</h3>
               <p className="text-taupe mb-5 text-xs leading-relaxed">
-                These govern announcements only. Decisions about your record, and anything
-                concerning the safety of your account, are sent regardless, an institution you can
-                mute is not keeping you informed.
-              </p>
-              <PreferencesForm defaults={portal.preferences} />
-            </div>
-
-            <div className="border-stone-deep mt-7 border-t pt-6">
-              <h3 className="palma-label text-taupe-deep mb-2">PALMA lists</h3>
-              <p className="text-taupe mb-4 text-xs leading-relaxed">
-                Five separate subscriptions, each opt-in on its own. Nothing above puts you on any
-                of them.
-              </p>
-              <p className="text-taupe-deep mb-4 text-sm">
-                {portal.subscriptions.length === 0
-                  ? 'You are on none of them.'
-                  : `You are on ${portal.subscriptions.length} of 5.`}
+                Which announcements PALMA sends, and which of the five lists you are on. Decisions
+                about your record, and anything concerning the safety of your account, are sent
+                regardless, an institution you can mute is not keeping you informed.
               </p>
               <Button asChild variant="outline" size="sm">
                 <Link href="/account/email-preferences">Choose what reaches you</Link>

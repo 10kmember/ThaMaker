@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState, Notice } from '@/components/ui/feedback';
-import { PortraitReviewForm } from '@/components/operations/PortraitReviewForm';
+import { PortraitWithdrawForm } from '@/components/operations/PortraitWithdrawForm';
+import { EditorialImage } from '@/components/palma/EditorialImage';
 import { buildMetadata } from '@/lib/seo';
 import { requirePermission } from '@/lib/auth/guards';
 import { prisma } from '@/server/db';
@@ -11,31 +12,38 @@ export const dynamic = 'force-dynamic';
 
 export const metadata = buildMetadata({
   title: 'Portraits',
-  description: 'Portraits waiting to be published on a PALMA record.',
+  description: 'Portraits on PALMA records.',
   path: '/portal/portraits',
   noIndex: true,
 });
 
 /**
- * The portrait queue.
+ * Portraits, after the queue.
  *
- * PALMA hosts no explicit imagery, and an upload is the only route by which
- * any would arrive — so a person looks at every one before it is public. The
- * pending image is rendered from its bytes here and nowhere else: the public
- * route serves approved portraits only.
+ * This page used to be a gate: nothing appeared on a record until somebody
+ * here clicked approve. It is now a window. Portraits publish on upload, and
+ * what this shows is what is already up, newest first, so the desk can look
+ * through a season's worth in a minute and take down anything that should not
+ * be there.
+ *
+ * The change is in who waits. It used to be every creator, for the rare bad
+ * image; now it is only the bad image, for however long it takes somebody to
+ * notice. That is the right way round for a site whose uploaders are verified
+ * people putting their own face on a record that carries their name.
  */
 export default async function PortraitsPage() {
   await requirePermission('editorial:edit_creator', '/portal/portraits');
 
-  const [pending, recent] = await Promise.all([
+  const [live, withdrawn] = await Promise.all([
     prisma.creatorPortrait.findMany({
-      where: { status: 'pending' },
-      orderBy: { createdAt: 'asc' },
-      include: { creator: { select: { slug: true, displayName: true, countryCode: true } } },
+      where: { status: 'published' },
+      orderBy: { updatedAt: 'desc' },
+      take: 60,
+      include: { creator: { select: { slug: true, displayName: true, portraitUrl: true } } },
     }),
     prisma.creatorPortrait.findMany({
-      where: { status: { not: 'pending' } },
-      orderBy: { reviewedAt: 'desc' },
+      where: { status: 'withdrawn' },
+      orderBy: { withdrawnAt: 'desc' },
       take: 15,
       include: { creator: { select: { slug: true, displayName: true } } },
     }),
@@ -47,42 +55,43 @@ export default async function PortraitsPage() {
         <span className="palma-label text-taupe-deep">The record</span>
         <h1 className="text-4xl">Portraits</h1>
         <p className="text-taupe-deep max-w-160 leading-relaxed">
-          Every portrait is looked at before it appears. PALMA hosts no explicit imagery and this is
-          the only route by which any could arrive.
+          Every portrait on a PALMA record, most recent first. They publish on upload, so nothing
+          here is waiting on you, look through them and take down anything that should not be up.
         </p>
       </div>
 
-      <Notice className="mt-8" title="What you are deciding">
-        Whether this image belongs on a public institutional record: a person, recognisable,
-        suitable for every audience. Not whether it is a good photograph. Refuse anything explicit,
-        anything that is plainly not the creator, and anything carrying a logo, a price or a
-        promotion, a portrait is not an advertisement.
+      <Notice className="mt-8" title="What comes down">
+        Anything explicit, anything sexual, anything that is plainly not the creator, and anything
+        carrying a logo, a price or a promotion, a portrait is not an advertisement. Not a bad
+        photograph: this is a record of people, not a gallery, and PALMA does not have taste about
+        somebody&rsquo;s face. A withdrawal deletes the image, and the reason you write is what the
+        creator reads on their own profile page, so write it to be read by them.
       </Notice>
 
       <section className="mt-14">
         <h2 className="palma-label text-taupe-deep mb-6">
-          Waiting {pending.length > 0 ? `· ${pending.length}` : ''}
+          On records {live.length > 0 ? `· ${live.length}` : ''}
         </h2>
 
-        {pending.length === 0 ? (
+        {live.length === 0 ? (
           <EmptyState
-            title="Nothing waiting"
-            description="A portrait appears here the moment a creator submits one."
+            title="No portraits yet"
+            description="One appears here the moment a creator uploads it, which is also the moment it appears on their record."
           />
         ) : (
           <ul className="grid gap-10 lg:grid-cols-2">
-            {pending.map((portrait) => (
+            {live.map((portrait) => (
               <li key={portrait.id} className="border-stone-deep flex flex-col gap-5 border p-6">
                 <div className="flex flex-wrap items-start gap-5">
-                  {/* Rendered inline from the pending bytes, which are not
-                      served publicly and so cannot be optimised by a loader.
-                      eslint-disable-next-line @next/next/no-img-element */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={`data:${portrait.contentType};base64,${Buffer.from(portrait.data).toString('base64')}`}
-                    alt={portrait.alt ?? `Portrait submitted by ${portrait.creator.displayName}`}
-                    className="border-stone-deep size-32 shrink-0 border object-cover"
-                  />
+                  <div className="w-32 shrink-0">
+                    <EditorialImage
+                      name={portrait.creator.displayName}
+                      src={portrait.creator.portraitUrl}
+                      alt={portrait.alt}
+                      ratio="square"
+                      sizes="8rem"
+                    />
+                  </div>
                   <div className="flex min-w-0 flex-col gap-2">
                     <Link
                       href={`/portal/creators/${portrait.creator.slug}`}
@@ -94,7 +103,7 @@ export default async function PortraitsPage() {
                       {portrait.width}×{portrait.height} · {Math.round(portrait.byteSize / 1024)}KB
                     </span>
                     <span className="palma-label text-taupe">
-                      Submitted {formatShortDate(portrait.createdAt.toISOString())}
+                      Uploaded {formatShortDate(portrait.updatedAt.toISOString())}
                     </span>
                   </div>
                 </div>
@@ -106,31 +115,41 @@ export default async function PortraitsPage() {
                   </p>
                 </div>
 
-                <PortraitReviewForm portraitId={portrait.id} name={portrait.creator.displayName} />
+                <PortraitWithdrawForm
+                  portraitId={portrait.id}
+                  name={portrait.creator.displayName}
+                />
               </li>
             ))}
           </ul>
         )}
       </section>
 
-      {recent.length > 0 ? (
+      {withdrawn.length > 0 ? (
         <section className="mt-16">
-          <h2 className="palma-label text-taupe-deep mb-6">Settled</h2>
+          <h2 className="palma-label text-taupe-deep mb-6">Taken down</h2>
           <ul className="flex flex-col">
-            {recent.map((portrait) => (
+            {withdrawn.map((portrait) => (
               <li
                 key={portrait.id}
-                className="border-stone-deep/60 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-b py-4"
+                className="border-stone-deep/60 flex flex-col gap-2 border-b py-4"
               >
-                <span className="font-display text-base">{portrait.creator.displayName}</span>
-                <span className="flex flex-wrap items-center gap-3">
-                  <Badge variant={portrait.status === 'approved' ? 'olive' : 'muted'}>
-                    {portrait.status === 'approved' ? 'Published' : 'Refused'}
-                  </Badge>
-                  <span className="palma-label text-taupe">
-                    {portrait.reviewedAt ? formatShortDate(portrait.reviewedAt.toISOString()) : ''}
+                <span className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+                  <span className="font-display text-base">{portrait.creator.displayName}</span>
+                  <span className="flex flex-wrap items-center gap-3">
+                    <Badge variant="muted">Deleted</Badge>
+                    <span className="palma-label text-taupe">
+                      {portrait.withdrawnAt
+                        ? formatShortDate(portrait.withdrawnAt.toISOString())
+                        : ''}
+                    </span>
                   </span>
                 </span>
+                {portrait.withdrawnReason ? (
+                  <span className="text-taupe-deep text-sm leading-relaxed">
+                    {portrait.withdrawnReason}
+                  </span>
+                ) : null}
               </li>
             ))}
           </ul>
