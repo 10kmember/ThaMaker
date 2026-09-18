@@ -25,6 +25,16 @@ export function ThemeSwitch({
   const [theme, setTheme] = React.useState<ThemeKey>(DEFAULT_THEME);
   const [open, setOpen] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
+  /**
+   * Which way the list opens.
+   *
+   * This control appears twice: near the top of the desktop header, where
+   * there is room below it, and at the very bottom of the mobile menu, where
+   * there is none. Opening downward in the second case put the whole list
+   * under the fold, which read as a control that does nothing. So the side is
+   * measured at the moment of opening rather than assumed.
+   */
+  const [dropUp, setDropUp] = React.useState(false);
   const root = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -35,6 +45,15 @@ export function ThemeSwitch({
 
   React.useEffect(() => {
     if (!open) return;
+    const trigger = root.current?.getBoundingClientRect();
+    // The list is roughly this tall with its three entries and padding. An
+    // estimate is enough: it only has to decide which side has more room.
+    const listHeight = 190;
+    if (trigger) {
+      const below = window.innerHeight - trigger.bottom;
+      setDropUp(below < listHeight && trigger.top > below);
+    }
+
     const onAway = (event: MouseEvent) => {
       if (!root.current?.contains(event.target as Node)) setOpen(false);
     };
@@ -81,11 +100,21 @@ export function ThemeSwitch({
           <motion.div
             role="menu"
             aria-label="Theme"
-            initial={{ opacity: 0, y: -6 }}
+            initial={{ opacity: 0, y: dropUp ? 6 : -6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4, transition: { duration: DURATION.quick, ease: EASE.exit } }}
+            exit={{
+              opacity: 0,
+              y: dropUp ? 4 : -4,
+              transition: { duration: DURATION.quick, ease: EASE.exit },
+            }}
             transition={{ duration: DURATION.base, ease: EASE.ceremonial }}
-            className="border-stone-deep bg-ivory-bright absolute right-0 z-50 mt-2 w-64 border p-1.5 shadow-[0_28px_70px_-45px_rgba(0,0,0,0.7)]"
+            className={cn(
+              'border-stone-deep bg-ivory-bright absolute right-0 z-50 w-64 border p-1.5 shadow-[0_28px_70px_-45px_rgba(0,0,0,0.7)]',
+              // Never wider than the screen it opens on, whatever sits to the
+              // left of it.
+              'max-w-[calc(100vw-2rem)]',
+              dropUp ? 'bottom-full mb-2' : 'top-full mt-2',
+            )}
           >
             {THEMES.map((entry) => (
               <button

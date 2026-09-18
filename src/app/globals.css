@@ -1059,14 +1059,43 @@
      Outline type that fills with ink, and pointer-driven depth. Both are
      built so the static state is already correct. */
 
+  /* Both of these hide the glyphs with `-webkit-text-fill-color` rather than
+     with `color`, and the difference is the whole heading.
+
+     `color: transparent` also makes `currentColor` transparent, on the very
+     same element that then asks for `currentColor` to draw its stroke and its
+     gradient. The result computed to
+     `linear-gradient(to right, rgba(0,0,0,0), rgba(0,0,0,0))` over a stroke of
+     the same nothing, so "PALMA Roll of Honour" rendered as an invisible
+     heading that only appeared when selected.
+
+     `-webkit-text-fill-color` empties the glyphs and leaves `color` alone, so
+     `currentColor` is still the real inherited ink and both layers paint. It
+     also means the heading follows the theme: whatever colour the section
+     hands down is what gets drawn, light or dark. */
+  /* Both layers are typeset identically, here rather than at the call site.
+     The ink layer is an <h1>, so the base stylesheet hands it the display
+     face, the heading letter-spacing and `text-wrap: balance`; the outline is
+     a <span> and inherits none of them. Same string, same box, different
+     typesetting, stacked: the heading came out smeared with one layer
+     breaking after "Roll of" and the other after "Roll". Stating the
+     typography on both keeps them locked together whatever tag is passed. */
+  .palma-ink-outline,
+  .palma-ink-fill {
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    text-wrap: balance;
+  }
+
   .palma-ink-outline {
-    color: transparent;
+    -webkit-text-fill-color: transparent;
     -webkit-text-stroke: 1px color-mix(in oklab, currentColor 45%, transparent);
   }
 
   .palma-ink-fill {
     --palma-fill: 100%;
-    color: transparent;
+    -webkit-text-fill-color: transparent;
     background-image: linear-gradient(
       to right,
       currentColor 0%,
