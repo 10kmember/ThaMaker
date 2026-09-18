@@ -4,7 +4,7 @@ import { ExternalLink } from 'lucide-react';
 import { Container, Section } from '@/components/palma/layout';
 import { EditorialImage } from '@/components/palma/EditorialImage';
 import { VerificationBadge, AchievementBadge } from '@/components/palma/badges';
-import { CopyLink } from '@/components/palma/CopyLink';
+import { CopyLink, CopyMark } from '@/components/palma/CopyLink';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/feedback';
@@ -15,6 +15,7 @@ import { countryName } from '@/lib/format';
 import { pluralise } from '@/lib/utils';
 import { getCreator, listCreators } from '@/server/data/queries';
 import { achievementSlug } from '@/domain/honours';
+import { fillCreatorSlots } from '@/domain/creator-slots';
 
 export const revalidate = 900;
 
@@ -65,6 +66,7 @@ export default async function CreatorPage({ params }: Params) {
   const active = allActive.filter((entry) => entry.kind !== 'the_palma');
   const wins = active.filter((entry) => entry.kind === 'winner');
   const profileUrl = absoluteUrl(`/creators/${creator.slug}`);
+  const { slots, rest } = fillCreatorSlots(creator.links);
 
   return (
     <>
@@ -119,23 +121,51 @@ export default async function CreatorPage({ params }: Params) {
                 <p className="text-taupe-deep max-w-140 leading-relaxed">{creator.biography}</p>
               ) : null}
 
-              {creator.links.length > 0 ? (
-                <ul className="flex flex-wrap gap-4">
-                  {creator.links.map((link) => (
-                    <li key={link.url}>
-                      <a
-                        href={link.url}
-                        rel="nofollow noopener noreferrer"
-                        target="_blank"
-                        className="palma-label border-stone-deep text-taupe-deep hover:border-ink hover:text-ink inline-flex items-center gap-2 border-b pb-1 transition-colors"
+              {/* The two slots first, always, filled or not, then anything
+                  else the creator added. */}
+              <ul className="flex flex-wrap gap-x-4 gap-y-3">
+                {slots.map(({ slot, link }) => (
+                  <li key={slot.key} className="flex items-center gap-1">
+                    {link ? (
+                      <>
+                        <a
+                          href={link.url}
+                          rel="nofollow noopener noreferrer"
+                          target="_blank"
+                          className="palma-label border-stone-deep text-taupe-deep hover:border-ink hover:text-ink inline-flex items-center gap-2 border-b pb-1 transition-colors"
+                        >
+                          {slot.label}
+                          <ExternalLink className="size-3.5" aria-hidden="true" />
+                        </a>
+                        <CopyMark value={link.url} label={`Copy the ${slot.label} link`} />
+                      </>
+                    ) : (
+                      <span
+                        className="palma-label text-taupe border-stone-deep/60 inline-flex items-center gap-2 border-b border-dashed pb-1"
+                        title={slot.empty}
                       >
-                        {link.label}
-                        <ExternalLink className="size-3.5" aria-hidden="true" />
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
+                        {slot.label}
+                        <span className="text-taupe/70 normal-case">{slot.empty}</span>
+                      </span>
+                    )}
+                  </li>
+                ))}
+
+                {rest.map((link) => (
+                  <li key={link.url} className="flex items-center gap-1">
+                    <a
+                      href={link.url}
+                      rel="nofollow noopener noreferrer"
+                      target="_blank"
+                      className="palma-label border-stone-deep text-taupe-deep hover:border-ink hover:text-ink inline-flex items-center gap-2 border-b pb-1 transition-colors"
+                    >
+                      {link.label}
+                      <ExternalLink className="size-3.5" aria-hidden="true" />
+                    </a>
+                    <CopyMark value={link.url} label={`Copy the ${link.label} link`} />
+                  </li>
+                ))}
+              </ul>
             </Reveal>
           </div>
         </Container>
@@ -161,12 +191,18 @@ export default async function CreatorPage({ params }: Params) {
               {active.length > 0 || palmas.length > 0 ? (
                 <div className="border-stone-deep mt-8 flex flex-wrap items-center gap-4 border-t pt-6">
                   <span className="palma-label text-taupe-deep">Their PALMA link</span>
-                  <Link
-                    href={`/c/${creator.slug}`}
-                    className="palma-link font-mono text-sm break-all"
-                  >
-                    palmaawards.com/c/{creator.slug}
-                  </Link>
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <Link
+                      href={`/c/${creator.slug}`}
+                      className="palma-link font-mono text-sm break-all"
+                    >
+                      palmaawards.com/c/{creator.slug}
+                    </Link>
+                    <CopyMark
+                      value={absoluteUrl(`/c/${creator.slug}`)}
+                      label={`Copy ${creator.displayName}'s PALMA link`}
+                    />
+                  </span>
                 </div>
               ) : null}
 

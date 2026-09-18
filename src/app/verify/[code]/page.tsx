@@ -4,7 +4,7 @@ import { BadgeCheck, ShieldAlert } from 'lucide-react';
 import { Container, Section } from '@/components/palma/layout';
 import { Button } from '@/components/ui/button';
 import { Notice } from '@/components/ui/feedback';
-import { CopyLink } from '@/components/palma/CopyLink';
+import { CopyLink, CopyMark } from '@/components/palma/CopyLink';
 import { PalmaSeal } from '@/components/brand/PalmaSeal';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { JsonLd, absoluteUrl, awardJsonLd, buildMetadata } from '@/lib/seo';
@@ -215,7 +215,10 @@ export default async function VerifyPage({ params }: Params) {
             </div>
             <div className="border-stone-deep flex flex-col gap-2 border-t pt-5 sm:col-span-2">
               <dt className="palma-label text-taupe-deep">Verification code</dt>
-              <dd className="font-mono text-lg tracking-[0.16em]">{record.code}</dd>
+              <dd className="flex items-center gap-1.5 font-mono text-lg tracking-[0.16em]">
+                {record.code}
+                <CopyMark value={record.code} label="Copy the verification code" />
+              </dd>
             </div>
           </dl>
 

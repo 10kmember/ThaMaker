@@ -5,7 +5,6 @@ import { Reveal, RevealGroup, RevealItem } from '@/components/motion/primitives'
 import { EmptyState } from '@/components/ui/feedback';
 import { buildMetadata } from '@/lib/seo';
 import { CONTACTS } from '@/lib/legal';
-import { COUNTRIES } from '@/lib/countries';
 import { MIN_JUDGES_PER_CANDIDACY } from '@/domain/selection';
 import { listJudges, listSeasons } from '@/server/data/queries';
 
@@ -17,11 +16,6 @@ export const metadata = buildMetadata({
     'Who judges a PALMA, how they are appointed, what they are told to ignore, and what is never published about what they did.',
   path: '/about/judges',
 });
-
-function countryName(code: string | null): string | null {
-  if (!code) return null;
-  return COUNTRIES.find((country) => country.code === code)?.name ?? code;
-}
 
 export default async function JudgesPage() {
   const [judges, seasons] = await Promise.all([listJudges(), listSeasons()]);
@@ -110,48 +104,35 @@ export default async function JudgesPage() {
             />
           ) : (
             <RevealGroup className="mt-14 grid gap-px sm:grid-cols-2 lg:grid-cols-3">
-              {judges.map((judge) => {
-                const country = countryName(judge.countryCode);
-                return (
-                  <RevealItem key={judge.id}>
-                    <article className="palma-chip border-stone-deep bg-ivory flex h-full flex-col gap-4 border p-7">
-                      <div className="flex items-start justify-between gap-4">
-                        <h3 className="font-display text-2xl leading-tight">{judge.displayName}</h3>
-                        {judge.isChair ? (
-                          <span className="palma-label text-champagne-deep shrink-0 pt-1">
-                            Chair
-                          </span>
-                        ) : null}
-                      </div>
-
-                      <p className="palma-label text-taupe-deep">
-                        {[judge.title, judge.organisation].filter(Boolean).join(' · ') || 'Judge'}
-                      </p>
-
-                      {judge.biography ? (
-                        <p className="text-taupe-deep text-sm leading-relaxed">{judge.biography}</p>
+              {judges.map((judge) => (
+                <RevealItem key={judge.id}>
+                  {/* The name and the seasons served, and nothing else.
+                      Naming the panel is what makes it accountable; a
+                      biography, an employer and a home town are facts about a
+                      person rather than about the panel, and they belong on
+                      the judge's own record, not published beside a verdict
+                      they are about to reach. */}
+                  <article className="palma-chip border-stone-deep bg-ivory flex h-full flex-col gap-4 border p-7">
+                    <div className="flex items-start justify-between gap-4">
+                      <h3 className="font-display text-2xl leading-tight">{judge.displayName}</h3>
+                      {judge.isChair ? (
+                        <span className="palma-label text-champagne-deep shrink-0 pt-1">Chair</span>
                       ) : null}
+                    </div>
 
-                      <dl className="border-stone-deep/60 mt-auto flex flex-wrap gap-x-6 gap-y-2 border-t pt-4 text-xs">
-                        {country ? (
-                          <div className="flex gap-2">
-                            <dt className="text-taupe">Based</dt>
-                            <dd className="text-ink">{country}</dd>
-                          </div>
-                        ) : null}
-                        <div className="flex gap-2">
-                          <dt className="text-taupe">Seasons</dt>
-                          <dd className="text-ink">
-                            {judge.seasons.length > 0
-                              ? judge.seasons.map((season) => season.year).join(', ')
-                              : '—'}
-                          </dd>
-                        </div>
-                      </dl>
-                    </article>
-                  </RevealItem>
-                );
-              })}
+                    <dl className="border-stone-deep/60 mt-auto flex flex-wrap gap-x-6 gap-y-2 border-t pt-4 text-xs">
+                      <div className="flex gap-2">
+                        <dt className="text-taupe">Seasons</dt>
+                        <dd className="text-ink">
+                          {judge.seasons.length > 0
+                            ? judge.seasons.map((season) => season.year).join(', ')
+                            : 'Not yet seated'}
+                        </dd>
+                      </div>
+                    </dl>
+                  </article>
+                </RevealItem>
+              ))}
             </RevealGroup>
           )}
         </Container>
