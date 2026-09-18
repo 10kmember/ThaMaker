@@ -76,6 +76,20 @@ describe('role permissions', () => {
     expect(isInvitableRole('not-a-role')).toBe(false);
   });
 
+  it('lets the desk read nominations, and keeps judges away from them', () => {
+    // The count and the reasons are desk work: they decide who is worth
+    // investigating and who enters contention.
+    expect(can('moderator', 'admin:review_nominations')).toBe(true);
+    expect(can('admin', 'admin:review_nominations')).toBe(true);
+
+    // And a judge holds no route to either. This is what keeps the promise
+    // published in the Rules, the Terms and the panel's own briefing email
+    // true, so it must not be relaxed without rewriting all three.
+    expect(can('judge', 'admin:review_nominations')).toBe(false);
+    expect(can('creator', 'admin:review_nominations')).toBe(false);
+    expect(can('visitor', 'admin:review_nominations')).toBe(false);
+  });
+
   it('reserves the self-service password reset for creators alone', () => {
     expect(canSelfServiceReset('creator')).toBe(true);
     expect(canSelfServiceReset('judge')).toBe(false);

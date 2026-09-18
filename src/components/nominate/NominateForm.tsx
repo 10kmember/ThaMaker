@@ -14,7 +14,12 @@ import {
   verifyNominationCode,
 } from '@/server/actions/nomination';
 import { initialNominationState, type NominationState } from '@/lib/nomination-state';
-import { MAX_REASON_LENGTH, MIN_REASON_LENGTH } from '@/domain/nomination';
+import {
+  disallowedReasonCharacters,
+  MAX_REASON_LENGTH,
+  MIN_REASON_LENGTH,
+} from '@/domain/nomination';
+import { refreshConstraintMessage } from '@/lib/constraint-message';
 import { cn } from '@/lib/utils';
 
 type CategoryOption = { slug: string; name: string; strapline: string | null };
@@ -26,6 +31,28 @@ type CategoryOption = { slug: string; name: string; strapline: string | null };
  * creator, say why, confirm their email and leave — in under a minute, without
  * an account, an upload or an essay.
  */
+/**
+ * The character rule for a nomination reason, applied to the live field.
+ *
+ * Kept outside the component because it is attached to two events and reads
+ * nothing but the field it is given.
+ */
+function checkReasonCharacters(event: React.FormEvent<HTMLTextAreaElement>) {
+  const field = event.currentTarget;
+  const stray = disallowedReasonCharacters(field.value);
+  if (stray.length) {
+    field.setCustomValidity(
+      `Words, full stops and commas only. Remove ${stray
+        .map((character) => `"${character}"`)
+        .join(' ')}.`,
+    );
+  } else {
+    // Hand it back, or clearing the character complaint would also clear the
+    // one about length that the shared field had just set.
+    refreshConstraintMessage(field);
+  }
+}
+
 export function NominateForm({
   categories,
   creator,
@@ -194,6 +221,17 @@ export function NominateForm({
               name="reason"
               value={reason}
               onChange={(event) => setReason(event.target.value)}
+              // A textarea takes no `pattern` attribute, so the character rule
+              // is checked here and handed to the browser as a custom message.
+              // Named characters rather than a rule, because "use words only"
+              // leaves somebody hunting the one bracket they pasted in.
+              //
+              // On both events, and that matters: the shared field clears the
+              // custom message and recomputes on `invalid`, which is exactly
+              // when a form is being submitted, so a rule applied only on
+              // `input` would be wiped at the moment it needed to hold.
+              onInput={checkReasonCharacters}
+              onInvalid={checkReasonCharacters}
               minLength={MIN_REASON_LENGTH}
               maxLength={MAX_REASON_LENGTH}
               className="min-h-28"

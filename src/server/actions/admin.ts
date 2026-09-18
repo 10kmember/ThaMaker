@@ -104,7 +104,7 @@ export async function reviewCandidacy(
     });
   }
 
-  revalidatePath('/admin/nominations');
+  revalidatePath('/portal/nominations');
   return { status: 'success', message: `Candidacy marked ${decision.replace('_', ' ')}.` };
 }
 

@@ -11,7 +11,31 @@
  */
 
 export const MIN_REASON_LENGTH = 20;
-export const MAX_REASON_LENGTH = 500;
+export const MAX_REASON_LENGTH = 250;
+
+/**
+ * What a reason may be made of.
+ *
+ * Letters, figures, spaces, and the punctuation English sentences actually
+ * need. Apostrophes and hyphens are in because "don't" and "well-known" are
+ * ordinary words, not special characters, and a form that rejects them reads
+ * as broken rather than as careful.
+ *
+ * Everything else is out, and the exclusions are the point rather than
+ * tidiness: no @ or / or : means a reason cannot carry a handle, a link or a
+ * promotional address into the desk's queue. A nomination is an argument about
+ * a creator, and PALMA does the investigating from there.
+ */
+export const REASON_PATTERN = /^[\p{L}\p{N} .,'’-]*$/u;
+
+/** The characters a reason contains that it may not, in the order found. */
+export function disallowedReasonCharacters(reason: string): string[] {
+  const found = new Set<string>();
+  for (const character of reason) {
+    if (!REASON_PATTERN.test(character)) found.add(character);
+  }
+  return [...found];
+}
 
 /** Providers whose addresses alias to the same inbox. */
 const ALIASING_DOMAINS = new Set(['gmail.com', 'googlemail.com']);

@@ -34,6 +34,11 @@ export const MODERATION_NAV: AdminGroup[] = [
     title: 'Queues',
     items: [
       { href: '/portal', label: 'Overview', permission: 'operations:view_dashboard' },
+      {
+        href: '/portal/nominations',
+        label: 'Nominations',
+        permission: 'admin:review_nominations',
+      },
       { href: '/portal/claims', label: 'Creator claims', permission: 'claims:review' },
       {
         href: '/portal/verification',
@@ -89,7 +94,6 @@ export const ADMIN_NAV: AdminGroup[] = [
   {
     title: 'Awards',
     items: [
-      { href: '/admin/nominations', label: 'Nominations', permission: 'admin:review_nominations' },
       { href: '/admin/judging', label: 'Judging', permission: 'admin:assign_judging' },
       {
         href: '/admin/selection',

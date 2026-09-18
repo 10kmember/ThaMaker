@@ -145,7 +145,7 @@ async function Figures({ period, role }: { period: Period; role: Role }) {
             title={`Awards, ${awards.seasonTitle}, ${STAGE_LABEL[awards.stage as SeasonStage]}`}
             stats={[
               { label: 'Categories', value: awards.categories },
-              { label: 'Nominations', value: awards.nominations, href: '/admin/nominations' },
+              { label: 'Nominations', value: awards.nominations, href: '/portal/nominations' },
               { label: 'Eligible', value: awards.eligible },
               { label: 'Finalists', value: awards.finalists, href: '/admin/selection' },
               { label: 'Winners', value: awards.winners, href: '/admin/selection' },

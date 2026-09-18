@@ -527,7 +527,7 @@ export async function submitNomination(
     year: nomination.candidacy.awardYear.year,
   }).catch(() => undefined);
 
-  revalidatePath('/admin/nominations');
+  revalidatePath('/portal/nominations');
 
   return {
     step: 'done',

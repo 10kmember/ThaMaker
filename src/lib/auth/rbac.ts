@@ -190,6 +190,12 @@ const MODERATOR: Permission[] = [
   'claims:review',
   'claims:decide',
   'verification:review_manual',
+  // Screening candidacies is desk work, and the desk is where the audience is
+  // read: the count and the reasons behind it both stop here. This permission
+  // is inside JUDGING_CONFIDENTIAL_PERMISSIONS and unlocks nothing in the
+  // judging layer, which builds its own sample of reasons without the number
+  // attached. Volume decides who is looked at, never who wins.
+  'admin:review_nominations',
   // The desk presets records for claiming, so the importer is theirs too.
   'editorial:import_creators',
   // The desk owns the pages a sponsor's name appears on, so it places them,

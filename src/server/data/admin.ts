@@ -100,6 +100,14 @@ export type AdminCandidacy = {
   firstNominatedAt: string | null;
   lastNominatedAt: string | null;
   verificationStatus: string;
+  /**
+   * What the audience actually wrote, for the desk that decides whether this
+   * candidacy is worth putting in front of a panel. The count says how loud
+   * the room was; these say what it said, which is the part a person has to
+   * read. Never published, and never carried into the judging layer, which
+   * builds its own sample separately and without the number attached.
+   */
+  reasons: string[];
 };
 
 export async function listAdminCandidacies(filter: {
@@ -120,7 +128,11 @@ export async function listAdminCandidacies(filter: {
       creator: { include: { verification: true } },
       category: true,
       _count: { select: { evidence: true } },
-      nominations: { where: { status: 'counted' }, select: { source: true } },
+      nominations: {
+        where: { status: 'counted' },
+        select: { source: true, reason: true },
+        orderBy: { createdAt: 'asc' },
+      },
     },
     orderBy: [{ integrityFlag: 'desc' }, { nominationCount: 'desc' }, { createdAt: 'desc' }],
     take: 200,
@@ -142,6 +154,7 @@ export async function listAdminCandidacies(filter: {
       integrityFlag: row.integrityFlag,
       integrityNote: row.integrityNote,
       evidenceCount: row._count.evidence,
+      reasons: row.nominations.map((entry) => entry.reason).filter(Boolean),
       firstNominatedAt: row.firstNominatedAt?.toISOString() ?? null,
       lastNominatedAt: row.lastNominatedAt?.toISOString() ?? null,
       verificationStatus: row.creator.verification?.status ?? 'unverified',

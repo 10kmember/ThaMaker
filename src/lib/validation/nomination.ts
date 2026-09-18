@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { CODE_PATTERN, normaliseCode } from '@/domain/verification-code';
-import { MAX_REASON_LENGTH, MIN_REASON_LENGTH } from '@/domain/nomination';
+import { MAX_REASON_LENGTH, MIN_REASON_LENGTH, REASON_PATTERN } from '@/domain/nomination';
 
 /**
  * What PALMA asks a nominator for: a creator, a category, a sentence, and an
@@ -13,7 +13,10 @@ export const nominationDraftSchema = z.object({
     .string()
     .trim()
     .min(MIN_REASON_LENGTH, `Tell us why in at least ${MIN_REASON_LENGTH} characters.`)
-    .max(MAX_REASON_LENGTH, `Keep it under ${MAX_REASON_LENGTH} characters.`),
+    .max(MAX_REASON_LENGTH, `Keep it under ${MAX_REASON_LENGTH} characters.`)
+    .refine((value) => REASON_PATTERN.test(value), {
+      message: 'Use words, full stops and commas only.',
+    }),
   email: z
     .string()
     .trim()

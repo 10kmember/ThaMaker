@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 export const metadata = buildMetadata({
   title: 'Nominations',
   description: 'Review PALMA nominations.',
-  path: '/admin/nominations',
+  path: '/portal/nominations',
   noIndex: true,
 });
 
@@ -23,7 +23,7 @@ export default async function AdminNominationsPage({
 }: {
   searchParams: Promise<{ status?: string; flagged?: string }>;
 }) {
-  await requirePermission('admin:review_nominations', '/admin/nominations');
+  await requirePermission('admin:review_nominations', '/portal/nominations');
   const { status, flagged } = await searchParams;
   const candidacies = await listAdminCandidacies({ status, flagged: flagged === '1' });
 
@@ -40,7 +40,7 @@ export default async function AdminNominationsPage({
 
       <div className="flex flex-wrap items-center gap-2">
         <Link
-          href="/admin/nominations"
+          href="/portal/nominations"
           className={cn(
             'palma-chip palma-label rounded-full border px-3.5 py-2',
             !status ? 'border-ink bg-ink text-ivory' : 'border-stone-deep text-taupe-deep',
@@ -49,7 +49,7 @@ export default async function AdminNominationsPage({
           All
         </Link>
         <Link
-          href="/admin/nominations?flagged=1"
+          href="/portal/nominations?flagged=1"
           className={cn(
             'palma-chip palma-label rounded-full border px-3.5 py-2',
             flagged === '1' ? 'border-ink bg-ink text-ivory' : 'border-stone-deep text-taupe-deep',
@@ -60,7 +60,7 @@ export default async function AdminNominationsPage({
         {STATUSES.map((entry) => (
           <Link
             key={entry}
-            href={`/admin/nominations?status=${entry}`}
+            href={`/portal/nominations?status=${entry}`}
             className={cn(
               'palma-chip palma-label rounded-full border px-3.5 py-2',
               status === entry
@@ -145,6 +145,27 @@ export default async function AdminNominationsPage({
                 <p className="mt-4 text-sm leading-relaxed text-red-900">
                   {candidacy.integrityNote}
                 </p>
+              ) : null}
+
+              {/* The count says how loud the room was. This is what it said,
+                  which is the part a person has to read before deciding
+                  whether a candidacy is worth a panel's time. */}
+              {candidacy.reasons.length > 0 ? (
+                <details className="border-stone-deep mt-5 border-t pt-4">
+                  <summary className="palma-label text-taupe-deep hover:text-ink cursor-pointer">
+                    What the audience said ({candidacy.reasons.length})
+                  </summary>
+                  <ul className="mt-4 flex flex-col gap-3">
+                    {candidacy.reasons.map((reason, index) => (
+                      <li
+                        key={index}
+                        className="border-stone-deep text-taupe-deep border-l-2 pl-4 text-sm leading-relaxed"
+                      >
+                        {reason}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               ) : null}
 
               <div className="border-stone-deep mt-6 border-t pt-5">
