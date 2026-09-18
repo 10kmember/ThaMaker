@@ -5,6 +5,7 @@ import * as LabelPrimitive from '@radix-ui/react-label';
 import * as SelectPrimitive from '@radix-ui/react-select';
 import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { refreshConstraintMessage } from '@/lib/constraint-message';
 
 export function Label({ className, ...props }: React.ComponentProps<typeof LabelPrimitive.Root>) {
   return (
@@ -28,14 +29,40 @@ const fieldBase = [
   'disabled:opacity-50 aria-[invalid=true]:border-red-800',
 ].join(' ');
 
-export function Input({ className, ...props }: React.ComponentProps<'input'>) {
-  return <input className={cn(fieldBase, 'h-12', className)} {...props} />;
+export function Input({ className, onInput, onInvalid, ...props }: React.ComponentProps<'input'>) {
+  return (
+    <input
+      className={cn(fieldBase, 'h-12', className)}
+      onInput={(event) => {
+        refreshConstraintMessage(event.currentTarget);
+        onInput?.(event);
+      }}
+      onInvalid={(event) => {
+        refreshConstraintMessage(event.currentTarget);
+        onInvalid?.(event);
+      }}
+      {...props}
+    />
+  );
 }
 
-export function Textarea({ className, ...props }: React.ComponentProps<'textarea'>) {
+export function Textarea({
+  className,
+  onInput,
+  onInvalid,
+  ...props
+}: React.ComponentProps<'textarea'>) {
   return (
     <textarea
       className={cn(fieldBase, 'min-h-32 resize-y leading-relaxed', className)}
+      onInput={(event) => {
+        refreshConstraintMessage(event.currentTarget);
+        onInput?.(event);
+      }}
+      onInvalid={(event) => {
+        refreshConstraintMessage(event.currentTarget);
+        onInvalid?.(event);
+      }}
       {...props}
     />
   );

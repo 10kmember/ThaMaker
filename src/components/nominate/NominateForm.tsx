@@ -242,7 +242,7 @@ export function NominateForm({
               <p className="text-taupe-deep text-sm leading-relaxed">
                 {verified
                   ? 'Email verified. Submit your nomination below.'
-                  : `Enter the six-digit code sent to ${state.email ?? 'your inbox'}.`}
+                  : `Enter the six-character code sent to ${state.email ?? 'your inbox'}.`}
               </p>
             </div>
 
@@ -263,12 +263,15 @@ export function NominateForm({
                   <Input
                     id="code"
                     name="code"
-                    inputMode="numeric"
+                    inputMode="text"
                     autoComplete="one-time-code"
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    spellCheck={false}
                     maxLength={7}
-                    placeholder="000000"
+                    placeholder="K4T9RD"
                     required
-                    className="font-mono text-lg tracking-[0.4em]"
+                    className="font-mono text-lg tracking-[0.4em] uppercase"
                   />
                 </Field>
                 <Button type="submit" size="md" variant="outline" disabled={verifying}>

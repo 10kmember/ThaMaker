@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { CODE_CHARACTER_CLASS } from '@/lib/verification';
 import { MAX_REASON_LENGTH, MIN_REASON_LENGTH } from '@/domain/nomination';
 
 /**
@@ -31,8 +32,17 @@ export const verifyCodeSchema = z.object({
   code: z
     .string()
     .trim()
-    .transform((value) => value.replace(/[\s-]/g, ''))
-    .pipe(z.string().regex(/^\d{6}$/, 'Enter the six-digit code from your email.')),
+    // Typed in from an email, so forgive the spaces and hyphens people add to
+    // six characters, and accept it in whichever case they typed it.
+    .transform((value) => value.replace(/[\s-]/g, '').toUpperCase())
+    .pipe(
+      z
+        .string()
+        .regex(
+          new RegExp(`^${CODE_CHARACTER_CLASS}{6}$`),
+          'Enter the six-character code from your email.',
+        ),
+    ),
 });
 
 export const submitNominationSchema = z.object({

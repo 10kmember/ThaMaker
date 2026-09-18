@@ -7,6 +7,7 @@ import { assessIntegrity } from '@/domain/integrity';
 import { checkNomination, nominatorKey } from '@/domain/nomination';
 import { canResend, checkCodeState, expiryFrom, MAX_ATTEMPTS } from '@/domain/verification-code';
 import { constantTimeEquals, hashIdentifier, sha256 } from '@/lib/crypto';
+import { CODE_ALPHABET } from '@/lib/verification';
 import { signingSecret } from '@/lib/env';
 import {
   fieldErrors,
@@ -32,11 +33,26 @@ import type { NominationState } from '@/lib/nomination-state';
  * judging path reads it.
  */
 
-function sixDigitCode(): string {
-  // Uniform over 000000–999999; leading zeros preserved.
-  const buffer = new Uint32Array(1);
-  crypto.getRandomValues(buffer);
-  return String(buffer[0]! % 1_000_000).padStart(6, '0');
+/**
+ * The one-time code, drawn from the institution's alphabet.
+ *
+ * Six digits gave a million possibilities, which is twenty bits and few enough
+ * that guessing is a real strategy against a code that lives for minutes. Six
+ * characters of unambiguous base32 gives 32^6, a little over a billion, for
+ * the same six boxes to type.
+ *
+ * The draw is uniform without rejection sampling because 256 divides by 32
+ * exactly, so no byte value is more likely to land on one character than
+ * another. `crypto.getRandomValues` rather than `Math.random`, because this
+ * is the only thing standing between an address and a nomination made in
+ * somebody else's name.
+ */
+function verificationCode(): string {
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
+  let code = '';
+  for (const byte of bytes) code += CODE_ALPHABET[byte % CODE_ALPHABET.length];
+  return code;
 }
 
 async function requestMeta() {
@@ -247,7 +263,7 @@ export async function requestNominationCode(
     },
   });
 
-  const code = sixDigitCode();
+  const code = verificationCode();
 
   await db.nominatorVerification.create({
     data: {
@@ -281,7 +297,7 @@ export async function requestNominationCode(
     creatorName: creator.displayName,
     categoryName: category.name,
     codeNotDelivered: sent.status !== 'sent',
-    message: `We have sent a six-digit code to ${input.email}.`,
+    message: `We have sent a six-character code to ${input.email}.`,
   };
 }
 
@@ -303,7 +319,7 @@ export async function verifyNominationCode(
       ...previous,
       step: 'verify',
       status: 'error',
-      message: parsed.error.issues[0]?.message ?? 'Enter the six-digit code.',
+      message: parsed.error.issues[0]?.message ?? 'Enter the six-character code.',
     };
   }
 

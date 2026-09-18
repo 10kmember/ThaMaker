@@ -8,7 +8,28 @@ import { constantTimeEquals, hmac, sha256 } from '@/lib/crypto';
  * Crockford base32 alphabet, minus the letters that read as digits, so a code
  * can be read aloud from a trophy or typed from a certificate without error.
  */
-const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+/**
+ * Crockford base32, minus the letters that read as digits.
+ *
+ * No I, L, O or U: the first three are misread as 1, 1 and 0 when a code is
+ * copied off a screen or read down a phone, and U is dropped so a random six
+ * characters cannot spell anything a recipient would rather not be sent.
+ *
+ * Exported because two separate things draw on it now, an honour's permanent
+ * verification code and a nominator's one-time code, and two alphabets that
+ * were meant to be the same alphabet is exactly the drift this file exists to
+ * prevent.
+ *
+ * 32 characters is also what makes a uniform draw cheap: 256 divides by 32
+ * exactly, so a random byte modulo the length is unbiased with no rejection
+ * sampling.
+ */
+export const CODE_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+
+/** Characters this alphabet contains, for a regex that must accept a code. */
+export const CODE_CHARACTER_CLASS = '[0-9A-HJKMNP-TV-Z]';
+
+const ALPHABET = CODE_ALPHABET;
 const CODE_LENGTH = 6;
 
 export const VERIFICATION_CODE_PATTERN = /^PM-(\d{4})-[0-9A-HJKMNP-TV-Z]{6}$/;
