@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
+import { SectionReveal } from './SectionReveal';
 
 export function Container({
   className,
@@ -18,11 +19,29 @@ export function Container({
   );
 }
 
+/**
+ * A full-width editorial band.
+ *
+ * It reveals as it comes into view, because it is the unit the public site is
+ * built out of and putting the movement here is what makes the site feel
+ * moved by one hand rather than decorated in three places. Before this, the
+ * reveal existed and was applied to five elements on a seven-screen home page
+ * and to nothing at all on THE PALMA, Kulture and About, which is a motion
+ * system nobody can see.
+ *
+ * `reveal={false}` for a band that must be present the instant it renders —
+ * anything holding an error, a form the reader was sent to, or content that
+ * is itself already animated.
+ */
 export function Section({
   className,
   tone = 'ivory',
+  reveal = true,
   ...props
-}: React.ComponentProps<'section'> & { tone?: 'ivory' | 'ink' | 'stone' | 'olive' }) {
+}: React.ComponentProps<'section'> & {
+  tone?: 'ivory' | 'ink' | 'stone' | 'olive';
+  reveal?: boolean;
+}) {
   const tones = {
     ivory: 'bg-ivory text-ink',
     stone: 'bg-stone/35 text-ink',
@@ -30,7 +49,10 @@ export function Section({
     olive: 'on-ink bg-olive text-ivory',
   } as const;
 
-  return <section className={cn('py-20 sm:py-28', tones[tone], className)} {...props} />;
+  const classes = cn('py-20 sm:py-28', tones[tone], className);
+
+  if (!reveal) return <section className={classes} {...props} />;
+  return <SectionReveal className={classes} {...props} />;
 }
 
 /**

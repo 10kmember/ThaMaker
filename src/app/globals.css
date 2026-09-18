@@ -48,6 +48,26 @@
   --animate-reveal: reveal 0.9s var(--ease-ceremonial) both;
   --animate-rise: rise 0.7s var(--ease-ceremonial) both;
   --animate-seal: seal 1.4s var(--ease-ceremonial) both;
+  --animate-band: band 0.8s var(--ease-ceremonial) both;
+}
+
+/*
+ * A whole band arriving.
+ *
+ * Half the travel of `rise`, because the distance that reads as considered on
+ * a card reads as the page lurching when the moving object is a full screen
+ * wide. The point is that the reader notices the section has settled, not that
+ * something moved.
+ */
+@keyframes band {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 0.5rem, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @keyframes reveal {

@@ -155,7 +155,7 @@ export default async function VerifyPage({ params }: Params) {
                   ? 'The honour recorded against this code was revoked by PALMA. It must not be presented as a current PALMA.'
                   : misconfigured
                     ? 'The record is intact and unaltered, but this server cannot confirm its seal, a PALMA signing key is misconfigured. This is a fault at our end, not a problem with the honour or the person holding it. Please try again shortly.'
-                    : 'The signature on this record does not match its contents. PALMA cannot present it as a verified honour.'}
+                    : 'PALMA cannot confirm the seal on this record, and does not present an honour it cannot confirm. Either the record was altered after it was sealed, or this server does not hold the key it was sealed with.'}
               </p>
             </>
           )}
@@ -254,12 +254,24 @@ export default async function VerifyPage({ params }: Params) {
               if it persists.
             </Notice>
           ) : !verified ? (
+            // Short of calling it a forgery, because it may not be one.
+            // A failed signature over contents whose digest also fails is
+            // either an altered record or a database sealed by an
+            // installation this server has never shared a key with. Both
+            // must stop the honour being presented as verified, and only
+            // one of them is anybody's fault, so this page declines to
+            // confirm without deciding which.
             <Notice tone="error" className="mt-10" title="If you were shown this code as proof">
-              Treat it as unverified. If you believe someone is presenting a PALMA they do not hold,{' '}
+              Treat it as unverified, whatever the reason turns out to be. If you believe someone is
+              presenting a PALMA they do not hold,{' '}
               <Link href="/report" className="palma-link">
                 report it to PALMA
               </Link>
-              .
+              . If this is your own honour,{' '}
+              <Link href="/contact" className="palma-link">
+                tell PALMA
+              </Link>{' '}
+              rather than assuming it is lost, a seal can be checked and reissued.
             </Notice>
           ) : (
             <Notice className="mt-10" title="How this page is produced">

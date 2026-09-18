@@ -30,6 +30,9 @@ export const AUDIT_ACTIONS = [
   'honour.winner_selected',
   'honour.the_palma_conferred',
   'honour.revoked',
+  /// A seal rewritten from the command line, after a key rotation or a
+  /// database whose digests were written by older, drifted code.
+  'honour.resealed',
   'achievement.issued',
   'creator.record_created',
   'creator.record_requested',

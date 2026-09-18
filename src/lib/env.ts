@@ -7,6 +7,9 @@ import { z } from 'zod';
  * so `DATABASE_URL` is required everywhere — including at build time, where the
  * season, categories, creators and Journal are read to generate static pages.
  */
+/** localhost, in the spellings a config file actually contains. */
+const LOOPBACK = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])/i;
+
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required, PostgreSQL is the source of truth.'),
@@ -54,6 +57,37 @@ function read() {
 
   if (value.NODE_ENV === 'production' && !value.AUTH_SECRET) {
     throw new Error('AUTH_SECRET is required in production.');
+  }
+
+  /**
+   * A production site that thinks it lives on localhost is a broken site that
+   * looks fine.
+   *
+   * NEXT_PUBLIC_SITE_URL is not decoration. It is the absolute address written
+   * into every share link a creator copies, every link in every email PALMA
+   * sends, every canonical tag, the sitemap, and the Open Graph card on a
+   * winner's honour. Leave it at its development value and all of those point
+   * at the reader's own machine — a creator puts their record link in a press
+   * kit and it goes nowhere, an email arrives with a sign-in link that only
+   * works for the person who sent it. None of it errors. It just quietly
+   * doesn't work, for everybody, for as long as nobody notices.
+   *
+   * A running production server therefore refuses to start. A production
+   * *build* only warns, because building locally to check that the thing
+   * compiles is an ordinary thing to do and the machine doing it is not the
+   * machine that will serve it.
+   */
+  if (value.NODE_ENV === 'production' && LOOPBACK.test(value.NEXT_PUBLIC_SITE_URL)) {
+    const complaint =
+      `NEXT_PUBLIC_SITE_URL is ${value.NEXT_PUBLIC_SITE_URL}, which is this machine. ` +
+      'Set it to the address the public actually visits, e.g. https://palmaawards.com — ' +
+      'it is written into every share link, every email and every canonical URL.';
+
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      console.warn(`\n  ⚠ ${complaint}\n`);
+    } else {
+      throw new Error(complaint);
+    }
   }
 
   return value;

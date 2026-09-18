@@ -81,7 +81,16 @@ export default async function ParohPage({ searchParams }: Props) {
         </Container>
       </header>
 
-      <div className="border-stone-deep bg-ivory/94 sticky top-18 z-30 border-b backdrop-blur-md">
+      {/* Not sticky, deliberately.
+          It was, and the arithmetic was never going to work: twelve category
+          chips, four years and a search box come to 619 pixels, which on a
+          phone is eighty per cent of the screen pinned in place. Scrolling
+          moved the records through a 150-pixel slot underneath a filter bar
+          that would not go away. A control surface taller than the content it
+          controls is not navigation, it is a lid. It scrolls off like
+          everything else now, and the way back to it is the way back to
+          anything, upwards. */}
+      <div className="border-stone-deep bg-ivory border-b">
         <Container className="flex flex-col gap-4 py-5">
           <div className="flex flex-wrap items-center gap-2">
             <span className="palma-label text-taupe-deep mr-2">Year</span>
