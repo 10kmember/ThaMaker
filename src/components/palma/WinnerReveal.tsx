@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { PalmaTrophy } from '@/components/three/PalmaTrophy';
 import { DepthLayer, DepthItem } from '@/components/motion/illusion';
 import { EditorialImage } from './EditorialImage';
 import { CopyLink } from './CopyLink';
@@ -92,11 +91,11 @@ export function WinnerReveal({
             </div>
           </div>
 
-          {/* Portrait above, trophy below, and both lean toward the reader
-              together, at different rates, so the column reads as one object
-              with depth rather than two stacked panels. */}
+          {/* The portrait, and only the portrait. The trophy belongs to THE
+              PALMA, which is one honour a year; putting a rendered one under
+              every category winner made the object ordinary. */}
           <DepthLayer
-            className="mx-auto flex w-full max-w-80 flex-col items-center gap-2 lg:col-span-5"
+            className="mx-auto flex w-full max-w-80 flex-col items-center lg:col-span-5"
             strength={1.5}
           >
             <DepthItem depth={2.2} className="w-56 motion-safe:animate-(--animate-reveal)">
@@ -106,10 +105,6 @@ export function WinnerReveal({
                 alt={winner.creator.portraitAlt}
                 sizes="(max-width: 1024px) 55vw, 14rem"
               />
-            </DepthItem>
-
-            <DepthItem depth={0.7} className="-mt-3 w-full motion-safe:animate-(--animate-rise)">
-              <PalmaTrophy legend={`PALMA ${season.year}`} centre="Winner" />
             </DepthItem>
           </DepthLayer>
         </div>

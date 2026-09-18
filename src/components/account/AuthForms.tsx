@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { CheckboxField, Field, Input } from '@/components/ui/form';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Notice } from '@/components/ui/feedback';
 import { register, signIn, type AuthState } from '@/server/actions/auth';
 import { requestPasswordReset, resetPassword, type PasswordState } from '@/server/actions/password';
@@ -49,13 +50,7 @@ export function SignInForm({
       </Field>
 
       <Field htmlFor="password" label="Password" required error={state.errors?.password}>
-        <Input
-          id="password"
-          name="password"
-          type="password"
-          required
-          autoComplete="current-password"
-        />
+        <PasswordInput id="password" name="password" required autoComplete="current-password" />
       </Field>
 
       <Button type="submit" size="md" disabled={pending}>
@@ -109,10 +104,9 @@ export function RegisterForm() {
         hint="At least 12 characters, mixing cases or including a number."
         error={state.errors?.password}
       >
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           required
           autoComplete="new-password"
           minLength={12}
@@ -222,10 +216,9 @@ export function ResetPasswordForm({ token }: { token: string }) {
         hint="At least 12 characters, mixing cases or including a number."
         error={state.errors?.password}
       >
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           required
           autoComplete="new-password"
           minLength={12}
@@ -239,10 +232,9 @@ export function ResetPasswordForm({ token }: { token: string }) {
         required
         error={state.errors?.confirmPassword}
       >
-        <Input
+        <PasswordInput
           id="confirmPassword"
           name="confirmPassword"
-          type="password"
           required
           autoComplete="new-password"
         />

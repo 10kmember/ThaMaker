@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/form';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Notice } from '@/components/ui/feedback';
 import {
   closeAccount,
@@ -41,10 +42,9 @@ export function ChangePasswordForm() {
       <Feedback state={state} title="Not changed" />
 
       <Field htmlFor="currentPassword" label="Current password" required>
-        <Input
+        <PasswordInput
           id="currentPassword"
           name="currentPassword"
-          type="password"
           required
           autoComplete="current-password"
         />
@@ -57,10 +57,9 @@ export function ChangePasswordForm() {
         hint="At least 12 characters, mixing cases or including a number."
         error={state.errors?.password}
       >
-        <Input
+        <PasswordInput
           id="newPassword"
           name="password"
-          type="password"
           required
           autoComplete="new-password"
           minLength={12}
@@ -73,10 +72,9 @@ export function ChangePasswordForm() {
         required
         error={state.errors?.confirmPassword}
       >
-        <Input
+        <PasswordInput
           id="confirmNewPassword"
           name="confirmPassword"
-          type="password"
           required
           autoComplete="new-password"
         />
@@ -107,10 +105,9 @@ export function ChangeEmailForm({ current }: { current: string }) {
       </Field>
 
       <Field htmlFor="emailPassword" label="Your password" required error={state.errors?.password}>
-        <Input
+        <PasswordInput
           id="emailPassword"
           name="password"
-          type="password"
           required
           autoComplete="current-password"
         />
@@ -156,10 +153,9 @@ export function CloseAccountForm({ heldRecord }: { heldRecord: string | null }) 
       </Notice>
 
       <Field htmlFor="closePassword" label="Your password" required error={state.errors?.password}>
-        <Input
+        <PasswordInput
           id="closePassword"
           name="password"
-          type="password"
           required
           autoComplete="current-password"
         />

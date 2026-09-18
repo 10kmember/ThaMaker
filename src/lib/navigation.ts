@@ -112,11 +112,12 @@ export const FOOTER_NAV: { title: string; branches: FooterBranch[] }[] = [
     title: 'Account',
     branches: [
       {
+        // The staff doors are not advertised. A judge, moderator or
+        // administrator was told their path when they were invited, and
+        // listing all four in the footer only tells everyone else where the
+        // privileged entrances are.
         items: [
           { href: '/creator', label: 'Creators' },
-          { href: '/judge', label: 'Judges' },
-          { href: '/portal', label: 'Moderation' },
-          { href: '/admin', label: 'Administration' },
           { href: '/humans.txt', label: 'humans.txt' },
         ],
       },

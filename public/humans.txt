@@ -1,4 +1,4 @@
-/* PALMA — THE CREATOR HONOURS */
+/* PALMA, THE CREATOR HONOURS */
 
                     PALMA
               The Creator Honours
@@ -25,7 +25,7 @@
       Accounts, records, claims, verification.
 
    Laurels:   laurels [at] palmaawards.com
-      The record itself — honours, seasons, the
+      The record itself. Honours, seasons, the
       Gazette.
 
    Security:  security [at] palmaawards.com
@@ -47,26 +47,9 @@
 /* SITE */
 
    Standards: HTML5, CSS, WCAG 2.2 AA
-   Components: Next.js, React, TypeScript,
-               Tailwind CSS, PostgreSQL, Prisma,
-               Motion, GSAP, Three.js
    Typography: Fraunces, Inter, Amatic SC
    Language: English (en-GB)
-   Doctype: HTML5
-
-
-/* HOW THIS SITE IS BUILT */
-
-   One source of truth: PostgreSQL. Every name on
-   this site is there because it is in the
-   database, and nowhere else.
-
-   Motion is layered — CSS owns hover and press,
-   Motion owns entrances, GSAP owns the scroll
-   choreography of a season, Three.js owns the
-   trophy. None of the heavy layers load under
-   prefers-reduced-motion.
 
    No tracking. No advertising. No third-party
-   embeds. The content security policy says so
-   and the code keeps to it.
+   embeds. Nothing on this site is watching you
+   read it.
