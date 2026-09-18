@@ -526,7 +526,11 @@ export const getAchievementByCode = cache(
         achievement.honour.category?.slug ?? null,
       ),
       creatorName: achievement.creatorName,
-      creatorSlug: achievement.creator.slug,
+      // What was sealed, not where the person lives now. These are the same
+      // string today and must not be assumed to be tomorrow: one is part of
+      // the signature and the other is a link.
+      creatorSlug: achievement.creatorSlug,
+      creatorProfileSlug: achievement.creator.slug,
       creatorCountry: achievement.creator.countryCode,
       citation: achievement.honour.citation,
       issuedAt: achievement.issuedAt.toISOString(),

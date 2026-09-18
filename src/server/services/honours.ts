@@ -126,6 +126,7 @@ export async function conferHonour(input: ConferInput): Promise<ConferResult> {
         year: candidacy.awardYear.year,
         categoryName: candidacy.category.name,
         creatorName: candidacy.creator.displayName,
+        creatorSlug: candidacy.creator.slug,
         issuedAt,
       },
     });
@@ -364,6 +365,7 @@ export async function conferThePalma(input: {
         year: awardYear.year,
         categoryName,
         creatorName: creator.displayName,
+        creatorSlug: creator.slug,
         issuedAt,
       },
     });

@@ -143,7 +143,18 @@ export type AchievementRecord = {
   categoryName: string;
   categorySlug: string;
   creatorName: string;
+  /**
+   * The slug as it was when the honour was sealed. Part of what the signature
+   * covers, so it is read from the frozen copy on the Achievement row and
+   * never from the live Creator — see the schema comment on the column.
+   */
   creatorSlug: string;
+  /**
+   * Where that creator's record lives now, for linking to. The same string as
+   * `creatorSlug` today and not guaranteed to stay so, which is the entire
+   * reason they are two fields.
+   */
+  creatorProfileSlug: string;
   creatorCountry: string;
   citation: string | null;
   issuedAt: string;

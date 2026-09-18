@@ -499,6 +499,7 @@ async function main() {
             year: season.year,
             categoryName: category.name,
             creatorName: creatorName(creatorSlug),
+            creatorSlug,
             issuedAt,
           },
         });
@@ -564,6 +565,7 @@ async function main() {
         year: season.year,
         categoryName,
         creatorName: creatorName(season.thePalma.creatorSlug),
+        creatorSlug: season.thePalma.creatorSlug,
         issuedAt,
       },
     });

@@ -751,6 +751,16 @@ model Achievement {
   year         Int
   categoryName String
   creatorName  String
+  /// The creator's slug as it stood when the honour was sealed.
+  ///
+  /// Frozen, like categoryName and creatorName beside it, and for the same
+  /// reason: it is part of what the signature covers. Reading it live off the
+  /// Creator row meant that changing a slug — a merge, a corrected import, a
+  /// hand-edit — silently invalidated the signature and the digest on every
+  /// honour that person held, and the verify page has no way to tell that
+  /// apart from forgery. An honour is a statement about a moment. Nothing it
+  /// is checked against may be allowed to move afterwards.
+  creatorSlug  String      @default("")
   issuedAt     DateTime    @default(now())
   revokedAt    DateTime?
 

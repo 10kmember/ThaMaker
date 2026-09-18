@@ -59,7 +59,7 @@ async function main() {
   const secret = signingSecret();
 
   const records = await prisma.verificationRecord.findMany({
-    include: { achievement: { include: { creator: { select: { slug: true } } } } },
+    include: { achievement: true },
     orderBy: { issuedAt: 'asc' },
   });
 
@@ -72,7 +72,9 @@ async function main() {
     const a = row.achievement;
     const payload = {
       code: a.code,
-      creatorSlug: a.creator.slug,
+      // The frozen slug, not the live one: see the schema comment on the
+      // column. Reading it live is what broke these seals in the first place.
+      creatorSlug: a.creatorSlug,
       creatorName: a.creatorName,
       categoryName: a.categoryName,
       year: a.year,

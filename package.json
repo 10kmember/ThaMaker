@@ -24,6 +24,9 @@
     "db:status": "prisma migrate status",
     "db:seed": "tsx prisma/seed.ts",
     "retention": "tsx scripts/retention.ts",
+    "honours:check": "tsx scripts/reseal-honours.ts",
+    "honours:reseal": "tsx scripts/reseal-honours.ts --apply",
+    "grant-admin": "tsx scripts/grant-admin.ts",
     "db:studio": "prisma studio",
     "verify": "npm run typecheck && npm run lint && npm run test"
   },

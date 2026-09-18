@@ -169,7 +169,10 @@ export default async function VerifyPage({ params }: Params) {
               <dt className="palma-label text-taupe-deep">Recipient</dt>
               <dd className="font-display text-xl">
                 {verified ? (
-                  <Link href={`/creators/${record.creatorSlug}`} className="hover:text-olive">
+                  <Link
+                    href={`/creators/${record.creatorProfileSlug}`}
+                    className="hover:text-olive"
+                  >
                     {record.creatorName}
                   </Link>
                 ) : (
@@ -235,7 +238,7 @@ export default async function VerifyPage({ params }: Params) {
             </Button>
             {verified ? (
               <Button asChild variant="ghost" size="sm">
-                <Link href={`/creators/${record.creatorSlug}`}>View the full record</Link>
+                <Link href={`/creators/${record.creatorProfileSlug}`}>View the full record</Link>
               </Button>
             ) : null}
           </div>
@@ -286,7 +289,7 @@ export default async function VerifyPage({ params }: Params) {
         <JsonLd
           data={awardJsonLd({
             creatorName: record.creatorName,
-            creatorUrl: absoluteUrl(`/creators/${record.creatorSlug}`),
+            creatorUrl: absoluteUrl(`/creators/${record.creatorProfileSlug}`),
             categoryName: record.categoryName,
             year: record.year,
             kind: HONOUR_LABEL[record.kind],

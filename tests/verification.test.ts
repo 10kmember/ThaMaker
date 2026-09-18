@@ -95,3 +95,65 @@ describe('achievement signatures', () => {
     }
   });
 });
+
+/**
+ * What a seal is allowed to depend on.
+ *
+ * Every field the signature covers has to be frozen at the moment the honour
+ * is issued. One of them was not: the creator's slug was read live off the
+ * Creator row each time the verify page recomputed the payload, so a slug that
+ * changed for any reason broke the signature *and* the keyless digest — and a
+ * broken digest is exactly what that page reads as an altered record. An
+ * honour that survived being renamed would have been reported as a forgery.
+ *
+ * These tests are about that rule rather than about slugs. Any field allowed
+ * to drift after sealing does the same damage; the schema now freezes all
+ * seven onto the Achievement row, and this is the arithmetic that says why it
+ * has to.
+ */
+describe('a seal covers a moment, not a moving target', () => {
+  it('a changed slug invalidates a signature, which is why it must be frozen', () => {
+    const signature = signAchievement(SECRET, payload);
+
+    // Exactly what the verify page used to do: rebuild with the live slug.
+    const renamed = { ...payload, creatorSlug: 'maya-rivers-2' };
+
+    expect(verifyAchievement(SECRET, renamed, signature)).toBe(false);
+    expect(verifyAchievement(SECRET, payload, signature)).toBe(true);
+  });
+
+  it('and invalidates the keyless digest too, which is what made it look like forgery', () => {
+    // The digest is the only thing that can say "the contents are the ones
+    // that were sealed" without a key. When a live field drifts it fails
+    // alongside the signature, and the page loses its ability to tell a
+    // misconfigured server from an altered record.
+    const renamed = { ...payload, creatorSlug: 'maya-rivers-2' };
+    expect(canonicalPayload(renamed)).not.toBe(canonicalPayload(payload));
+  });
+
+  it('every field in the canonical payload is one the Achievement row freezes', () => {
+    // If a field is added to the payload, it has to be added to the row too,
+    // or it will be read live and this whole failure returns.
+    const frozen = [
+      'code',
+      'creatorSlug',
+      'creatorName',
+      'categoryName',
+      'year',
+      'kind',
+      'issuedAt',
+    ] as const;
+
+    expect(Object.keys(payload).sort()).toEqual([...frozen].sort());
+
+    // And each one genuinely changes the signature, so none is decorative.
+    for (const field of frozen) {
+      const altered = { ...payload } as Record<string, unknown>;
+      altered[field] = typeof payload[field] === 'number' ? 9999 : 'something-else';
+      expect(
+        canonicalPayload(altered as AchievementPayload),
+        `${field} does not affect the signature`,
+      ).not.toBe(canonicalPayload(payload));
+    }
+  });
+});
