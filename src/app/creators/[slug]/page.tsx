@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/feedback';
 import { PalmaSeal } from '@/components/brand/PalmaSeal';
+import { Reveal, RevealGroup, RevealItem } from '@/components/motion/primitives';
 import { JsonLd, absoluteUrl, awardJsonLd, breadcrumbJsonLd, buildMetadata } from '@/lib/seo';
 import { countryName } from '@/lib/format';
 import { pluralise } from '@/lib/utils';
@@ -70,7 +71,7 @@ export default async function CreatorPage({ params }: Params) {
       <Section tone="ivory" className="pt-12 pb-0! sm:pt-16">
         <Container>
           <div className="grid gap-12 lg:grid-cols-12">
-            <div className="lg:col-span-5">
+            <Reveal variant="enter" className="lg:col-span-5">
               <EditorialImage
                 name={creator.displayName}
                 src={creator.portraitUrl}
@@ -78,9 +79,13 @@ export default async function CreatorPage({ params }: Params) {
                 priority
                 sizes="(max-width: 1024px) 100vw, 40vw"
               />
-            </div>
+            </Reveal>
 
-            <div className="flex flex-col gap-8 lg:col-span-7 lg:pt-6">
+            <Reveal
+              variant="enter"
+              delay={0.1}
+              className="flex flex-col gap-8 lg:col-span-7 lg:pt-6"
+            >
               <div className="flex flex-col gap-5">
                 <h1 className="text-5xl leading-[0.95] sm:text-6xl lg:text-7xl">
                   {creator.displayName}
@@ -131,7 +136,7 @@ export default async function CreatorPage({ params }: Params) {
                   ))}
                 </ul>
               ) : null}
-            </div>
+            </Reveal>
           </div>
         </Container>
       </Section>
@@ -140,12 +145,15 @@ export default async function CreatorPage({ params }: Params) {
         <Container>
           <div className="grid gap-14 lg:grid-cols-12">
             <div className="lg:col-span-8">
-              <div className="border-ink/20 flex items-end justify-between gap-6 border-b pb-5">
+              <Reveal
+                variant="enter"
+                className="border-ink/20 flex items-end justify-between gap-6 border-b pb-5"
+              >
                 <h2 className="text-3xl sm:text-4xl">PALMA record</h2>
                 <span className="palma-label text-taupe-deep">
                   {allActive.length} {pluralise(allActive.length, 'honour')}
                 </span>
-              </div>
+              </Reveal>
 
               {/* One address for the person. It leads with whatever they won
                   most recently and keeps working as they win more, which is why
@@ -209,9 +217,10 @@ export default async function CreatorPage({ params }: Params) {
                   }
                 />
               ) : (
-                <ul className="mt-2">
+                <RevealGroup as="ul" className="mt-2">
                   {active.map((entry) => (
-                    <li
+                    <RevealItem
+                      as="li"
                       key={entry.id}
                       className="border-stone-deep flex flex-col gap-4 border-b py-7 sm:flex-row sm:items-center sm:justify-between"
                     >
@@ -251,9 +260,9 @@ export default async function CreatorPage({ params }: Params) {
                           </Link>
                         ) : null}
                       </div>
-                    </li>
+                    </RevealItem>
                   ))}
-                </ul>
+                </RevealGroup>
               )}
 
               <p className="text-taupe-deep mt-8 text-sm leading-relaxed">
@@ -262,7 +271,7 @@ export default async function CreatorPage({ params }: Params) {
               </p>
             </div>
 
-            <aside className="flex flex-col gap-8 lg:col-span-4">
+            <Reveal as="div" delay={0.08} className="flex flex-col gap-8 lg:col-span-4">
               {wins.length > 0 ? (
                 <div className="border-stone-deep bg-ivory-bright flex flex-col items-center gap-6 border p-8 text-center">
                   <PalmaSeal
@@ -344,7 +353,7 @@ export default async function CreatorPage({ params }: Params) {
                   </div>
                 </div>
               )}
-            </aside>
+            </Reveal>
           </div>
         </Container>
       </Section>

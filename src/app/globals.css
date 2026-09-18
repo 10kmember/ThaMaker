@@ -301,6 +301,20 @@
        on a site with no feed to refresh is no loss. */
     overscroll-behavior-y: none;
 
+    /* No sideways scroll, ever.
+
+       The engravings, the crop marks and the oversized year figures are all
+       meant to bleed off the right edge — that overhang is the design. What it
+       must never do is become a scrollbar: on a phone a page that slides
+       sideways under the thumb reads as broken, whatever is causing it.
+
+       `clip` rather than `hidden` on purpose. `overflow: hidden` on the root
+       makes the element a scroll container, which silently kills
+       `position: sticky` on descendants and breaks `scroll-behavior: smooth`
+       above. `clip` cuts the overflow without creating that container, so the
+       sticky header and the anchored scrolling both survive. */
+    overflow-x: clip;
+
     /* The canvas takes the page's colour explicitly rather than inheriting it
        from body. Anything the browser paints outside the document, including
        the safe area on a notched phone, is then ivory rather than white. */
@@ -339,6 +353,11 @@
       'cv05' 1;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+
+    /* Both elements, not just the root. A bleed wide enough to matter grows
+       the body box, and clipping only `html` leaves that width in the layout
+       for the viewport to scroll over. See the note on `html` above. */
+    overflow-x: clip;
   }
 
   ::selection {

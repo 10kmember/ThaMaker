@@ -4,6 +4,7 @@ import { Masthead, MastheadPlate, PlateFact } from '@/components/palma/Masthead'
 import { Button } from '@/components/ui/button';
 import { PalmMark } from '@/components/brand/PalmMark';
 import { Stat } from '@/components/ui/stat';
+import { Reveal, RevealGroup, RevealItem } from '@/components/motion/primitives';
 import { buildMetadata } from '@/lib/seo';
 import { getRollOfHonour, listCategoryIndex, listSeasons } from '@/server/data/queries';
 
@@ -47,14 +48,20 @@ export default async function AboutPage() {
 
       <Section>
         <Container>
-          <div className="border-stone-deep grid gap-8 border-b pb-14 sm:grid-cols-3">
-            <Stat label="Seasons" value={seasons.length} />
-            <Stat label="Categories" value={categories.length} />
-            <Stat label="PALMAs conferred" value={honours} />
-          </div>
+          <RevealGroup className="border-stone-deep grid gap-8 border-b pb-14 sm:grid-cols-3">
+            <RevealItem>
+              <Stat label="Seasons" value={seasons.length} />
+            </RevealItem>
+            <RevealItem>
+              <Stat label="Categories" value={categories.length} />
+            </RevealItem>
+            <RevealItem>
+              <Stat label="PALMAs conferred" value={honours} />
+            </RevealItem>
+          </RevealGroup>
 
           <div className="mt-16 grid gap-16 lg:grid-cols-12">
-            <div className="palma-prose lg:col-span-7">
+            <Reveal className="palma-prose lg:col-span-7">
               <p>
                 PALMA exists because the creator industry has been poorly served by recognition. The
                 awards it has tended to be offered measure audience — which is a measure of
@@ -72,9 +79,9 @@ export default async function AboutPage() {
                 only authority is the care with which it keeps the record — so that is the thing we
                 protect.
               </p>
-            </div>
+            </Reveal>
 
-            <aside className="flex flex-col gap-10 lg:col-span-5">
+            <Reveal as="div" delay={0.08} className="flex flex-col gap-10 lg:col-span-5">
               <div className="border-stone-deep border p-7">
                 <h2 className="palma-label text-taupe-deep mb-4">What PALMA will not do</h2>
                 <ul className="text-taupe-deep flex flex-col gap-3 text-sm leading-relaxed">
@@ -94,7 +101,7 @@ export default async function AboutPage() {
                   idea, not the imagery: an engraved mark, a seal, a record.
                 </p>
               </div>
-            </aside>
+            </Reveal>
           </div>
         </Container>
       </Section>

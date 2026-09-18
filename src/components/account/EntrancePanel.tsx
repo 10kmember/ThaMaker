@@ -1,9 +1,8 @@
-import Link from 'next/link';
 import { Container, Section } from '@/components/palma/layout';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { PalmMark } from '@/components/brand/PalmMark';
 import { SignInForm } from './AuthForms';
-import { ENTRANCE_LIST, type Entrance } from '@/lib/auth/entrances';
+import { type Entrance } from '@/lib/auth/entrances';
 
 /**
  * A door.
@@ -21,8 +20,6 @@ export function EntrancePanel({
   next?: string;
   children?: React.ReactNode;
 }) {
-  const others = ENTRANCE_LIST.filter((other) => other.key !== entrance.key);
-
   return (
     <Section tone="stone" className="relative overflow-hidden py-16 sm:py-24">
       <PalmMark
@@ -55,26 +52,6 @@ export function EntrancePanel({
           </div>
 
           {children}
-
-          <div className="border-stone-deep border-t pt-6">
-            <h2 className="palma-label text-taupe-deep">Other entrances</h2>
-            <ul className="mt-4 flex flex-col gap-2">
-              {others.map((other) => (
-                <li key={other.key}>
-                  <Link
-                    href={other.path}
-                    className="palma-quiet-link text-taupe-deep hover:text-ink text-sm"
-                  >
-                    {other.title} — {other.path}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-            <p className="text-taupe mt-5 text-xs leading-relaxed">
-              PALMA accounts sign in at their own entrance. A correct password at the wrong door
-              creates no session; it only points you at the right one.
-            </p>
-          </div>
         </div>
       </Container>
     </Section>

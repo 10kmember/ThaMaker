@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Container, Section } from '@/components/palma/layout';
 import { NominateForm } from '@/components/nominate/NominateForm';
+import { Reveal } from '@/components/motion/primitives';
 import { EditorialImage } from '@/components/palma/EditorialImage';
 import { VerificationBadge } from '@/components/palma/badges';
 import { EmptyState, Notice } from '@/components/ui/feedback';
@@ -77,7 +78,10 @@ export default async function ReferralNominatePage({ params }: Params) {
           <div className="flex flex-col items-start gap-12 sm:flex-row sm:items-center sm:gap-14">
             {/* The plate: a champagne hairline offset behind the portrait, so
                 it reads as mounted rather than pasted on. */}
-            <div className="palma-portrait-plate w-full max-w-52 shrink-0 sm:max-w-56">
+            <Reveal
+              variant="enter"
+              className="palma-portrait-plate w-full max-w-52 shrink-0 sm:max-w-56"
+            >
               <EditorialImage
                 name={creator.displayName}
                 src={creator.portraitUrl}
@@ -88,9 +92,9 @@ export default async function ReferralNominatePage({ params }: Params) {
                 className="relative z-10"
               />
               <span aria-hidden="true" className="palma-portrait-rule" />
-            </div>
+            </Reveal>
 
-            <div className="flex min-w-0 flex-col gap-5">
+            <Reveal variant="enter" delay={0.1} className="flex min-w-0 flex-col gap-5">
               <span className="palma-label text-champagne">{season.title} · Nomination</span>
               <h1 className="text-5xl leading-[1.02] sm:text-7xl">{creator.displayName}</h1>
               <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
@@ -107,7 +111,7 @@ export default async function ReferralNominatePage({ params }: Params) {
               <p className="text-ivory/40 max-w-130 text-sm leading-relaxed">
                 Putting {creator.displayName} forward takes under a minute and needs no account.
               </p>
-            </div>
+            </Reveal>
           </div>
         </Container>
       </section>
@@ -126,7 +130,7 @@ export default async function ReferralNominatePage({ params }: Params) {
             />
           ) : (
             <div className="grid gap-14 lg:grid-cols-12">
-              <div className="lg:col-span-7">
+              <Reveal className="lg:col-span-7">
                 <NominateForm
                   categories={categories.map((entry) => ({
                     slug: entry.slug,
@@ -142,9 +146,9 @@ export default async function ReferralNominatePage({ params }: Params) {
                   }}
                   referralSlug={creator.slug}
                 />
-              </div>
+              </Reveal>
 
-              <aside className="flex flex-col gap-6 lg:col-span-5 lg:pl-10">
+              <Reveal as="div" delay={0.08} className="flex flex-col gap-6 lg:col-span-5 lg:pl-10">
                 <Notice title="What this link is">
                   This is {creator.displayName}’s nomination page. It only saves you the step of
                   searching for them — a nomination made here carries no more weight than any other,
@@ -168,7 +172,7 @@ export default async function ReferralNominatePage({ params }: Params) {
                     <Link href="/about">About PALMA</Link>
                   </Button>
                 </div>
-              </aside>
+              </Reveal>
             </div>
           )}
         </Container>

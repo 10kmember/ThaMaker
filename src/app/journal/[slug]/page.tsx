@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Container, Section } from '@/components/palma/layout';
 import { PalmMark } from '@/components/brand/PalmMark';
+import { Reveal, RevealGroup, RevealItem } from '@/components/motion/primitives';
 import { JsonLd, articleJsonLd, breadcrumbJsonLd, buildMetadata } from '@/lib/seo';
 import { formatDate } from '@/lib/format';
 import { getArticle, listArticles } from '@/server/data/queries';
@@ -52,7 +53,7 @@ export default async function ArticlePage({ params }: Params) {
       <article>
         <header className="border-stone-deep bg-ivory border-b">
           <Container size="narrow" className="py-16 sm:py-24">
-            <div className="flex flex-col gap-6">
+            <Reveal variant="enter" className="flex flex-col gap-6">
               <Link
                 href={
                   article.categorySlug ? `/journal?category=${article.categorySlug}` : '/journal'
@@ -74,23 +75,23 @@ export default async function ArticlePage({ params }: Params) {
                   {article.readingMinutes} min read
                 </span>
               </div>
-            </div>
+            </Reveal>
           </Container>
         </header>
 
         <Container size="narrow" className="py-16 sm:py-20">
-          <div className="palma-prose max-w-160">
+          <Reveal className="palma-prose max-w-160">
             {paragraphs.map((paragraph, index) => (
               <p key={index}>{paragraph}</p>
             ))}
-          </div>
+          </Reveal>
 
-          <div className="border-stone-deep mt-16 flex items-center gap-6 border-t pt-10">
+          <Reveal className="border-stone-deep mt-16 flex items-center gap-6 border-t pt-10">
             <PalmMark className="text-stone-deep h-8" />
             <p className="text-taupe-deep text-sm leading-relaxed">
               The PALMA Journal is published by PALMA — The Creator Honours.
             </p>
-          </div>
+          </Reveal>
         </Container>
       </article>
 
@@ -98,20 +99,23 @@ export default async function ArticlePage({ params }: Params) {
         <Section tone="stone" className="py-16 sm:py-20">
           <Container>
             <h2 className="palma-label text-taupe-deep mb-10">More from the Journal</h2>
-            <div className="grid gap-10 sm:grid-cols-3">
+            <RevealGroup className="grid gap-10 sm:grid-cols-3">
               {related.map((entry) => (
-                <Link
-                  key={entry.slug}
-                  href={`/journal/${entry.slug}`}
-                  className="group border-stone-deep flex flex-col gap-3 border-t pt-5"
-                >
-                  <span className="palma-label text-taupe-deep">{entry.category ?? 'Journal'}</span>
-                  <h3 className="group-hover:text-olive text-xl leading-tight transition-colors">
-                    {entry.title}
-                  </h3>
-                </Link>
+                <RevealItem key={entry.slug}>
+                  <Link
+                    href={`/journal/${entry.slug}`}
+                    className="group border-stone-deep flex flex-col gap-3 border-t pt-5"
+                  >
+                    <span className="palma-label text-taupe-deep">
+                      {entry.category ?? 'Journal'}
+                    </span>
+                    <h3 className="group-hover:text-olive text-xl leading-tight transition-colors">
+                      {entry.title}
+                    </h3>
+                  </Link>
+                </RevealItem>
               ))}
-            </div>
+            </RevealGroup>
           </Container>
         </Section>
       ) : null}
