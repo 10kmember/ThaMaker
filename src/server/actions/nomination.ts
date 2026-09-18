@@ -5,9 +5,14 @@ import { revalidatePath } from 'next/cache';
 import { acceptsNominations, type SeasonStage } from '@/domain/season';
 import { assessIntegrity } from '@/domain/integrity';
 import { checkNomination, nominatorKey } from '@/domain/nomination';
-import { canResend, checkCodeState, expiryFrom, MAX_ATTEMPTS } from '@/domain/verification-code';
+import {
+  canResend,
+  checkCodeState,
+  expiryFrom,
+  mintCode,
+  MAX_ATTEMPTS,
+} from '@/domain/verification-code';
 import { constantTimeEquals, hashIdentifier, sha256 } from '@/lib/crypto';
-import { CODE_ALPHABET } from '@/lib/verification';
 import { signingSecret } from '@/lib/env';
 import {
   fieldErrors,
@@ -32,28 +37,6 @@ import type { NominationState } from '@/lib/nomination-state';
  * ever a signal: the count it increments is operational, and no part of the
  * judging path reads it.
  */
-
-/**
- * The one-time code, drawn from the institution's alphabet.
- *
- * Six digits gave a million possibilities, which is twenty bits and few enough
- * that guessing is a real strategy against a code that lives for minutes. Six
- * characters of unambiguous base32 gives 32^6, a little over a billion, for
- * the same six boxes to type.
- *
- * The draw is uniform without rejection sampling because 256 divides by 32
- * exactly, so no byte value is more likely to land on one character than
- * another. `crypto.getRandomValues` rather than `Math.random`, because this
- * is the only thing standing between an address and a nomination made in
- * somebody else's name.
- */
-function verificationCode(): string {
-  const bytes = new Uint8Array(6);
-  crypto.getRandomValues(bytes);
-  let code = '';
-  for (const byte of bytes) code += CODE_ALPHABET[byte % CODE_ALPHABET.length];
-  return code;
-}
 
 async function requestMeta() {
   try {
@@ -263,7 +246,7 @@ export async function requestNominationCode(
     },
   });
 
-  const code = verificationCode();
+  const code = mintCode();
 
   await db.nominatorVerification.create({
     data: {
@@ -282,10 +265,18 @@ export async function requestNominationCode(
   });
 
   if (sent.status === 'failed') {
+    // `dispatch` reports 'failed' both when the provider refuses the message
+    // and when PALMA cannot reach its own database to record it, and those are
+    // not the same news. Blaming the mail for an outage sends somebody to
+    // check a spam folder that has nothing in it, so say which it was: the
+    // detail already distinguishes them.
+    const ourFault = /record/i.test(sent.detail ?? '');
     return {
       step: 'details',
       status: 'error',
-      message: 'The code could not be sent just now. Try again in a moment.',
+      message: ourFault
+        ? 'PALMA is having trouble at our end and could not issue a code. Nothing has been recorded. Please try again shortly.'
+        : 'That address would not accept the code. Check it and try again.',
     };
   }
 
@@ -297,7 +288,7 @@ export async function requestNominationCode(
     creatorName: creator.displayName,
     categoryName: category.name,
     codeNotDelivered: sent.status !== 'sent',
-    message: `We have sent a six-character code to ${input.email}.`,
+    message: `We have sent a code to ${input.email}. It looks like PM5617 and lasts fifteen minutes.`,
   };
 }
 
@@ -319,7 +310,7 @@ export async function verifyNominationCode(
       ...previous,
       step: 'verify',
       status: 'error',
-      message: parsed.error.issues[0]?.message ?? 'Enter the six-character code.',
+      message: parsed.error.issues[0]?.message ?? 'Enter the code from your email, like PM5617.',
     };
   }
 

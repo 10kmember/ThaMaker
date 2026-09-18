@@ -26,9 +26,6 @@ import { constantTimeEquals, hmac, sha256 } from '@/lib/crypto';
  */
 export const CODE_ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
 
-/** Characters this alphabet contains, for a regex that must accept a code. */
-export const CODE_CHARACTER_CLASS = '[0-9A-HJKMNP-TV-Z]';
-
 const ALPHABET = CODE_ALPHABET;
 const CODE_LENGTH = 6;
 

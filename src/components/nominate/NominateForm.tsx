@@ -242,7 +242,7 @@ export function NominateForm({
               <p className="text-taupe-deep text-sm leading-relaxed">
                 {verified
                   ? 'Email verified. Submit your nomination below.'
-                  : `Enter the six-character code sent to ${state.email ?? 'your inbox'}.`}
+                  : `Enter the code sent to ${state.email ?? 'your inbox'}.`}
               </p>
             </div>
 
@@ -268,8 +268,8 @@ export function NominateForm({
                     autoCapitalize="characters"
                     autoCorrect="off"
                     spellCheck={false}
-                    maxLength={7}
-                    placeholder="K4T9RD"
+                    maxLength={8}
+                    placeholder="PM5617"
                     required
                     className="font-mono text-lg tracking-[0.4em] uppercase"
                   />

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CODE_CHARACTER_CLASS } from '@/lib/verification';
+import { CODE_PATTERN, normaliseCode } from '@/domain/verification-code';
 import { MAX_REASON_LENGTH, MIN_REASON_LENGTH } from '@/domain/nomination';
 
 /**
@@ -29,20 +29,13 @@ export const nominationDraftSchema = z.object({
 
 export const verifyCodeSchema = z.object({
   nominationId: z.string().trim().min(1),
+  // One definition of what a code looks like, in the domain, used by the
+  // minting, the normalising and the checking alike.
   code: z
     .string()
     .trim()
-    // Typed in from an email, so forgive the spaces and hyphens people add to
-    // six characters, and accept it in whichever case they typed it.
-    .transform((value) => value.replace(/[\s-]/g, '').toUpperCase())
-    .pipe(
-      z
-        .string()
-        .regex(
-          new RegExp(`^${CODE_CHARACTER_CLASS}{6}$`),
-          'Enter the six-character code from your email.',
-        ),
-    ),
+    .transform(normaliseCode)
+    .pipe(z.string().regex(CODE_PATTERN, 'Enter the code from your email, like PM5617.')),
 });
 
 export const submitNominationSchema = z.object({
