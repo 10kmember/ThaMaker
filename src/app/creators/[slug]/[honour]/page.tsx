@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { BadgeCheck } from 'lucide-react';
 import { Container, Section } from '@/components/palma/layout';
 import { PalmaSeal } from '@/components/brand/PalmaSeal';
-import { CopyLink } from '@/components/palma/CopyLink';
+import { CopyLink, CopyMark } from '@/components/palma/CopyLink';
 import { EditorialImage } from '@/components/palma/EditorialImage';
 import { Button } from '@/components/ui/button';
 import { HONOUR_LABEL } from '@/components/palma/badges';
@@ -130,7 +130,14 @@ export default async function AchievementPage({ params }: Params) {
                   </div>
 
                   {honour.code ? (
-                    <p className="text-ivory/40 font-mono text-xs tracking-wider">{honour.code}</p>
+                    <p className="text-ivory/40 flex items-center gap-1.5 font-mono text-xs tracking-wider">
+                      {honour.code}
+                      <CopyMark
+                        value={honour.code}
+                        label="Copy the verification code"
+                        className="text-ivory/40 hover:text-ivory"
+                      />
+                    </p>
                   ) : null}
                 </div>
               )}
