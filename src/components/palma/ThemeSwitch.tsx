@@ -15,6 +15,32 @@ import { cn } from '@/lib/utils';
  * reader's choice is remembered; a reader who has expressed no choice gets
  * whatever their system asked for.
  */
+/** Roughly how tall the open list is: three entries, their descriptions and
+ *  the panel padding. It only has to be close enough to choose a side. */
+const LIST_HEIGHT = 250;
+
+/**
+ * Which way the list should open, decided before it opens.
+ *
+ * Upward is the default rather than the exception. This control's usual home
+ * is the foot of the mobile menu, where downward puts every option under the
+ * fold, and the previous version of this had it the other way round: it
+ * rendered downward first and only corrected in an effect afterwards, which
+ * is a frame of wrong placement at best and no correction at all at worst.
+ *
+ * It drops down only where up genuinely will not fit, which in practice means
+ * the desktop header, where the trigger sits a few pixels below the top of the
+ * window.
+ */
+function opensUpward(node: HTMLElement | null): boolean {
+  if (typeof window === 'undefined' || !node) return true;
+  const box = node.getBoundingClientRect();
+  const above = box.top;
+  const below = window.innerHeight - box.bottom;
+  // Up unless there is not room for it and down is genuinely roomier.
+  return above >= LIST_HEIGHT || above >= below;
+}
+
 export function ThemeSwitch({
   className,
   tone = 'light',
@@ -34,7 +60,7 @@ export function ThemeSwitch({
    * under the fold, which read as a control that does nothing. So the side is
    * measured at the moment of opening rather than assumed.
    */
-  const [dropUp, setDropUp] = React.useState(false);
+  const [dropUp, setDropUp] = React.useState(true);
   const root = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
@@ -45,15 +71,6 @@ export function ThemeSwitch({
 
   React.useEffect(() => {
     if (!open) return;
-    const trigger = root.current?.getBoundingClientRect();
-    // The list is roughly this tall with its three entries and padding. An
-    // estimate is enough: it only has to decide which side has more room.
-    const listHeight = 190;
-    if (trigger) {
-      const below = window.innerHeight - trigger.bottom;
-      setDropUp(below < listHeight && trigger.top > below);
-    }
-
     const onAway = (event: MouseEvent) => {
       if (!root.current?.contains(event.target as Node)) setOpen(false);
     };
@@ -83,7 +100,10 @@ export function ThemeSwitch({
     <div ref={root} className={cn('relative', className)}>
       <button
         type="button"
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => {
+          if (!open) setDropUp(opensUpward(root.current));
+          setOpen((value) => !value);
+        }}
         aria-expanded={open}
         aria-haspopup="menu"
         className={cn(
