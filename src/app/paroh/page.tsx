@@ -10,12 +10,7 @@ import { buildMetadata } from '@/lib/seo';
 import { countryName } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { pigmentStyle } from '@/lib/category-identity';
-import {
-  getRollOfHonour,
-  listCategoryIndex,
-  listCountries,
-  listSeasons,
-} from '@/server/data/queries';
+import { getRollOfHonour, listCategoryIndex, listSeasons } from '@/server/data/queries';
 import { countSearch } from '@/server/services/measurement';
 import { LaureatePlate } from '@/components/palma/TheLaureate';
 import { Reveal } from '@/components/palma/Reveal';
@@ -25,7 +20,7 @@ export const revalidate = 900;
 export const metadata = buildMetadata({
   title: 'PALMA Roll of Honour',
   description:
-    'The PaROH, the permanent record of PALMA recipients. Every honour, every season, filterable by year, category, creator and country.',
+    'The PaROH, the permanent record of PALMA recipients. Every honour, every season, filterable by year, category and creator.',
   path: '/paroh',
 });
 
@@ -47,11 +42,7 @@ function filterHref(
 
 export default async function ParohPage({ searchParams }: Props) {
   const filters = await searchParams;
-  const [seasons, categories, countries] = await Promise.all([
-    listSeasons(),
-    listCategoryIndex(),
-    listCountries(),
-  ]);
+  const [seasons, categories] = await Promise.all([listSeasons(), listCategoryIndex()]);
 
   const roll = await getRollOfHonour({
     year: filters.year ? Number(filters.year) : undefined,
@@ -176,39 +167,6 @@ export default async function ParohPage({ searchParams }: Props) {
               </Button>
             </form>
           </div>
-
-          {countries.length > 1 ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="palma-label text-taupe-deep mr-2">Country</span>
-              <Link
-                href={filterHref(filters, { country: undefined })}
-                data-active={!filters.country}
-                className={cn(
-                  'palma-chip palma-label rounded-full border px-3.5 py-2',
-                  !filters.country
-                    ? 'border-ink bg-ink text-ivory'
-                    : 'border-stone-deep text-taupe-deep hover:border-ink/40 hover:text-ink',
-                )}
-              >
-                All
-              </Link>
-              {countries.map((code) => (
-                <Link
-                  key={code}
-                  href={filterHref(filters, { country: code })}
-                  data-active={filters.country === code}
-                  className={cn(
-                    'palma-chip palma-label rounded-full border px-3.5 py-2',
-                    filters.country === code
-                      ? 'border-ink bg-ink text-ivory'
-                      : 'border-stone-deep text-taupe-deep hover:border-ink/40 hover:text-ink',
-                  )}
-                >
-                  {countryName(code)}
-                </Link>
-              ))}
-            </div>
-          ) : null}
         </Container>
       </div>
 
@@ -217,7 +175,7 @@ export default async function ParohPage({ searchParams }: Props) {
           {roll.length === 0 ? (
             <EmptyState
               title="No honours match that filter"
-              description="The Roll of Honour holds only conferred honours. Try widening the year, category or country."
+              description="The Roll of Honour holds only conferred honours. Try widening the year or category."
               action={
                 <Button asChild size="sm" variant="outline">
                   <Link href="/paroh">Clear filters</Link>

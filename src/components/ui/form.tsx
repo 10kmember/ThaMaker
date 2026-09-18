@@ -2,6 +2,8 @@
 
 import * as React from 'react';
 import * as LabelPrimitive from '@radix-ui/react-label';
+import * as SelectPrimitive from '@radix-ui/react-select';
+import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function Label({ className, ...props }: React.ComponentProps<typeof LabelPrimitive.Root>) {
@@ -39,16 +41,163 @@ export function Textarea({ className, ...props }: React.ComponentProps<'textarea
   );
 }
 
-export function Select({ className, ...props }: React.ComponentProps<'select'>) {
+/**
+ * A select whose open list PALMA controls.
+ *
+ * A native `<select>` can be styled shut and not open: the popup is drawn by
+ * the operating system, in the operating system's own typeface and blue
+ * highlight, and no stylesheet reaches it. On a site that sets its own type
+ * everywhere else, that popup is the one place the institution stops and
+ * Windows starts.
+ *
+ * So the list is ours. The API is deliberately unchanged — pass `<option>`
+ * children exactly as before, and `onChange` still receives something with
+ * `event.target.value` — because twenty-seven call sites should not have to
+ * know that the thing underneath them changed.
+ *
+ * Two details worth keeping in mind. The underlying primitive refuses an empty
+ * string as an item value, and PALMA uses `<option value="">` in a dozen
+ * places to mean "none", so empties travel through the list as a sentinel and
+ * are turned back at the edges. And what a form actually submits is the hidden
+ * input below rather than anything the primitive manages, so the value posted
+ * is always the real one, sentinel included.
+ */
+type OptionData = { value: string; label: React.ReactNode; disabled?: boolean };
+
+const EMPTY_SENTINEL = '__palma_empty__';
+const toItem = (value: string) => (value === '' ? EMPTY_SENTINEL : value);
+const fromItem = (value: string) => (value === EMPTY_SENTINEL ? '' : value);
+
+function readOptions(children: React.ReactNode): OptionData[] {
+  const found: OptionData[] = [];
+
+  React.Children.forEach(children, (child) => {
+    if (!React.isValidElement(child)) return;
+
+    if (child.type === 'optgroup') {
+      found.push(...readOptions((child.props as React.ComponentProps<'optgroup'>).children));
+      return;
+    }
+    if (child.type !== 'option') return;
+
+    const option = child.props as React.ComponentProps<'option'>;
+    found.push({
+      value: String(option.value ?? ''),
+      label: option.children,
+      disabled: option.disabled,
+    });
+  });
+
+  return found;
+}
+
+export function Select({
+  className,
+  children,
+  value,
+  defaultValue,
+  onChange,
+  name,
+  id,
+  disabled,
+  required,
+  'aria-invalid': ariaInvalid,
+  ...props
+}: React.ComponentProps<'select'>) {
+  const options = React.useMemo(() => readOptions(children), [children]);
+  const controlled = value !== undefined;
+
+  const [internal, setInternal] = React.useState(() =>
+    defaultValue !== undefined ? String(defaultValue) : (options[0]?.value ?? ''),
+  );
+
+  const current = controlled ? String(value) : internal;
+
+  function handle(next: string) {
+    const real = fromItem(next);
+    if (!controlled) setInternal(real);
+    // Existing handlers read `event.target.value`, so hand them that shape
+    // rather than making every call site learn a new one.
+    onChange?.({
+      target: { value: real, name: name ?? '' },
+      currentTarget: { value: real, name: name ?? '' },
+    } as unknown as React.ChangeEvent<HTMLSelectElement>);
+  }
+
+  const selected = options.find((option) => option.value === current);
+
   return (
-    <select
-      className={cn(
-        fieldBase,
-        "bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 12 8%22 fill=%22none%22 stroke=%22%238C8478%22 stroke-width=%221.4%22><path d=%22M1 1.5 6 6.5 11 1.5%22/></svg>')] h-12 appearance-none bg-[length:12px] bg-[right_1rem_center] bg-no-repeat pr-10",
-        className,
-      )}
-      {...props}
-    />
+    <SelectPrimitive.Root
+      value={toItem(current)}
+      onValueChange={handle}
+      disabled={disabled}
+      required={required}
+    >
+      {/* What the form posts. The primitive manages the listbox; the value on
+          the wire stays ours, so an empty option posts an empty string. */}
+      {name ? <input type="hidden" name={name} value={current} /> : null}
+
+      <SelectPrimitive.Trigger
+        id={id}
+        aria-invalid={ariaInvalid}
+        className={cn(
+          fieldBase,
+          'flex h-12 items-center justify-between gap-3 text-left',
+          'data-[placeholder]:text-taupe',
+          className,
+        )}
+        {...(props as React.ComponentProps<typeof SelectPrimitive.Trigger>)}
+      >
+        <SelectPrimitive.Value>{selected?.label}</SelectPrimitive.Value>
+        <SelectPrimitive.Icon asChild>
+          <ChevronDown
+            className="text-taupe size-3.5 shrink-0 transition-transform duration-200 ease-(--ease-ceremonial)"
+            aria-hidden="true"
+          />
+        </SelectPrimitive.Icon>
+      </SelectPrimitive.Trigger>
+
+      <SelectPrimitive.Portal>
+        <SelectPrimitive.Content
+          position="popper"
+          sideOffset={4}
+          className={cn(
+            'border-stone-deep bg-ivory-bright text-ink z-50 overflow-hidden border shadow-[0_18px_40px_-24px_rgba(28,26,23,0.5)]',
+            'max-h-72 min-w-(--radix-select-trigger-width)',
+            'motion-safe:data-[state=open]:animate-(--animate-rise)',
+          )}
+        >
+          <SelectPrimitive.ScrollUpButton className="text-taupe flex h-6 items-center justify-center">
+            <ChevronUp className="size-3.5" aria-hidden="true" />
+          </SelectPrimitive.ScrollUpButton>
+
+          <SelectPrimitive.Viewport className="p-1">
+            {options.map((option) => (
+              <SelectPrimitive.Item
+                key={option.value || EMPTY_SENTINEL}
+                value={toItem(option.value)}
+                disabled={option.disabled}
+                className={cn(
+                  'relative flex cursor-pointer items-center justify-between gap-3 px-3 py-2.5 text-[0.9375rem] outline-none select-none',
+                  'data-[highlighted]:bg-stone/50 data-[highlighted]:text-ink',
+                  'data-[state=checked]:text-olive data-[state=checked]:font-medium',
+                  'data-[disabled]:pointer-events-none data-[disabled]:opacity-45',
+                )}
+              >
+                <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
+                <SelectPrimitive.ItemIndicator asChild>
+                  <Check className="text-olive size-3.5 shrink-0" aria-hidden="true" />
+                </SelectPrimitive.ItemIndicator>
+              </SelectPrimitive.Item>
+            ))}
+          </SelectPrimitive.Viewport>
+
+          <SelectPrimitive.ScrollDownButton className="text-taupe flex h-6 items-center justify-center">
+            <ChevronDown className="size-3.5" aria-hidden="true" />
+          </SelectPrimitive.ScrollDownButton>
+        </SelectPrimitive.Content>
+      </SelectPrimitive.Portal>
+    </SelectPrimitive.Root>
   );
 }
 

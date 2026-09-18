@@ -3,6 +3,7 @@ import { Container, Section } from '@/components/palma/layout';
 import { Masthead, MastheadPlate } from '@/components/palma/Masthead';
 import { Reveal, RevealGroup, RevealItem, DrawnRule } from '@/components/motion/primitives';
 import { CeremonyCountdown } from '@/components/palma/CeremonyCountdown';
+import { PalmaTrophy } from '@/components/three/PalmaTrophy';
 import { PalmaYear } from '@/components/palma/PalmaYear';
 import { Button } from '@/components/ui/button';
 import { buildMetadata } from '@/lib/seo';
@@ -53,6 +54,32 @@ export default function ThePalmaPage() {
           </MastheadPlate>
         }
       />
+
+      {/* ── The object ──────────────────────────────────────────────────
+          THE PALMA is the only honour named after the institution, so the page
+          about it shows the thing itself before it explains anything. The
+          trophy carries its own gating: no WebGL, a reduced-motion preference
+          or a scrolled-away section and the engraved seal stands in its place,
+          which is the same mark rendered flat. */}
+      <section className="on-ink bg-ink text-ivory border-ink relative overflow-hidden border-b">
+        <span aria-hidden="true" className="palma-plate-glow" />
+
+        <Container className="relative py-20 sm:py-28">
+          <div className="mx-auto flex max-w-120 flex-col items-center gap-10 text-center">
+            <Reveal variant="enter" className="w-full max-w-90 sm:max-w-100">
+              <PalmaTrophy legend={`PALMA ${ceremony.year}`} centre="Laureate" />
+            </Reveal>
+
+            <Reveal delay={0.15} className="flex flex-col items-center gap-4">
+              <span className="palma-label-brand text-champagne">THE PALMA</span>
+              <p className="text-ivory/55 max-w-100 text-sm leading-relaxed text-balance">
+                Struck once for each laureate and engraved with the season it was conferred in. The
+                same mark appears on the verification page that proves it.
+              </p>
+            </Reveal>
+          </div>
+        </Container>
+      </section>
 
       {/* ── What it is ──────────────────────────────────────────────────── */}
       <Section className="py-16 sm:py-24">
