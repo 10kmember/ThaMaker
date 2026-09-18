@@ -10,7 +10,12 @@ import { Wordmark } from '@/components/brand/Wordmark';
 import { JsonLd, absoluteUrl, awardJsonLd, buildMetadata } from '@/lib/seo';
 import { countryName, formatDate } from '@/lib/format';
 import { signingSecret } from '@/lib/env';
-import { isValidCodeFormat, normaliseCode, verifyAchievement } from '@/lib/verification';
+import {
+  isValidCodeFormat,
+  normaliseCode,
+  payloadDigest,
+  verifyAchievement,
+} from '@/lib/verification';
 import { HONOUR_LABEL } from '@/components/palma/badges';
 import { isThePalma } from '@/domain/honours';
 import { getAchievementByCode } from '@/server/data/queries';
@@ -54,21 +59,35 @@ export default async function VerifyPage({ params }: Params) {
   const record = await getAchievementByCode(normalised);
   if (!record) notFound();
 
+  const payload = {
+    code: record.code,
+    creatorSlug: record.creatorSlug,
+    creatorName: record.creatorName,
+    categoryName: record.categoryName,
+    year: record.year,
+    kind: record.kind,
+    issuedAt: record.issuedAt,
+  };
+
   // The signature binds every identity field of the record. A record whose
   // fields have been altered fails here and is never presented as verified.
-  const signatureValid = verifyAchievement(
-    signingSecret(),
-    {
-      code: record.code,
-      creatorSlug: record.creatorSlug,
-      creatorName: record.creatorName,
-      categoryName: record.categoryName,
-      year: record.year,
-      kind: record.kind,
-      issuedAt: record.issuedAt,
-    },
-    record.signature,
-  );
+  const signatureValid = verifyAchievement(signingSecret(), payload, record.signature);
+
+  /**
+   * Why it failed, and the difference matters enormously.
+   *
+   * The digest is a keyless hash of the same fields the signature covers, so
+   * it answers a question the signature cannot on its own: are the contents
+   * the ones that were sealed? If they are, and the signature still does not
+   * match, then nothing was altered — this server is holding a different
+   * `AUTH_SECRET` than the one the record was signed with.
+   *
+   * Telling a visitor that an intact record "does not match its contents" is
+   * accusing a creator of forgery to cover a configuration mistake. PALMA says
+   * which of the two it is.
+   */
+  const contentsIntact = payloadDigest(payload) === record.payloadDigest;
+  const misconfigured = !signatureValid && contentsIntact;
 
   const revoked = record.state === 'revoked';
   const verified = signatureValid && !revoked;
@@ -80,7 +99,13 @@ export default async function VerifyPage({ params }: Params) {
           <Wordmark size="md" href={null} />
 
           <span className="palma-label text-champagne">
-            {verified ? 'Verified achievement' : revoked ? 'Revoked honour' : 'Verification failed'}
+            {verified
+              ? 'Verified achievement'
+              : revoked
+                ? 'Revoked honour'
+                : misconfigured
+                  ? 'Verification unavailable'
+                  : 'Verification failed'}
           </span>
 
           {verified ? (
@@ -119,12 +144,18 @@ export default async function VerifyPage({ params }: Params) {
             <>
               <ShieldAlert className="text-ivory/60 size-12" aria-hidden="true" />
               <h1 className="max-w-160 text-4xl leading-tight sm:text-5xl">
-                {revoked ? 'This honour has been revoked' : 'This record could not be verified'}
+                {revoked
+                  ? 'This honour has been revoked'
+                  : misconfigured
+                    ? 'PALMA cannot check this record right now'
+                    : 'This record could not be verified'}
               </h1>
               <p className="text-ivory/65 max-w-120">
                 {revoked
                   ? 'The honour recorded against this code was revoked by PALMA. It must not be presented as a current PALMA.'
-                  : 'The signature on this record does not match its contents. PALMA cannot present it as a verified honour.'}
+                  : misconfigured
+                    ? 'The record is intact and unaltered, but this server cannot confirm its seal — a PALMA signing key is misconfigured. This is a fault at our end, not a problem with the honour or the person holding it. Please try again shortly.'
+                    : 'The signature on this record does not match its contents. PALMA cannot present it as a verified honour.'}
               </p>
             </>
           )}
@@ -206,7 +237,20 @@ export default async function VerifyPage({ params }: Params) {
             ) : null}
           </div>
 
-          {!verified ? (
+          {misconfigured ? (
+            // Never the fraud warning here. Nothing about this record is in
+            // doubt; PALMA simply cannot complete the check, and saying
+            // otherwise would put a creator under suspicion for our fault.
+            <Notice tone="warning" className="mt-10" title="This is a fault at PALMA's end">
+              Nothing is wrong with the honour or with the person showing it to you. PALMA holds the
+              record intact and unaltered — this server just cannot confirm its seal at the moment.
+              Try again shortly, or{' '}
+              <Link href="/contact" className="palma-link">
+                tell us
+              </Link>{' '}
+              if it persists.
+            </Notice>
+          ) : !verified ? (
             <Notice tone="error" className="mt-10" title="If you were shown this code as proof">
               Treat it as unverified. If you believe someone is presenting a PALMA they do not hold,{' '}
               <Link href="/report" className="palma-link">

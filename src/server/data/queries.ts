@@ -532,6 +532,7 @@ export const getAchievementByCode = cache(
       issuedAt: achievement.issuedAt.toISOString(),
       revokedAt: iso(achievement.revokedAt),
       signature: row.signature,
+      payloadDigest: row.payloadDigest,
     };
   },
 );

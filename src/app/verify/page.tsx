@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { Container, Section } from '@/components/palma/layout';
 import { Masthead } from '@/components/palma/Masthead';
-import { Button } from '@/components/ui/button';
+import { SubmitButton } from '@/components/ui/submit-button';
 import { Field, Input } from '@/components/ui/form';
 import { Notice } from '@/components/ui/feedback';
 import { PalmaSeal } from '@/components/brand/PalmaSeal';
@@ -66,11 +66,16 @@ export default async function VerifyIndexPage({ searchParams }: Props) {
 
                 {/* Checking an honour is a ceremonial act, not a routine one:
                     it gets the seal rather than a rectangle. */}
-                <Button type="submit" variant="ceremonial" size="seal" className="self-start">
+                <SubmitButton
+                  variant="ceremonial"
+                  size="seal"
+                  className="self-start"
+                  pendingLabel="Checking\u2026"
+                >
                   Verify
                   <br />
                   the record
-                </Button>
+                </SubmitButton>
               </form>
 
               <Notice className="mt-10" title="What verification proves">

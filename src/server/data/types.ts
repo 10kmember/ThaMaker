@@ -149,6 +149,13 @@ export type AchievementRecord = {
   issuedAt: string;
   revokedAt: string | null;
   signature: string;
+  /**
+   * The keyless SHA-256 of the same canonical payload the signature covers.
+   * Written at conferral and, until now, never read — it is what lets the
+   * verify page tell an altered record apart from a server holding the wrong
+   * signing key. See `/verify/[code]`.
+   */
+  payloadDigest: string;
 };
 
 export type SeasonStats = {

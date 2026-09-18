@@ -13,10 +13,12 @@
  * own description on the second run, which is how a demonstration database ends
  * up with fourteen creators nobody chose.
  */
+import { loadEnvConfig } from '@next/env';
+import { deriveCode, payloadDigest, signAchievement } from '../src/lib/verification';
 import { totalScore } from '../src/domain/judging';
 import { publishObjections } from '../src/domain/product-library';
 import { PrismaClient } from '@prisma/client';
-import { randomBytes, createHmac, scrypt as scryptCallback } from 'node:crypto';
+import { randomBytes, scrypt as scryptCallback } from 'node:crypto';
 import { promisify } from 'node:util';
 import {
   articleCategories,
@@ -30,6 +32,25 @@ import {
   type Person,
 } from './seed-data';
 
+/**
+ * The same environment the application reads, loaded the same way.
+ *
+ * This is not a convenience. Every verification record is signed with
+ * `AUTH_SECRET`, and the site verifies it with whatever `AUTH_SECRET` Next
+ * loads from `.env.local` at runtime. The seed used to read `process.env`
+ * directly, which is only populated if somebody happened to export the
+ * variable in the shell — so seeding and serving could disagree about the key
+ * without anything saying so, and every honour on the site would then fail to
+ * verify. The page reported that as a signature that does not match its
+ * contents, which reads as tampering rather than as the misconfiguration it
+ * actually was.
+ *
+ * Loading the env the way Next does removes the coincidence: the seed signs
+ * with the key the site will check against, or both fall back to the same
+ * development default together.
+ */
+loadEnvConfig(process.cwd());
+
 const prisma = new PrismaClient();
 const scrypt = promisify(scryptCallback) as (
   password: string,
@@ -42,46 +63,21 @@ const SECRET =
 
 const DEMO_PASSWORD = process.env.SEED_PASSWORD ?? 'Palma-Development-2027';
 
-const ALPHABET = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
-
 async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(16).toString('hex');
   const derived = await scrypt(password.normalize('NFKC'), salt, 64);
   return `scrypt$${salt}$${derived.toString('hex')}`;
 }
 
-function hmac(value: string): string {
-  return createHmac('sha256', SECRET).update(value).digest('base64url');
-}
-
-function deriveCode(year: number, honourId: string): string {
-  const bytes = Buffer.from(hmac(`palma:code:v1:${year}:${honourId}`), 'base64url');
-  let out = '';
-  for (let i = 0; i < 6; i += 1) out += ALPHABET[(bytes[i] ?? 0) % ALPHABET.length];
-  return `PM-${year}-${out}`;
-}
-
-function signAchievement(payload: {
-  code: string;
-  creatorSlug: string;
-  creatorName: string;
-  categoryName: string;
-  year: number;
-  kind: string;
-  issuedAt: string;
-}) {
-  const canonical = [
-    'palma:achievement:v1',
-    payload.code,
-    payload.creatorSlug,
-    payload.creatorName,
-    payload.categoryName,
-    String(payload.year),
-    payload.kind,
-    payload.issuedAt,
-  ].join('|');
-  return { signature: hmac(canonical), canonical };
-}
+/**
+ * The seed used to carry its own copies of these three functions. They drifted,
+ * as duplicated cryptography always does: the copy here wrote `payloadDigest`
+ * as an HMAC keyed with the literal string 'digest', while the application
+ * computes a plain SHA-256 of the same canonical string, so no seeded record's
+ * digest could ever match what the verify page recomputed. The real
+ * implementations are imported now, and there is one definition of what a
+ * PALMA signature is.
+ */
 
 function clamp(value: number): number {
   return Math.max(0, Math.min(10, Math.round(value)));
@@ -358,7 +354,7 @@ async function main() {
 
       for (const [index, creatorSlug] of creatorSlugs.entries()) {
         const creatorId = creatorIds.get(creatorSlug)!;
-        const kind = index === 0 ? 'winner' : 'finalist';
+        const kind = index === 0 ? ('winner' as const) : ('finalist' as const);
         const issuedAt = new Date(kind === 'winner' ? season.ceremonyAt! : season.finalistsAt!);
 
         const candidacy = await prisma.candidacy.create({
@@ -482,8 +478,8 @@ async function main() {
         });
         honourCount += 1;
 
-        const code = deriveCode(season.year, honour.id);
-        const { signature, canonical } = signAchievement({
+        const code = deriveCode(SECRET, season.year, honour.id);
+        const payload = {
           code,
           creatorSlug,
           creatorName: creatorName(creatorSlug),
@@ -491,7 +487,8 @@ async function main() {
           year: season.year,
           kind,
           issuedAt: issuedAt.toISOString(),
-        });
+        };
+        const signature = signAchievement(SECRET, payload);
 
         const achievement = await prisma.achievement.create({
           data: {
@@ -511,7 +508,7 @@ async function main() {
             achievementId: achievement.id,
             code,
             signature,
-            payloadDigest: createHmac('sha256', 'digest').update(canonical).digest('hex'),
+            payloadDigest: payloadDigest(payload),
             issuedAt,
           },
         });
@@ -545,17 +542,18 @@ async function main() {
       },
     });
 
-    const code = deriveCode(season.year, honour.id);
+    const code = deriveCode(SECRET, season.year, honour.id);
     const categoryName = 'THE PALMA';
-    const { signature, canonical } = signAchievement({
+    const payload = {
       code,
       creatorSlug: season.thePalma.creatorSlug,
       creatorName: creatorName(season.thePalma.creatorSlug),
       categoryName,
       year: season.year,
-      kind: 'the_palma',
+      kind: 'the_palma' as const,
       issuedAt: issuedAt.toISOString(),
-    });
+    };
+    const signature = signAchievement(SECRET, payload);
 
     const achievement = await prisma.achievement.create({
       data: {
@@ -575,7 +573,7 @@ async function main() {
         achievementId: achievement.id,
         code,
         signature,
-        payloadDigest: createHmac('sha256', 'digest').update(canonical).digest('hex'),
+        payloadDigest: payloadDigest(payload),
         issuedAt,
       },
     });
