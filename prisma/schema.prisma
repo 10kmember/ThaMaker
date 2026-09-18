@@ -1413,7 +1413,14 @@ model CreatorPortrait {
   creatorId String @unique
 
   /// Re-encoded by PALMA. Never the bytes that arrived.
-  data        Bytes
+  ///
+  /// Set only when object storage is not configured. With R2 in place the
+  /// bytes live there and this is null; see storageKey and
+  /// src/server/services/portrait-storage.ts.
+  data        Bytes?
+  /// The R2 object holding the bytes, when R2 is where they went. Null means
+  /// they are in `data`. Exactly one of the two is ever set.
+  storageKey  String?
   contentType String
   width       Int
   height      Int

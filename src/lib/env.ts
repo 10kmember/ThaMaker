@@ -29,6 +29,23 @@ const schema = z.object({
   AGE_VERIFICATION_API_KEY: z.string().optional(),
   /** Shared secret for the scheduled retention sweep. Unset = route refuses all. */
   CRON_SECRET: z.string().optional(),
+
+  /**
+   * Cloudflare R2, for creator portraits.
+   *
+   * All four or none. Set them and portrait bytes go to the bucket; leave any
+   * one unset and they stay in the database column, which still works. Half a
+   * configuration is the dangerous state — an upload that reaches R2 and a
+   * delete that cannot would leave an image PALMA believes it removed — so
+   * `portraitStorage()` treats anything short of all four as none.
+   *
+   * The bucket stays private. Portraits are served through PALMA's own route,
+   * which is what keeps "withdrawn means gone" enforceable in one place.
+   */
+  R2_ACCOUNT_ID: z.string().optional(),
+  R2_BUCKET: z.string().optional(),
+  R2_ACCESS_KEY_ID: z.string().optional(),
+  R2_SECRET_ACCESS_KEY: z.string().optional(),
 });
 
 function read() {
@@ -44,6 +61,10 @@ function read() {
     AGE_VERIFICATION_PROVIDER: process.env.AGE_VERIFICATION_PROVIDER || undefined,
     AGE_VERIFICATION_API_KEY: process.env.AGE_VERIFICATION_API_KEY || undefined,
     CRON_SECRET: process.env.CRON_SECRET || undefined,
+    R2_ACCOUNT_ID: process.env.R2_ACCOUNT_ID || undefined,
+    R2_BUCKET: process.env.R2_BUCKET || undefined,
+    R2_ACCESS_KEY_ID: process.env.R2_ACCESS_KEY_ID || undefined,
+    R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY || undefined,
   });
 
   if (!parsed.success) {
@@ -88,6 +109,28 @@ function read() {
     } else {
       throw new Error(complaint);
     }
+  }
+
+  /**
+   * Half-configured object storage is the one state worth complaining about.
+   *
+   * None of the four set is a deliberate choice and works. All four is the
+   * intended setup. Two or three is somebody who thought they had turned R2 on
+   * and has not, and would find out when a portrait quietly went to the
+   * database instead — or, worse, would never find out at all.
+   */
+  const r2 = [
+    value.R2_ACCOUNT_ID,
+    value.R2_BUCKET,
+    value.R2_ACCESS_KEY_ID,
+    value.R2_SECRET_ACCESS_KEY,
+  ];
+  const set = r2.filter(Boolean).length;
+  if (set > 0 && set < 4) {
+    console.warn(
+      `\n  ⚠ ${set} of the 4 R2 settings are present, so portraits are going to the database.\n` +
+        '    R2 needs R2_ACCOUNT_ID, R2_BUCKET, R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY.\n',
+    );
   }
 
   return value;

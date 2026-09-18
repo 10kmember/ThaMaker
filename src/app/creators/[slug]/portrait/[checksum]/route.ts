@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/server/db';
+import { getPortrait } from '@/server/services/portrait-storage';
 
 /**
  * Serving a portrait.
@@ -12,6 +13,12 @@ import { prisma } from '@/server/db';
  * A withdrawn portrait is never served, and in practice cannot be: withdrawing
  * one deletes the bytes, so the row it leaves behind holds a reason and
  * nothing renderable.
+ *
+ * The bytes come from R2 when R2 is configured and from the database column
+ * when it is not, and the reader cannot tell which — deliberately. This route
+ * staying in front of the bucket is what lets PALMA refuse to serve a
+ * withdrawn portrait even in the case where the delete against R2 failed: the
+ * database row decides, and the bucket is only where the bytes happen to sit.
  */
 export async function GET(
   _request: Request,
@@ -25,7 +32,7 @@ export async function GET(
       checksum,
       creator: { slug, isPublished: true },
     },
-    select: { data: true, contentType: true, byteSize: true },
+    select: { data: true, storageKey: true, contentType: true, byteSize: true },
   });
 
   // A mismatched checksum is a stale URL rather than an error worth explaining.
@@ -33,10 +40,22 @@ export async function GET(
     return new NextResponse('Not found', { status: 404 });
   }
 
-  return new NextResponse(Buffer.from(portrait.data), {
+  const bytes = portrait.storageKey ? await getPortrait(portrait.storageKey) : portrait.data;
+
+  // The row says there are bytes and there are not: an object storage outage,
+  // or a key that no longer resolves. Not found is the honest answer, and it
+  // is not cached, so the image returns when the bucket does.
+  if (!bytes) {
+    return new NextResponse('Not found', {
+      status: 404,
+      headers: { 'Cache-Control': 'no-store' },
+    });
+  }
+
+  return new NextResponse(Buffer.from(bytes), {
     headers: {
       'Content-Type': portrait.contentType,
-      'Content-Length': String(portrait.byteSize),
+      'Content-Length': String(bytes.byteLength),
       // Immutable: the checksum is part of the path, so these bytes can never
       // change at this URL.
       'Cache-Control': 'public, max-age=31536000, immutable',

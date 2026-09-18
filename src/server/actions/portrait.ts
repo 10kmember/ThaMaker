@@ -7,6 +7,7 @@ import { containsExplicitLanguage } from '@/domain/content-policy';
 import { recordAudit } from '@/server/audit';
 import { prisma } from '@/server/db';
 import { MAX_UPLOAD_BYTES, portraitPath, preparePortrait } from '@/server/services/portrait';
+import { deletePortrait, putPortrait } from '@/server/services/portrait-storage';
 
 /**
  * A creator's portrait.
@@ -96,8 +97,34 @@ export async function uploadPortrait(
     return { status: 'error', message: 'That record could not be found.' };
   }
 
+  // Out to object storage first, if it is configured. A failed upload must
+  // leave the record exactly as it was, so this happens before the
+  // transaction rather than inside it: a database row pointing at an object
+  // that is not there would serve a blank portrait for ever.
+  let storageKey: string | null;
+  try {
+    storageKey = await putPortrait({
+      creatorId,
+      checksum: portrait.checksum,
+      data: portrait.data,
+      contentType: portrait.contentType,
+    });
+  } catch {
+    return {
+      status: 'error',
+      message: 'PALMA could not store that image just now. Nothing has changed, try again shortly.',
+    };
+  }
+
+  const previousKey = await prisma.creatorPortrait
+    .findUnique({ where: { creatorId }, select: { storageKey: true } })
+    .then((row) => row?.storageKey ?? null);
+
   const stored = {
-    data: portrait.data,
+    // Exactly one of the two: the bytes go to the column only when there is
+    // nowhere better for them to be.
+    data: storageKey ? null : portrait.data,
+    storageKey,
     contentType: portrait.contentType,
     width: portrait.width,
     height: portrait.height,
@@ -128,6 +155,11 @@ export async function uploadPortrait(
       },
     });
   });
+
+  // Only now, with the new key committed: an object deleted before the
+  // transaction succeeded would have been deleted out from under a record
+  // still pointing at it.
+  if (previousKey && previousKey !== storageKey) await deletePortrait(previousKey);
 
   await recordAudit({
     action: 'creator.portrait_published',
@@ -165,6 +197,11 @@ export async function removePortrait(): Promise<void> {
 
   const creatorId = session.user.creatorId;
 
+  const existing = await prisma.creatorPortrait.findUnique({
+    where: { creatorId },
+    select: { storageKey: true },
+  });
+
   await prisma.$transaction(async (tx) => {
     await tx.creatorPortrait.deleteMany({ where: { creatorId } });
     await tx.creator.update({
@@ -172,6 +209,12 @@ export async function removePortrait(): Promise<void> {
       data: { portraitUrl: null, portraitAlt: null },
     });
   });
+
+  // The row is what decides whether anything is served, so it goes first and
+  // the object follows. A failure here leaves an orphan in the bucket, which
+  // is a tidying job; the other order would leave the record pointing at
+  // nothing, which is a broken page.
+  if (existing?.storageKey) await deletePortrait(existing.storageKey);
 
   await recordAudit({
     action: 'creator.portrait_removed',
@@ -241,7 +284,8 @@ export async function withdrawPortrait(
         withdrawnAt: new Date(),
         withdrawnById: session.user.id,
         withdrawnReason: reason,
-        data: new Uint8Array(new ArrayBuffer(0)),
+        data: null,
+        storageKey: null,
         byteSize: 0,
       },
     });
@@ -250,6 +294,11 @@ export async function withdrawPortrait(
       data: { portraitUrl: null, portraitAlt: null },
     });
   });
+
+  // Clearing the key is what stops it being served; this is what stops it
+  // existing. If the bucket call fails the portrait is already unreachable,
+  // and the orphan is a tidying job rather than a portrait still on a record.
+  if (portrait.storageKey) await deletePortrait(portrait.storageKey);
 
   await recordAudit({
     action: 'creator.portrait_withdrawn',
