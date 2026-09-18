@@ -8,7 +8,6 @@ import { EmptyState } from '@/components/ui/feedback';
 import { Input } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
 import { buildMetadata } from '@/lib/seo';
-import { countryName } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { listCountries, listCreators } from '@/server/data/queries';
 import { countSearch } from '@/server/services/measurement';
@@ -28,7 +27,7 @@ export default async function CreatorsPage({ searchParams }: Props) {
   const filters = await searchParams;
   const honoursOnly = filters.honours === '1';
 
-  const [creators, countries] = await Promise.all([
+  const [creators] = await Promise.all([
     listCreators({ query: filters.q, country: filters.country, honoursOnly, limit: 120 }),
     listCountries(),
   ]);
@@ -62,33 +61,11 @@ export default async function CreatorsPage({ searchParams }: Props) {
       <div className="border-stone-deep bg-ivory border-b">
         <Container className="flex flex-col gap-4 py-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap items-center gap-2">
-            <Link
-              href={href({ country: undefined })}
-              data-active={!filters.country}
-              className={cn(
-                'palma-chip palma-label rounded-full border px-3.5 py-2',
-                !filters.country
-                  ? 'border-ink bg-ink text-ivory'
-                  : 'border-stone-deep text-taupe-deep hover:border-ink/40 hover:text-ink',
-              )}
-            >
-              All countries
-            </Link>
-            {countries.map((code) => (
-              <Link
-                key={code}
-                href={href({ country: code })}
-                data-active={filters.country === code}
-                className={cn(
-                  'palma-chip palma-label rounded-full border px-3.5 py-2',
-                  filters.country === code
-                    ? 'border-ink bg-ink text-ivory'
-                    : 'border-stone-deep text-taupe-deep hover:border-ink/40 hover:text-ink',
-                )}
-              >
-                {countryName(code)}
-              </Link>
-            ))}
+            {/* No country chips. Where a creator works is on their card and
+                on their record, which is where a fact about one person
+                belongs; a row of chips built from whoever happens to be in the
+                archive turns two or three countries into a category the
+                institution never meant to create. */}
             <Link
               href={href({ honours: honoursOnly ? undefined : '1' })}
               data-active={honoursOnly}
