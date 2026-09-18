@@ -60,7 +60,7 @@ const ENDPOINT = 'https://api.resend.com/emails';
 function sandboxNotice(intendedFrom: string): string {
   return [
     '',
-    '— — —',
+    ', , , ',
     `Sent through PALMA's sandbox sender because the palmaawards.com domain is`,
     `not yet verified with the mail provider. In production this message comes`,
     `from ${intendedFrom}.`,
@@ -75,7 +75,7 @@ export async function sendEmail(message: EmailMessage): Promise<EmailResult> {
       return { ok: false, error: 'RESEND_API_KEY is not configured.' };
     }
     console.info(
-      `\n[palma:email] (not sent — no RESEND_API_KEY)\n  from: ${message.from || env.EMAIL_FROM}\n  to: ${message.to}\n  subject: ${message.subject}\n  ${message.text.replace(/\n/g, '\n  ')}\n`,
+      `\n[palma:email] (not sent, no RESEND_API_KEY)\n  from: ${message.from || env.EMAIL_FROM}\n  to: ${message.to}\n  subject: ${message.subject}\n  ${message.text.replace(/\n/g, '\n  ')}\n`,
     );
     return { ok: true, id: null, delivered: false };
   }

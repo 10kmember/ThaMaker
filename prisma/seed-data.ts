@@ -611,7 +611,7 @@ Nominating takes under a minute. You need a creator, a category, a sentence abou
 
 One nomination per person, per creator, per category. That is enforced in the database rather than discouraged in the interface, so a second attempt is refused rather than quietly discarded.
 
-We publish no nomination counts. Not during the season, not after it, and not to the panel — who are shown the argument the audience made and never how many people made it. The audience identifies. PALMA judges.`,
+We publish no nomination counts. Not during the season, not after it, and not to the panel, who are shown the argument the audience made and never how many people made it. The audience identifies. PALMA judges.`,
   },
   {
     slug: 'what-a-palma-is-for',
@@ -656,7 +656,7 @@ Judges are briefed in writing to discount audience size. It is not a criterion, 
 
 A judge cannot reach the scale without declaring whether they have a conflict, and declaring removes the candidate from their assignments immediately. The chair decides whether it mattered, not the judge.
 
-Where four or more judges have scored a candidacy, the highest and lowest scores are dropped before ranking. Panels disagree, and one outlier — enthusiastic or hostile — should not decide a PALMA.
+Where four or more judges have scored a candidacy, the highest and lowest scores are dropped before ranking. Panels disagree, and one outlier, enthusiastic or hostile, should not decide a PALMA.
 
 A submitted assessment cannot be edited. If PALMA needs a correction it goes through an administrator, and the state before and after is written to the audit log.`,
   },

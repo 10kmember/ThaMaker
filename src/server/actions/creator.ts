@@ -262,7 +262,7 @@ export async function startVerification(_previous: CreatorState): Promise<Creato
     status: 'success',
     message:
       config.effective === 'automatic'
-        ? 'Verification started. You will be handed to PALMA’s assurance provider to complete it — PALMA never receives or stores your identity documents.'
+        ? 'Verification started. You will be handed to PALMA’s assurance provider to complete it, PALMA never receives or stores your identity documents.'
         : 'Verification started. A PALMA moderator reviews it by hand and will write to you with the outcome. PALMA never keeps your documents: anything you submit is deleted when the case closes.',
   };
 }

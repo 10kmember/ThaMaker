@@ -110,8 +110,8 @@ export default async function SettingsPage() {
         <h3 className="mt-3 text-2xl">Who performs the check</h3>
         <p className="text-taupe-deep mt-4 max-w-160 leading-relaxed">
           Both routes are built. Which one runs is this switch, and the provider&rsquo;s key lives
-          in the environment — so contracting a provider is: add the key, restart, come back here
-          and switch. Nothing else changes, and no record is rewritten.
+          in the environment, so contracting a provider is: add the key, restart, come back here and
+          switch. Nothing else changes, and no record is rewritten.
         </p>
 
         <div className="mt-8 grid gap-10 lg:grid-cols-[3fr_2fr] lg:gap-14">
@@ -166,7 +166,7 @@ export default async function SettingsPage() {
 
         {verification.effective !== verification.mode ? (
           <Notice className="mt-8" tone="warning" title="Selected, but not in force">
-            Automatic assurance is selected and cannot run — the provider is{' '}
+            Automatic assurance is selected and cannot run, the provider is{' '}
             <code className="font-mono text-xs">{verification.provider}</code> and a key is{' '}
             {verification.hasApiKey ? 'configured' : 'missing'}. Every check is going to the
             moderation desk, which is the safe failure rather than the quiet one.
@@ -176,7 +176,7 @@ export default async function SettingsPage() {
         {verification.provider === 'stub' ? (
           <Notice className="mt-8" tone="warning" title="The stub provider is named">
             <code className="font-mono text-xs">AGE_VERIFICATION_PROVIDER=stub</code> performs no
-            assurance at all. Manual review is in force, so this is currently harmless — but a
+            assurance at all. Manual review is in force, so this is currently harmless, but a
             deployment that switches to automatic while the stub is named would record checks nobody
             made. Name a real provider before contracting one.
           </Notice>
@@ -188,7 +188,7 @@ export default async function SettingsPage() {
         <h3 className="mt-3 text-2xl">What PALMA stops holding, and when</h3>
         <p className="text-taupe-deep mt-4 max-w-160 leading-relaxed">
           A period nobody enforces is not a policy, it is a sentence. The sweep below is what makes
-          the privacy notice true. It never touches the institutional record — creator records,
+          the privacy notice true. It never touches the institutional record. Creator records,
           honours, achievements, verification records and the audit log are permanent, because an
           award that expires after two years was not an award.
         </p>
@@ -268,7 +268,7 @@ export default async function SettingsPage() {
             { label: 'Code attempts', value: String(MAX_ATTEMPTS), source: 'code' },
             {
               label: 'Per person, per creator, per category',
-              value: 'One — enforced by a database constraint',
+              value: 'One. Enforced by a database constraint',
               source: 'code',
             },
           ]}
@@ -349,7 +349,7 @@ export default async function SettingsPage() {
         <Link href="/legal/privacy" className="palma-link text-ink">
           privacy notice
         </Link>
-        , and are currently applied by hand — see{' '}
+        , and are currently applied by hand. See{' '}
         <Link href="/admin/health" className="palma-link text-ink">
           system health
         </Link>

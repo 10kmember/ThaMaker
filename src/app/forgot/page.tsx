@@ -46,11 +46,11 @@ export default async function ForgotPasswordPage() {
               <a href={`mailto:${CONTACTS.security}`} className="palma-link text-ink">
                 {CONTACTS.security}
               </a>{' '}
-              from wherever you can — a person will read it.
+              from wherever you can, a person will read it.
             </p>
             <p className="mt-4">
               This page is for creator accounts. Judges, moderators and administrators do not set a
-              password here — if you hold one of those accounts and are locked out, ask the
+              password here, if you hold one of those accounts and are locked out, ask the
               administrator who invited you for a new link. Once signed in, everyone changes their
               password from their own account settings.
             </p>

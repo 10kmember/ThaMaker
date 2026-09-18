@@ -53,7 +53,7 @@ export function CreatorImportForm() {
               htmlFor="rows"
               label="The list"
               required
-              hint="One creator per line: name, country, city, headline, links. Tab-separated (paste from a spreadsheet) or comma-separated. City and headline are accepted so your existing list pastes cleanly — they are read, shown in the preview, and not stored on an unclaimed record."
+              hint="One creator per line: name, country, city, headline, links. Tab-separated (paste from a spreadsheet) or comma-separated. City and headline are accepted so your existing list pastes cleanly. They are read, shown in the preview, and not stored on an unclaimed record."
             >
               <Textarea
                 id="rows"
@@ -146,7 +146,7 @@ export function CreatorImportForm() {
 
               <Notice tone="warning" title="What this writes">
                 {plan.writable} unclaimed, unpublished record{plan.writable === 1 ? '' : 's'}. Names
-                already in the archive are left alone — an import never overwrites a record somebody
+                already in the archive are left alone, an import never overwrites a record somebody
                 may hold. Nothing becomes public until a moderator publishes it.
               </Notice>
 

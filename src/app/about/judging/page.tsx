@@ -39,8 +39,8 @@ export default function JudgingPage() {
             </p>
             <p>
               The audience discovers, PALMA evaluates, judges decide. Nomination volume identifies
-              who is worth investigating and stops there — nothing in the judging path reads it, so
-              a creator with ten thousand nominations does not beat one with two thousand. Audience
+              who is worth investigating and stops there. Nothing in the judging path reads it, so a
+              creator with ten thousand nominations does not beat one with two thousand. Audience
               size, follower count and view count are not criteria and never will be.
             </p>
           </div>
@@ -68,8 +68,8 @@ export default function JudgingPage() {
             <h2 className="mb-4 text-3xl">Aggregation</h2>
             <p>
               Once four or more judges have scored a nomination, the highest and lowest scores are
-              removed before ranking. Panels disagree, and a single outlier — enthusiastic or
-              hostile — should not decide a PALMA. Where judges disagree sharply, the chair sees the
+              removed before ranking. Panels disagree, and a single outlier, enthusiastic or
+              hostile, should not decide a PALMA. Where judges disagree sharply, the chair sees the
               spread before any list is confirmed.
             </p>
             <p>

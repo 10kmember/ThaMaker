@@ -122,7 +122,7 @@ export async function setFeature(
     entityType: 'FeatureSetting',
     entityId: `${entry.key}${awardYearId ? `:${awardYearId}` : ''}`,
     actor: { id: session.user.id, role: session.user.role, label: session.user.email },
-    summary: `${entry.name} ${parsed.data.enabled ? 'enabled' : 'disabled'}${season ? ` for ${season.title}` : ' globally'}${parsed.data.reason ? ` — ${parsed.data.reason}` : ''}`,
+    summary: `${entry.name} ${parsed.data.enabled ? 'enabled' : 'disabled'}${season ? ` for ${season.title}` : ' globally'}${parsed.data.reason ? `, ${parsed.data.reason}` : ''}`,
     before: before
       ? {
           enabled: before.enabled,
@@ -233,7 +233,7 @@ export async function saveSponsor(
     entityType: 'Sponsor',
     entityId: sponsorId,
     actor: { id: session.user.id, role: session.user.role, label: session.user.email },
-    summary: `${parsed.data.name} — ${parsed.data.status}, agreement ${parsed.data.agreementStatus}`,
+    summary: `${parsed.data.name}, ${parsed.data.status}, agreement ${parsed.data.agreementStatus}`,
     before: existing
       ? { status: existing.status, agreementStatus: existing.agreementStatus }
       : undefined,
@@ -346,7 +346,7 @@ export async function savePackage(
     entityType: 'SponsorshipPackage',
     entityId: packageId,
     actor: { id: session.user.id, role: session.user.role, label: session.user.email },
-    summary: `${data.name} — ${(data.priceMinor / 100).toLocaleString('en-GB', { style: 'currency', currency: data.currency })}`,
+    summary: `${data.name}, ${(data.priceMinor / 100).toLocaleString('en-GB', { style: 'currency', currency: data.currency })}`,
     before: existing ? { priceMinor: existing.priceMinor } : undefined,
     after: { priceMinor: data.priceMinor, isAvailable: data.isAvailable },
   });
@@ -414,7 +414,7 @@ export async function assignPlacement(
       status: 'error',
       message: rule.target
         ? `A ${rule.name.toLowerCase()} has to name exactly one ${rule.target.replace('Id', '')}.`
-        : 'A principal partnership attaches to the season itself — leave the others blank.',
+        : 'A principal partnership attaches to the season itself. Leave the others blank.',
     };
   }
 

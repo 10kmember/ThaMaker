@@ -183,10 +183,10 @@ export function VerificationDecisionForm({
           value={outcome}
           onChange={(event) => setOutcome(event.target.value)}
         >
-          <option value="verified">Verified — 18 or over, requirement met</option>
-          <option value="refused">Refused — requirement not met</option>
+          <option value="verified">Verified, 18 or over, requirement met</option>
+          <option value="refused">Refused, requirement not met</option>
           <option value="request_information">Request more information</option>
-          <option value="abandoned">Abandoned — no response</option>
+          <option value="abandoned">Abandoned, no response</option>
         </Select>
       </Field>
 
@@ -208,7 +208,7 @@ export function VerificationDecisionForm({
           <span className="palma-label text-olive">Privacy lifecycle</span>
           <p className="text-taupe-deep text-sm leading-relaxed">
             Media was received for this case. It must be destroyed in the restricted workspace as
-            part of closing — PALMA does not keep documents, and a closed case with media still held
+            part of closing, PALMA does not keep documents, and a closed case with media still held
             has nothing left to prompt anyone to remove it.
           </p>
           <label className="flex cursor-pointer items-start gap-3 text-sm">
@@ -354,7 +354,7 @@ export function CreatorRecordForm({
 
       <label className="text-taupe-deep flex cursor-pointer items-start gap-3 text-sm">
         <Checkbox name="isPublished" defaultChecked={creator?.isPublished ?? false} />
-        <span>Published — visible on the public site and in the archive.</span>
+        <span>Published. Visible on the public site and in the archive.</span>
       </label>
 
       <Button type="submit" size="md" disabled={pending} className="self-start">
@@ -400,7 +400,7 @@ export function InvitationForm({ creatorId }: { creatorId: string }) {
       ) : null}
 
       {state.status === 'success' && state.message ? (
-        <Notice tone="ceremonial" title="Invitation issued — copy it now">
+        <Notice tone="ceremonial" title="Invitation issued. Copy it now">
           <code className="mt-2 block text-sm break-all">palmaawards.com{state.message}</code>
           <span className="mt-2 block text-xs">
             Shown once. PALMA stores only a hash of this link, so it cannot be read back out of the

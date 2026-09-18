@@ -35,7 +35,7 @@ export default async function VerificationQueuePage({
         <h1 className="text-4xl">Manual age verification</h1>
         <p className="text-taupe-deep max-w-160 leading-relaxed">
           Cases PALMA&rsquo;s assurance provider could not settle. You see only what the decision
-          needs. What PALMA keeps afterwards is a status, a reference and a hash — never a document.
+          needs. What PALMA keeps afterwards is a status, a reference and a hash, never a document.
         </p>
       </div>
 

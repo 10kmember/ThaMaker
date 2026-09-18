@@ -131,7 +131,7 @@ export async function uploadPortrait(
   return {
     status: 'success',
     message:
-      'Received. PALMA re-encoded it and discarded every scrap of metadata that came with it — including location. A moderator looks before it appears on your record.',
+      'Received. PALMA re-encoded it and discarded every scrap of metadata that came with it, including location. A moderator looks before it appears on your record.',
   };
 }
 

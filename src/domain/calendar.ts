@@ -61,7 +61,7 @@ export const CHAPTERS: Chapter[] = [
     key: 'anticipation',
     from: 1,
     to: 3,
-    months: 'January — March',
+    months: 'January, March',
     label: 'Anticipation',
     line: 'The season ahead takes shape in public.',
     detail:
@@ -116,7 +116,7 @@ export const CHAPTERS: Chapter[] = [
     key: 'record',
     from: 8,
     to: 9,
-    months: 'August — September',
+    months: 'August, September',
     label: 'The record',
     line: 'Winners, PaROH, and the writing that follows them.',
     detail:
@@ -127,7 +127,7 @@ export const CHAPTERS: Chapter[] = [
     key: 'building',
     from: 10,
     to: 12,
-    months: 'October — December',
+    months: 'October, December',
     label: 'Building',
     line: 'Next season is designed, not merely scheduled.',
     detail:

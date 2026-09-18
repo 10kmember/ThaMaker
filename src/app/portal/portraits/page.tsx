@@ -56,7 +56,7 @@ export default async function PortraitsPage() {
         Whether this image belongs on a public institutional record: a person, recognisable,
         suitable for every audience. Not whether it is a good photograph. Refuse anything explicit,
         anything that is plainly not the creator, and anything carrying a logo, a price or a
-        promotion — a portrait is not an advertisement.
+        promotion, a portrait is not an advertisement.
       </Notice>
 
       <section className="mt-14">

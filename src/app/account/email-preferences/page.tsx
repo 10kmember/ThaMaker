@@ -84,9 +84,8 @@ export default async function EmailPreferencesPage() {
             <h2 className="palma-label text-taupe-deep mb-2">Essential PALMA communications</h2>
             <p className="text-taupe-deep mb-6 max-w-140 text-sm leading-relaxed">
               These are not a subscription and there is nothing here to switch off. PALMA sends them
-              because it owes them to you — a decision about your own record, or something
-              concerning the safety of your account. An institution you can mute is not keeping you
-              informed.
+              because it owes them to you, a decision about your own record, or something concerning
+              the safety of your account. An institution you can mute is not keeping you informed.
             </p>
 
             <ul className="border-stone-deep flex flex-col border-t">
@@ -114,7 +113,7 @@ export default async function EmailPreferencesPage() {
             <h2 className="palma-label text-taupe-deep mb-2">Your subscriptions</h2>
             <p className="text-taupe-deep mb-8 max-w-140 text-sm leading-relaxed">
               Five lists, each separately chosen. Nothing here was switched on by registering,
-              nominating, claiming a record or accepting the Terms — and leaving one leaves exactly
+              nominating, claiming a record or accepting the Terms, and leaving one leaves exactly
               one.
             </p>
 

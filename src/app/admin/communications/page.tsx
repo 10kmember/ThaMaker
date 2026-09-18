@@ -51,7 +51,7 @@ export default async function CommunicationsPage() {
       {!overview.provider.configured ? (
         <Notice className="mt-8" tone="warning" title="No mail provider is configured">
           <code className="font-mono text-xs">RESEND_API_KEY</code> is unset in this environment.
-          Messages are written to the record and logged, and nobody receives them — the rows below
+          Messages are written to the record and logged, and nobody receives them, the rows below
           read <em>suppressed</em> rather than sent, which is the truth rather than a green tick.
         </Notice>
       ) : null}
@@ -63,7 +63,7 @@ export default async function CommunicationsPage() {
           <code className="font-mono text-xs">{overview.provider.sandboxFrom}</code>, carries a
           <em> [PALMA sandbox]</em> subject and says so in its body. Replies still reach the real
           mailbox. Verify the domain at the provider and unset{' '}
-          <code className="font-mono text-xs">EMAIL_SANDBOX_FROM</code> — nothing else changes.
+          <code className="font-mono text-xs">EMAIL_SANDBOX_FROM</code>. Nothing else changes.
         </Notice>
       ) : null}
 
@@ -71,7 +71,7 @@ export default async function CommunicationsPage() {
         <Notice className="mt-8" tone="warning" title="PALMA cannot hear back from the provider">
           <code className="font-mono text-xs">RESEND_WEBHOOK_SECRET</code> is unset, so nothing
           points at <code className="font-mono text-xs">/api/webhooks/resend</code>. A message is
-          recorded as <em>sent</em> the moment the provider accepts it and stays that way for ever —
+          recorded as <em>sent</em> the moment the provider accepts it and stays that way for ever,
           a bounce three days later is never heard, and a dead address goes on looking like one
           PALMA is successfully writing to.
         </Notice>
@@ -90,8 +90,8 @@ export default async function CommunicationsPage() {
           <h2 className="palma-label text-taupe-deep mb-2">Not delivered</h2>
           <p className="text-taupe mb-6 max-w-160 text-xs leading-relaxed">
             The only rows here anybody needs to act on. A failed message was never delivered, and
-            the person it concerned does not know what it said — though the Dossier entry was
-            written regardless, so they can still find out by looking.
+            the person it concerned does not know what it said, though the Dossier entry was written
+            regardless, so they can still find out by looking.
           </p>
           <Table>
             <THead>
@@ -124,7 +124,7 @@ export default async function CommunicationsPage() {
           An address goes on this list when the provider says it bounced, or its holder reported
           PALMA as spam. Continuing to write to a dead address is how a sending domain&rsquo;s
           reputation is destroyed, which ends with PALMA&rsquo;s mail in everybody&rsquo;s spam
-          folder — so the first job of a bounce is to stop the next message.
+          folder, so the first job of a bounce is to stop the next message.
         </p>
         <div className="max-w-160">
           <SuppressionList rows={overview.suppressed} />
@@ -136,7 +136,7 @@ export default async function CommunicationsPage() {
         <p className="text-taupe mb-6 max-w-160 text-xs leading-relaxed">
           Every message PALMA is capable of sending. A template marked <em>always</em> is a security
           notice, a decision about somebody&rsquo;s own record, or something they asked for seconds
-          ago — those are sent whatever the recipient&rsquo;s preferences say, because an account
+          ago. Those are sent whatever the recipient&rsquo;s preferences say, because an account
           that can mute the news that its honour was revoked is not being kept informed.
         </p>
         <Table>

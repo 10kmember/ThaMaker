@@ -12,7 +12,7 @@ export const gazetteIssueSchema = z.object({
   standfirst: z
     .string()
     .trim()
-    .min(20, 'The standfirst is what the reader sees first — write at least 20 characters.')
+    .min(20, 'The standfirst is what the reader sees first. Write at least 20 characters.')
     .max(400),
   body: z
     .string()

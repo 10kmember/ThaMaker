@@ -144,8 +144,8 @@ export default async function ModerationOverviewPage() {
           </Notice>
 
           <Notice tone="warning" title="What it never decides">
-            An outcome. Selection, revocation and score correction are administrator actions —
-            moderation maintains the accuracy of the record and never its results.
+            An outcome. Selection, revocation and score correction are administrator actions.
+            Moderation maintains the accuracy of the record and never its results.
           </Notice>
         </aside>
       </div>

@@ -92,7 +92,7 @@ export function WinnerReveal({
             </div>
           </div>
 
-          {/* Portrait above, trophy below — and both lean toward the reader
+          {/* Portrait above, trophy below, and both lean toward the reader
               together, at different rates, so the column reads as one object
               with depth rather than two stacked panels. */}
           <DepthLayer

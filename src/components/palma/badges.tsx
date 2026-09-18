@@ -54,7 +54,7 @@ export function AchievementBadge({
         {categoryName ? (
           <span className={cn('text-ink text-[0.9375rem]', revoked && 'line-through opacity-60')}>
             {categoryName}
-            {year ? <span className="text-taupe-deep"> — {year}</span> : null}
+            {year ? <span className="text-taupe-deep">, {year}</span> : null}
           </span>
         ) : null}
         {revoked ? <span className="palma-label text-red-800">Revoked</span> : null}

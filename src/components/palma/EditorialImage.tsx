@@ -61,7 +61,7 @@ export function EditorialImage({
       <div className={cn('bg-stone relative overflow-hidden', ratios[ratio], className)}>
         <Image
           src={src}
-          alt={alt ?? `${name} — PALMA creator portrait`}
+          alt={alt ?? `${name}, PALMA creator portrait`}
           fill
           sizes={sizes}
           priority={priority}
@@ -80,7 +80,7 @@ export function EditorialImage({
         className,
       )}
       role="img"
-      aria-label={`${name} — no approved portrait on file`}
+      aria-label={`${name}, no approved portrait on file`}
     >
       <svg
         viewBox="0 0 200 260"

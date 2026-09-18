@@ -110,7 +110,7 @@ export default async function JudgeAccountPage() {
                 ['Email verified', account.emailVerified ? 'Yes' : 'No'],
                 ['Last sign-in', account.lastLoginAt ? formatDate(account.lastLoginAt) : '—'],
                 ['Password', 'Hashed with scrypt. PALMA cannot read it.'],
-                ['Two-factor authentication', 'Not yet available — planned before judging opens'],
+                ['Two-factor authentication', 'Not yet available. Planned before judging opens'],
               ].map(([term, value]) => (
                 <div
                   key={term}
@@ -215,7 +215,7 @@ export default async function JudgeAccountPage() {
 
           <Notice title="What PALMA writes to you about">
             New assignments, reassignments, conflict decisions, deadline reminders, judging opening
-            and closing, and administrative announcements. Nothing else — there is no feed here to
+            and closing, and administrative announcements. Nothing else. There is no feed here to
             subscribe to.
           </Notice>
         </aside>

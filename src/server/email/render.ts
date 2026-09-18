@@ -165,7 +165,7 @@ export function shell(input: ShellInput): string {
   const manage =
     input.footnote ??
     (input.unsubscribeUrl
-      ? `You are receiving this because someone confirmed this address for a PALMA list. <a href="${escapeHtml(input.unsubscribeUrl)}" style="color:${PALETTE.olive};">Unsubscribe</a> and that list stops at once — every other PALMA subscription is separate.`
+      ? `You are receiving this because someone confirmed this address for a PALMA list. <a href="${escapeHtml(input.unsubscribeUrl)}" style="color:${PALETTE.olive};">Unsubscribe</a> and that list stops at once, every other PALMA subscription is separate.`
       : `This message is part of your PALMA record and is kept in your Dossier at <a href="${siteUrl}/dossier" style="color:${PALETTE.olive};">palmaawards.com</a>.`);
 
   return `<!doctype html>
@@ -175,7 +175,7 @@ export function shell(input: ShellInput): string {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light">
 <meta name="supported-color-schemes" content="light">
-<title>PALMA — The Creator Honours</title>
+<title>PALMA, The Creator Honours</title>
 <!--[if mso]><style>body,table,td{font-family:Arial,Helvetica,sans-serif !important;}</style><![endif]-->
 </head>
 <body style="margin:0;padding:0;background:${PALETTE.ivory};-webkit-text-size-adjust:100%;">
@@ -213,7 +213,7 @@ ${input.body}
       ${manage}
     </div>
     <div style="font-family:${SANS};font-size:11px;line-height:1.7;color:${PALETTE.taupe};padding-top:10px;">
-      PALMA — The Creator Honours · United Kingdom ·
+      PALMA, The Creator Honours · United Kingdom ·
       <a href="${siteUrl}" style="color:${PALETTE.olive};text-decoration:none;">palmaawards.com</a>
     </div>
   </td></tr>

@@ -329,7 +329,7 @@ export async function decideConsequentialAction(
     return {
       status: 'error',
       message:
-        'You proposed this. A second administrator has to approve it — that is the point of the rule.',
+        'You proposed this. A second administrator has to approve it. That is the point of the rule.',
     };
   }
 
@@ -522,7 +522,7 @@ export async function inviteOperator(
 
   return {
     status: 'success',
-    message: `Invited. ${email} has an account and a link to set their password — nothing works until they open it.`,
+    message: `Invited. ${email} has an account and a link to set their password. Nothing works until they open it.`,
   };
 }
 

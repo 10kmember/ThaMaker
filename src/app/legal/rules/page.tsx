@@ -108,7 +108,7 @@ export default function RulesPage() {
                 'Expected. No action.',
               ],
               [
-                'Several nominations sharing a network — a household, a campus, an office, a mobile carrier, a VPN',
+                'Several nominations sharing a network, a household, a campus, an office, a mobile carrier, a VPN',
                 'Not a basis for rejection on its own, ever. Shared networks are ordinary life.',
               ],
               [
@@ -149,7 +149,7 @@ export default function RulesPage() {
           items={[
             'Screening confirms the creator exists, is eligible, is 18 or over, and that the work cited is real and within the window.',
             'Screening removes nominations that breach the content policy, cite another person’s work, or are plainly fabricated.',
-            'Where nominations for one creator are combined, they form a single candidacy — the unit that is judged. Judges score candidacies, never nomination counts.',
+            'Where nominations for one creator are combined, they form a single candidacy, the unit that is judged. Judges score candidacies, never nomination counts.',
             'A screening decision may be appealed by the creator concerned under Complaints and Appeals.',
           ]}
         />
@@ -161,7 +161,7 @@ export default function RulesPage() {
       body: (
         <>
           <LegalTable
-            caption={`Scoring — six weighted criteria, marked out of ${formatPoints(MAX_TOTAL)}`}
+            caption={`Scoring. Six weighted criteria, marked out of ${formatPoints(MAX_TOTAL)}`}
             head={['Criterion', 'What it measures', 'Scored', 'Weight']}
             rows={SCORING_CRITERIA.map((criterion) => [
               criterion.label,
@@ -264,7 +264,7 @@ export default function RulesPage() {
       body: (
         <p>
           These rules carry a version and an effective date. A change never applies to a season
-          already open — the rules a season opened under are the rules it is judged under. Questions
+          already open, the rules a season opened under are the rules it is judged under. Questions
           about a season&rsquo;s conduct go to{' '}
           <a href={`mailto:${CONTACTS.integrity}`} className="palma-link text-ink">
             {CONTACTS.integrity}

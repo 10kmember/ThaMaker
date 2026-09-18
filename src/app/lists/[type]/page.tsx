@@ -75,7 +75,7 @@ export default async function ListPage({ params }: { params: Promise<{ type: str
             ) : (
               <p className="text-taupe-deep leading-relaxed">
                 This list is not open yet. It will be when there is enough worth sending to justify
-                it — PALMA would rather run no list than a thin one.
+                it, PALMA would rather run no list than a thin one.
               </p>
             )}
           </div>
@@ -116,7 +116,7 @@ export default async function ListPage({ params }: { params: Promise<{ type: str
             <div>
               <h2 className="palma-label text-taupe-deep mb-3">Leaving</h2>
               <p className="text-taupe-deep leading-relaxed">
-                One click in any message. No sign-in, no confirmation screen, no survey about why —
+                One click in any message. No sign-in, no confirmation screen, no survey about why,
                 and it leaves this list only. Every PALMA subscription is separate, and you can{' '}
                 <Link href="/account/email-preferences" className="palma-link text-ink">
                   manage all of them

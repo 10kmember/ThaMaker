@@ -55,7 +55,7 @@ export default async function AnalyticsPage({
         <span className="palma-label text-taupe-deep">Command centre</span>
         <h1 className="text-4xl">Analytics</h1>
         <p className="text-taupe-deep max-w-160 leading-relaxed">
-          Counted live against PostgreSQL — there is no reporting copy to drift from the pages these
+          Counted live against PostgreSQL. There is no reporting copy to drift from the pages these
           figures summarise. Every chart can be read as a table, because a number somebody intends
           to quote should be readable exactly.
         </p>
@@ -105,7 +105,7 @@ async function SeasonSection() {
         <div className="mt-8 grid gap-px sm:grid-cols-2">
           <ChartFrame
             title="Nominations per season"
-            note="Counted nominations only. Volume is a measure of reach, not of quality — no part of judging reads it."
+            note="Counted nominations only. Volume is a measure of reach, not of quality, no part of judging reads it."
             rows={seasons.map((season) => [String(season.year), season.nominations])}
             columns={['Season', 'Nominations']}
           >
@@ -187,7 +187,7 @@ async function NominationSection({ period }: { period: Period }) {
       {/* ── Nominations ─────────────────────────────────────────────────── */}
       <section className="mt-16">
         <h2 className="palma-label text-taupe-deep border-stone-deep border-b pb-3">
-          Nominations — {PERIOD_LABEL[period].toLowerCase()}
+          Nominations, {PERIOD_LABEL[period].toLowerCase()}
         </h2>
 
         <div className="mt-8 grid gap-px lg:grid-cols-2">
@@ -250,7 +250,7 @@ async function NominationSection({ period }: { period: Period }) {
           {nominations.integrityFlagged === 1 ? 'y is' : 'ies are'} flagged for review, and{' '}
           {nominations.duplicatesRefused} nomination
           {nominations.duplicatesRefused === 1 ? ' was' : 's were'} rejected in this period. A flag
-          is a prompt for a person to look, never an automatic rejection — and a shared network is
+          is a prompt for a person to look, never an automatic rejection, and a shared network is
           never a reason on its own.
         </Notice>
       </section>
@@ -292,14 +292,14 @@ async function MomentumSection({ period }: { period: Period }) {
 
       <p className="text-taupe-deep mt-5 max-w-200 text-sm leading-relaxed">
         The last {report.window.days} days against the {report.window.days} before them, for the{' '}
-        {report.seasonYear} season. Ordered by what moved, not by what is biggest — a large category
+        {report.seasonYear} season. Ordered by what moved, not by what is biggest, a large category
         that did exactly what it did last month is the least interesting row here.
       </p>
 
       <Notice tone="warning" className="mt-6" title="Internal instrument">
         Nomination counts are never published, never ranked in public and decide no outcome. These
-        figures exist to design next season&rsquo;s categories — which to keep, split or retire —
-        and nothing in the judging path reads them. A count is only honest while nobody can see it.
+        figures exist to design next season&rsquo;s categories, which to keep, split or retire, and
+        nothing in the judging path reads them. A count is only honest while nobody can see it.
       </Notice>
 
       <div className="border-stone-deep mt-6 overflow-x-auto border">
@@ -342,7 +342,7 @@ async function MomentumSection({ period }: { period: Period }) {
                 </td>
                 <td className="p-3 tabular-nums">
                   {row.candidacies === 0 ? (
-                    <span className="text-taupe">—</span>
+                    <span className="text-taupe">, </span>
                   ) : (
                     <>
                       {row.effective.toFixed(1)}

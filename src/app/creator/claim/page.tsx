@@ -44,9 +44,9 @@ export default async function ClaimPage({
       <div className="grid gap-14 lg:grid-cols-12 lg:gap-16">
         <div className="max-w-160 lg:col-span-7">
           <p className="text-taupe-deep mb-8 leading-relaxed">
-            A PALMA record exists before anyone claims it — PALMA writes one the first time a
-            creator is nominated. Claiming asks to control that existing record. It never creates a
-            second profile, and approval is what links it to your account.
+            A PALMA record exists before anyone claims it, PALMA writes one the first time a creator
+            is nominated. Claiming asks to control that existing record. It never creates a second
+            profile, and approval is what links it to your account.
           </p>
 
           {openClaim ? (

@@ -182,7 +182,7 @@ export default async function HomePage() {
           <SectionHeading
             label="Featured"
             title="Creators in the record"
-            standfirst="Every name below is carried by an honour that can be verified — in a category, in a season, by a panel."
+            standfirst="Every name below is carried by an honour that can be verified, in a category, in a season, by a panel."
             action={
               <Button asChild variant="outline" size="sm">
                 <Link href="/creators">All creators</Link>

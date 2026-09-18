@@ -30,7 +30,7 @@ export default async function NominatePage() {
         title="Nominate a creator"
         titleLines={['Nominate', 'a creator']}
         figure={season.year}
-        standfirst="Name someone, say why in a sentence, confirm your email. That is the whole of it — PALMA does the investigating."
+        standfirst="Name someone, say why in a sentence, confirm your email. That is the whole of it, PALMA does the investigating."
         meta={[
           'Under a minute',
           'No account',
@@ -69,8 +69,8 @@ export default async function NominatePage() {
               <aside className="flex flex-col gap-6 lg:col-span-5 lg:pl-10">
                 <Notice title="Audience nominates. PALMA judges.">
                   A nomination tells PALMA a creator is worth considering. It is not a vote, and the
-                  creator with the most nominations does not win — an independent panel decides,
-                  from evidence PALMA gathers itself.
+                  creator with the most nominations does not win, an independent panel decides, from
+                  evidence PALMA gathers itself.
                 </Notice>
 
                 <div className="border-stone-deep flex flex-col gap-4 border p-6">
@@ -92,7 +92,7 @@ export default async function NominatePage() {
                 <div className="border-stone-deep flex flex-col gap-3 border p-6">
                   <h2 className="palma-label text-taupe-deep">One signal each</h2>
                   <p className="text-taupe-deep text-sm leading-relaxed">
-                    You can nominate one creator once per category — and as many different creators,
+                    You can nominate one creator once per category, and as many different creators,
                     in as many categories, as you like. Repeat nominations of the same creator in
                     the same category do not stack.
                   </p>

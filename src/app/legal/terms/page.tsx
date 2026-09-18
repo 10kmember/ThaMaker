@@ -30,7 +30,7 @@ export default function TermsPage() {
       body: (
         <>
           <p>
-            PALMA — The Creator Honours is operated by {ENTITY.name}, a company incorporated in{' '}
+            PALMA, The Creator Honours is operated by {ENTITY.name}, a company incorporated in{' '}
             {ENTITY.jurisdiction}
             {ENTITY.companyNumber ? ` under number ${ENTITY.companyNumber}` : ''}. In these Terms,
             &ldquo;PALMA&rdquo;, &ldquo;we&rdquo; and &ldquo;us&rdquo; mean that company, and
@@ -117,7 +117,7 @@ export default function TermsPage() {
             No nomination volume, referral activity, audience size, follower count, popularity
             metric or promotional activity creates an entitlement to become a finalist or winner.
             PALMA does not publish nomination counts, and a large audience nominating sincerely is
-            not manipulation — but neither is it a claim on an outcome.
+            not manipulation, but neither is it a claim on an outcome.
           </p>
         </>
       ),
@@ -227,7 +227,7 @@ export default function TermsPage() {
     {
       heading: 'Revocation of recognition',
       plainly:
-        'An honour obtained improperly can be revoked. Nothing is deleted — the record says it was revoked.',
+        'An honour obtained improperly can be revoked. Nothing is deleted. The record says it was revoked.',
       body: (
         <>
           <p>
@@ -589,8 +589,7 @@ export default function TermsPage() {
     },
     {
       heading: 'Governing law',
-      plainly:
-        'English law, English courts — without taking away consumer rights you have at home.',
+      plainly: 'English law, English courts, without taking away consumer rights you have at home.',
       body: (
         <>
           <p>

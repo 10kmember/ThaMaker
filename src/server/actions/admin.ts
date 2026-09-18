@@ -632,7 +632,7 @@ export async function proposeThePalmaAction(
       kind: 'the_palma_conferral',
       entityType: 'AwardYear:Creator',
       entityId,
-      subject: `${creator.displayName} — THE PALMA ${awardYear.year}`,
+      subject: `${creator.displayName}, THE PALMA ${awardYear.year}`,
       reason: citation,
       requestedById: session.user.id,
     },
@@ -711,7 +711,7 @@ export async function decideThePalmaAction(
     return {
       status: 'error',
       message:
-        'You proposed this. A second person has to confer it — that is the point of the rule.',
+        'You proposed this. A second person has to confer it. That is the point of the rule.',
     };
   }
 

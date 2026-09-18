@@ -186,7 +186,7 @@ export function NominateForm({
             htmlFor="reason"
             label="Why should they be considered?"
             required
-            hint="A sentence or two is plenty. PALMA does the investigating — no links, files or evidence needed."
+            hint="A sentence or two is plenty. PALMA does the investigating, no links, files or evidence needed."
             error={errors.reason}
           >
             <Textarea

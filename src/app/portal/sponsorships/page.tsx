@@ -82,15 +82,15 @@ export default async function SponsorshipsPage() {
         <h1 className="text-4xl">Sponsor placements</h1>
         <p className="text-taupe-deep max-w-160 leading-relaxed">
           Association follows the thing they funded. A category partner appears on that category and
-          the honours conferred in it — not on the Journal, not on the ceremony, not across the
-          site. Nothing bleeds, which is what keeps the site worth sponsoring: a page covered in
-          logos is worth less to every logo on it.
+          the honours conferred in it, not on the Journal, not on the ceremony, not across the site.
+          Nothing bleeds, which is what keeps the site worth sponsoring: a page covered in logos is
+          worth less to every logo on it.
         </p>
       </div>
 
       <Notice className="mt-8" title="What a placement can and cannot do">
         It buys the association and nothing else. It cannot touch nomination eligibility, weighting,
-        judging, assignment, scores or selection — that separation is enforced in the permission
+        judging, assignment, scores or selection. That separation is enforced in the permission
         matrix and asserted by tests, not left to this page. You propose a placement here; an
         administrator approves it, so no single person can put a logo on a public page alone.
       </Notice>
@@ -193,7 +193,7 @@ export default async function SponsorshipsPage() {
                   </span>
                   <span className="flex items-center gap-3">
                     <Badge variant={gate?.live ? 'olive' : 'muted'}>
-                      {gate?.live ? 'Showing' : 'Held — feature off'}
+                      {gate?.live ? 'Showing' : 'Held. Feature off'}
                     </Badge>
                     {mayApprove ? (
                       <PlacementDecision sponsorshipId={row.id} name={row.sponsor.name} approved />

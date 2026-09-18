@@ -34,7 +34,7 @@ const issueSchema = z.object({
   standfirst: z
     .string()
     .trim()
-    .min(20, 'The standfirst is what the reader sees first — write at least 20 characters.')
+    .min(20, 'The standfirst is what the reader sees first. Write at least 20 characters.')
     .max(400),
   body: z
     .string()
@@ -171,7 +171,7 @@ export async function sendDispatch(
     entityType: 'Dispatch',
     entityId: issue.id,
     actor: { id: session.user.id, role: session.user.role, label: session.user.email },
-    summary: `${list.name} No. ${number} — “${parsed.data.subject}” — ${sent} sent, ${failed} not delivered${sponsorName ? ` (partner: ${sponsorName})` : ''}`,
+    summary: `${list.name} No. ${number}, “${parsed.data.subject}”, ${sent} sent, ${failed} not delivered${sponsorName ? ` (partner: ${sponsorName})` : ''}`,
   });
 
   revalidatePath('/admin/communications');

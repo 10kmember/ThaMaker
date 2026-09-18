@@ -39,7 +39,7 @@ export async function generateMetadata({ params }: Params) {
   }
 
   return buildMetadata({
-    title: `${record.creatorName} — PALMA ${record.year}`,
+    title: `${record.creatorName}, PALMA ${record.year}`,
     // THE PALMA's honour and "category" are the same words, so naming both
     // produced "THE PALMA, THE PALMA". The category is dropped where it is not
     // a category.
@@ -154,7 +154,7 @@ export default async function VerifyPage({ params }: Params) {
                 {revoked
                   ? 'The honour recorded against this code was revoked by PALMA. It must not be presented as a current PALMA.'
                   : misconfigured
-                    ? 'The record is intact and unaltered, but this server cannot confirm its seal — a PALMA signing key is misconfigured. This is a fault at our end, not a problem with the honour or the person holding it. Please try again shortly.'
+                    ? 'The record is intact and unaltered, but this server cannot confirm its seal, a PALMA signing key is misconfigured. This is a fault at our end, not a problem with the honour or the person holding it. Please try again shortly.'
                     : 'The signature on this record does not match its contents. PALMA cannot present it as a verified honour.'}
               </p>
             </>
@@ -243,7 +243,7 @@ export default async function VerifyPage({ params }: Params) {
             // otherwise would put a creator under suspicion for our fault.
             <Notice tone="warning" className="mt-10" title="This is a fault at PALMA's end">
               Nothing is wrong with the honour or with the person showing it to you. PALMA holds the
-              record intact and unaltered — this server just cannot confirm its seal at the moment.
+              record intact and unaltered. This server just cannot confirm its seal at the moment.
               Try again shortly, or{' '}
               <Link href="/contact" className="palma-link">
                 tell us

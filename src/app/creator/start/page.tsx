@@ -33,7 +33,7 @@ export default async function StartRecordPage() {
         <div className="max-w-160 lg:col-span-7">
           <p className="text-taupe-deep mb-10 leading-relaxed">
             PALMA writes most records itself, the first time a creator is nominated. The industry is
-            larger than the archive, though, so if nothing here is you — start it.
+            larger than the archive, though, so if nothing here is you. Start it.
           </p>
 
           <StartRecordForm />
@@ -54,7 +54,7 @@ export default async function StartRecordPage() {
           </div>
 
           <Notice title="Already in the archive?">
-            Search first — a record may already exist from a nomination you never heard about.{' '}
+            Search first, a record may already exist from a nomination you never heard about.{' '}
             <Link href="/creator/claim" className="palma-link text-ink">
               Claim a record
             </Link>

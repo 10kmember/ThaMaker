@@ -134,7 +134,7 @@ export function ClaimRequestForm({
       <p className="text-taupe text-xs leading-relaxed">
         A claim is a request, not an entitlement. PALMA reviews every one by hand, and approval is
         what links your account to the record. Claiming a profile you do not hold is impersonation
-        and ends eligibility — see the{' '}
+        and ends eligibility. See the{' '}
         <Link href="/legal/terms" className="palma-link text-ink">
           terms
         </Link>

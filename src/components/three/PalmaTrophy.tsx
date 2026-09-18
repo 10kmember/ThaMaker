@@ -119,7 +119,7 @@ export function PalmaTrophy({
       ref={container}
       className={cn('relative aspect-square w-full overflow-hidden', className)}
       role="img"
-      aria-label={`The PALMA trophy — ${legend}`}
+      aria-label={`The PALMA trophy, ${legend}`}
     >
       <canvas
         ref={canvas}

@@ -174,7 +174,7 @@ export default async function JudgesPage() {
                   },
                   {
                     title: 'Conflicts declared, not managed quietly',
-                    body: 'A declared conflict removes the candidacy from that judge entirely — they cannot open it again. Reassignment is an administrator’s job, and the declaration is written to the audit log.',
+                    body: 'A declared conflict removes the candidacy from that judge entirely. They cannot open it again. Reassignment is an administrator’s job, and the declaration is written to the audit log.',
                   },
                   {
                     title: 'Outliers trimmed, not overruled',
@@ -186,7 +186,7 @@ export default async function JudgesPage() {
                   },
                   {
                     title: 'Sponsors are structurally excluded',
-                    body: 'There is no route through which a sponsor can reach a judge, see a score, or learn an outcome early. Not a policy — an absence of the mechanism.',
+                    body: 'There is no route through which a sponsor can reach a judge, see a score, or learn an outcome early. Not a policy, an absence of the mechanism.',
                   },
                 ].map((item, index) => (
                   <li

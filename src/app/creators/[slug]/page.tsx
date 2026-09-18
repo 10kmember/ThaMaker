@@ -44,8 +44,8 @@ export async function generateMetadata({ params }: Params) {
     title: creator.displayName,
     description:
       wins.length > 0
-        ? `${creator.displayName} holds ${wins.length} PALMA ${pluralise(wins.length, 'award')} — ${wins.map((entry) => `${entry.categoryName} ${entry.year}`).join(', ')}. The permanent PALMA record.`
-        : `${creator.displayName} — ${creator.headline ?? 'creator'} in the PALMA record.`,
+        ? `${creator.displayName} holds ${wins.length} PALMA ${pluralise(wins.length, 'award')}, ${wins.map((entry) => `${entry.categoryName} ${entry.year}`).join(', ')}. The permanent PALMA record.`
+        : `${creator.displayName}, ${creator.headline ?? 'creator'} in the PALMA record.`,
     path: `/creators/${creator.slug}`,
     image: `/creators/${creator.slug}/opengraph-image`,
     type: 'profile',
@@ -287,7 +287,7 @@ export default async function CreatorPage({ params }: Params) {
                     {wins.length} PALMA {pluralise(wins.length, 'win')}
                   </p>
                   <p className="text-taupe-deep text-sm leading-relaxed">
-                    {wins.map((entry) => `${entry.categoryName} — ${entry.year}`).join(' · ')}
+                    {wins.map((entry) => `${entry.categoryName}, ${entry.year}`).join(' · ')}
                   </p>
                 </div>
               ) : null}
@@ -310,7 +310,7 @@ export default async function CreatorPage({ params }: Params) {
               </div>
 
               {/* A record exists before its creator has an account. This is the
-                  only route by which the two are ever joined — and it opens a
+                  only route by which the two are ever joined, and it opens a
                   request, not a door. */}
               {creator.isClaimed ? (
                 <div className="border-stone-deep flex flex-col gap-3 border p-7">
@@ -325,7 +325,7 @@ export default async function CreatorPage({ params }: Params) {
                   <h2 className="palma-label text-taupe-deep">Is this you?</h2>
                   <p className="text-taupe-deep text-sm leading-relaxed">
                     PALMA wrote this record when {creator.displayName} was first nominated. Claim it
-                    to manage how you are described — PALMA reviews every claim by hand before the
+                    to manage how you are described, PALMA reviews every claim by hand before the
                     record is treated as yours.
                   </p>
                   <Button asChild size="sm" variant="outline" className="mt-1 self-start">
@@ -334,14 +334,14 @@ export default async function CreatorPage({ params }: Params) {
 
                   {/* The other half of the same sentence. A record PALMA wrote
                       about somebody who never asked rests on legitimate
-                      interests, and the person named may object — so the
+                      interests, and the person named may object, so the
                       objection is offered as plainly as the claim, rather than
                       buried in a privacy notice they would have to go and
                       find. */}
                   <div className="border-stone-deep/60 mt-4 border-t pt-4">
                     <p className="text-taupe text-xs leading-relaxed">
                       It is you, and you would rather not be here? PALMA wrote this record without
-                      asking, and you can have it taken down —{' '}
+                      asking, and you can have it taken down,{' '}
                       <Link
                         href={`/creators/${creator.slug}/object`}
                         className="palma-link text-taupe-deep"

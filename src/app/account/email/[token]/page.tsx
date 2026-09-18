@@ -30,7 +30,7 @@ export default async function ConfirmEmailPage({ params }: { params: Promise<{ t
               <h1 className="text-4xl leading-tight">Your address is changed.</h1>
               <p className="text-taupe-deep leading-relaxed">
                 Your PALMA account now signs in with <strong>{result.email}</strong>. Everything
-                else is untouched — your record, your Dossier and your sessions are as they were.
+                else is untouched, your record, your Dossier and your sessions are as they were.
               </p>
               <Button asChild className="self-start">
                 <Link href="/account">Back to your account</Link>
@@ -41,7 +41,7 @@ export default async function ConfirmEmailPage({ params }: { params: Promise<{ t
               <h1 className="text-4xl leading-tight">That link did not work.</h1>
               <Notice tone="warning" title="Nothing has changed">
                 {result.reason === 'taken'
-                  ? 'That address now belongs to another PALMA account. Your account is untouched — choose a different address from your account page.'
+                  ? 'That address now belongs to another PALMA account. Your account is untouched. Choose a different address from your account page.'
                   : 'A confirmation link lasts 24 hours, works once, and is cancelled when a newer one is requested. Start again from your account page.'}
               </Notice>
               <Link href="/account" className="palma-link text-ink self-start">

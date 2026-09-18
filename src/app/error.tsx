@@ -24,7 +24,7 @@ export default function Error({
           <span className="palma-label text-taupe-deep">Something went wrong</span>
           <h1 className="text-4xl sm:text-5xl">The record is intact</h1>
           <p className="text-taupe-deep leading-relaxed">
-            This page could not be rendered. Nothing has been changed — PALMA does not alter the
+            This page could not be rendered. Nothing has been changed, PALMA does not alter the
             record on a failed request.
           </p>
           {error.digest ? (

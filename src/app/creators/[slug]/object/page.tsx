@@ -56,8 +56,8 @@ export default async function ObjectPage({ params }: { params: Promise<{ slug: s
             </Link>
             <h1 className="text-4xl leading-tight">Ask PALMA to remove this record</h1>
             <p className="text-taupe-deep leading-relaxed">
-              PALMA wrote this record without asking you. That is lawful — an awards archive has a
-              legitimate interest in keeping an accurate record of its industry — but it is not
+              PALMA wrote this record without asking you. That is lawful, an awards archive has a
+              legitimate interest in keeping an accurate record of its industry, but it is not
               something you agreed to, and you can object.
             </p>
           </div>
@@ -71,7 +71,7 @@ export default async function ObjectPage({ params }: { params: Promise<{ slug: s
                 <a href={`mailto:${CONTACTS.privacy}`} className="palma-link text-ink">
                   {CONTACTS.privacy}
                 </a>{' '}
-                and PALMA will investigate — a record held by the wrong person is the most serious
+                and PALMA will investigate, a record held by the wrong person is the most serious
                 thing that can go wrong here.
               </p>
             </div>
@@ -100,7 +100,7 @@ export default async function ObjectPage({ params }: { params: Promise<{ slug: s
                         <ul className="mt-1 flex flex-col gap-1">
                           {creator.links.map((link) => (
                             <li key={link.id} className="break-all">
-                              {link.label} — {link.url}
+                              {link.label}, {link.url}
                             </li>
                           ))}
                         </ul>
@@ -114,8 +114,8 @@ export default async function ObjectPage({ params }: { params: Promise<{ slug: s
                 </dl>
                 <p className="text-taupe mt-5 text-xs leading-relaxed">
                   No city, no age, no biography, no contact details, and nothing anyone wrote about
-                  you in a nomination — PALMA does not collect information about an unclaimed
-                  creator because it might be useful later. The full rule is in the{' '}
+                  you in a nomination, PALMA does not collect information about an unclaimed creator
+                  because it might be useful later. The full rule is in the{' '}
                   <Link href="/legal/privacy" className="palma-link text-taupe-deep">
                     privacy notice
                   </Link>
@@ -128,7 +128,7 @@ export default async function ObjectPage({ params }: { params: Promise<{ slug: s
                   <h2 className="palma-label text-champagne-deep mb-3">One thing to know first</h2>
                   <p className="text-taupe-deep text-sm leading-relaxed">
                     PALMA has conferred an honour on this record. The fact of a conferred honour is
-                    an institutional and archival record, and PALMA will normally keep it — an award
+                    an institutional and archival record, and PALMA will normally keep it, an award
                     that could be erased by the person who received it would not be worth receiving.
                   </p>
                   <p className="text-taupe-deep mt-3 text-sm leading-relaxed">
@@ -144,7 +144,7 @@ export default async function ObjectPage({ params }: { params: Promise<{ slug: s
               <p className="text-taupe text-xs leading-relaxed">
                 PALMA does not ask you to prove who you are to raise this, because requiring proof
                 would mean collecting more about you in order to hold less. If the request is
-                unusual — a record with honours, or a name several people use — a person may write
+                unusual, a record with honours, or a name several people use, a person may write
                 back and ask. You can also go straight to{' '}
                 <a href={`mailto:${CONTACTS.privacy}`} className="palma-link text-taupe-deep">
                   {CONTACTS.privacy}

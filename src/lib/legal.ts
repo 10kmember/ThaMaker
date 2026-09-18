@@ -108,7 +108,7 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
     title: 'Use of the PALMA Mark',
     shortTitle: 'The mark',
     summary:
-      'How finalists, winners, sponsors and the press may use the PALMA name, mark and seal — and how they may not.',
+      'How finalists, winners, sponsors and the press may use the PALMA name, mark and seal, and how they may not.',
     plainly: 'You won one. Here is exactly what you are allowed to say and show.',
     version: '1.0',
     effective: '2026-09-01',

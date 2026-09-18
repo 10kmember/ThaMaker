@@ -43,7 +43,7 @@ export async function generateMetadata({ params }: Params) {
   }
 
   return buildMetadata({
-    title: `${creator.displayName} — verified by PALMA`,
+    title: `${creator.displayName}. Verified by PALMA`,
     description: `${creator.displayName} holds ${honours.length} ${
       honours.length === 1 ? 'PALMA honour' : 'PALMA honours'
     }. A verified record.`,

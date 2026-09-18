@@ -32,9 +32,9 @@ export default function AccessibilityPage() {
             read is not a public record.
           </p>
           <p>
-            This statement says what has been done, what has been tested, and — in its own section
-            below — what is known not to meet the standard yet. A statement that lists only
-            successes is marketing.
+            This statement says what has been done, what has been tested, and, in its own section
+            below, what is known not to meet the standard yet. A statement that lists only successes
+            is marketing.
           </p>
         </>
       ),
@@ -51,7 +51,7 @@ export default function AccessibilityPage() {
             'Every animation is behind prefers-reduced-motion. With it set, content is shown in place rather than hidden until approached, and the heavy visual layers are never downloaded at all.',
             'Headings are hierarchical and used for structure, not size. Landmarks are real elements, and every region has a name.',
             'Forms have real labels, errors named in text, and validation messages associated with their field rather than announced loosely.',
-            'Colour never carries meaning alone. Every state — open, closed, verified, revoked — is also words.',
+            'Colour never carries meaning alone. Every state, open, closed, verified, revoked, is also words.',
             'The three themes, including a high-contrast ink theme, are chosen by the reader and remembered without an account.',
             'Text reflows to 320px without a horizontal scrollbar, and to 400% zoom without loss of content.',
           ]}
@@ -91,7 +91,7 @@ export default function AccessibilityPage() {
           />
           <p>
             No full independent audit has been carried out yet. The claims above are based on
-            PALMA&rsquo;s own testing — keyboard traversal, screen-reader passes, automated checks,
+            PALMA&rsquo;s own testing. Keyboard traversal, screen-reader passes, automated checks,
             and rendering at 320, 390, 768 and 1440 pixels in every theme. An external audit is
             planned before the first ceremony, and its findings will be published here whatever they
             say.
@@ -110,14 +110,14 @@ export default function AccessibilityPage() {
               {CONTACTS.accessibility}
             </a>
             . Tell us the page, what you were trying to do, what stopped you, and what you are using
-            — a screen reader and its version, a browser, a magnifier, keyboard only. Any of that
+            , a screen reader and its version, a browser, a magnifier, keyboard only. Any of that
             helps; none of it is required.
           </p>
           <Clauses
             items={[
               'PALMA acknowledges within 5 working days.',
               'PALMA gives a substantive answer within 20 working days, including whether it will fix the issue and by when.',
-              'If something blocks you from nominating while a season is open, say so — PALMA will take the nomination another way rather than let a barrier cost a creator their entry.',
+              'If something blocks you from nominating while a season is open, say so, PALMA will take the nomination another way rather than let a barrier cost a creator their entry.',
               'Confirmed barriers are added to the table above, publicly, until they are fixed.',
             ]}
           />

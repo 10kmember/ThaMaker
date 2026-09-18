@@ -81,7 +81,7 @@ export function PlacementForm({
         htmlFor="placement"
         label="What they funded"
         required
-        hint="Association follows the thing they funded — and goes nowhere else."
+        hint="Association follows the thing they funded, and goes nowhere else."
       >
         <Select
           id="placement"

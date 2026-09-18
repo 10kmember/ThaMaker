@@ -33,7 +33,7 @@ export function PalmaSeal({
         className,
       )}
       role="img"
-      aria-label={[legend, sublegend, centre].filter(Boolean).join(' — ')}
+      aria-label={[legend, sublegend, centre].filter(Boolean).join(', ')}
     >
       <defs>
         <path id="palma-seal-upper" d="M110 110 m-84 0 a84 84 0 0 1 168 0" fill="none" />

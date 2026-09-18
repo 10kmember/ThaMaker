@@ -39,7 +39,7 @@ export default async function PressPage() {
         title="Press"
         standfirst="Everything a newsroom needs to write about PALMA accurately, including the exact wording of an honour and a way to check any claim about one."
         meta={[
-          current ? `Current season — PALMA ${current.year}` : 'Between seasons',
+          current ? `Current season, PALMA ${current.year}` : 'Between seasons',
           `${categories.length} categories`,
           `${honours} honours on the record`,
         ]}
@@ -65,11 +65,11 @@ export default async function PressPage() {
           <div className="grid gap-14 lg:grid-cols-12 lg:gap-16">
             <div className="lg:col-span-7">
               <h2 className="palma-label text-taupe-deep border-stone-deep border-b pb-3">
-                Boilerplate — copy this
+                Boilerplate. Copy this
               </h2>
               <blockquote className="border-olive/40 mt-6 border-l-2 pl-6">
                 <p className="font-display text-xl leading-snug">
-                  PALMA — The Creator Honours is a United Kingdom awards institution and permanent
+                  PALMA, The Creator Honours is a United Kingdom awards institution and permanent
                   public record of achievement in the creator industry. Nominations are free and
                   open to the public; honours are conferred by an independent panel judging against
                   published criteria, in which audience size is explicitly not a criterion. Every
@@ -80,7 +80,7 @@ export default async function PressPage() {
 
               <p className="text-taupe mt-6 text-sm leading-relaxed">
                 {ENTITY.name}, trading as {ENTITY.tradingAs}, {ENTITY.jurisdiction}. The brand is
-                always <strong className="text-ink">PALMA</strong> — set in capitals, never
+                always <strong className="text-ink">PALMA</strong>. Set in capitals, never
                 &ldquo;Palma Awards&rdquo; in body copy. The archive is the{' '}
                 <strong className="text-ink">PALMA Roll of Honour</strong>, abbreviated{' '}
                 <strong className="text-ink">PaROH</strong>, with that exact casing. It is never
@@ -148,7 +148,7 @@ export default async function PressPage() {
             <div className="border-stone-deep bg-ivory border p-8">
               <h3 className="palma-label text-olive mb-5">Accurate</h3>
               <ul className="text-ink flex flex-col gap-3 text-sm leading-relaxed">
-                <li>&ldquo;PALMA 2027 Winner — Best Independent Creator&rdquo;</li>
+                <li>&ldquo;PALMA 2027 Winner, Best Independent Creator&rdquo;</li>
                 <li>&ldquo;a finalist at the 2027 PALMA Creator Honours&rdquo;</li>
                 <li>&ldquo;honoured by PALMA in 2027&rdquo;</li>
                 <li>&ldquo;named in the PALMA Roll of Honour&rdquo;</li>
@@ -160,9 +160,9 @@ export default async function PressPage() {
                 <li>&ldquo;PALMA winner&rdquo; with no category or year</li>
                 <li>&ldquo;PALMA-endorsed&rdquo; or &ldquo;official PALMA creator&rdquo;</li>
                 <li>
-                  &ldquo;voted for by the public&rdquo; — the public nominates, the panel judges
+                  &ldquo;voted for by the public&rdquo;, the public nominates, the panel judges
                 </li>
-                <li>&ldquo;PALMA Hall of Fame&rdquo; — it is the Roll of Honour</li>
+                <li>&ldquo;PALMA Hall of Fame&rdquo;. It is the Roll of Honour</li>
                 <li>Any nomination figure. PALMA does not publish them.</li>
               </ul>
             </div>
@@ -174,7 +174,7 @@ export default async function PressPage() {
               /verify
             </Link>{' '}
             returns the honour, the season, the category and its current state, including whether it
-            has been revoked — no account, no request to PALMA. Please check a claim rather than
+            has been revoked, no account, no request to PALMA. Please check a claim rather than
             asking us to confirm one. The full rules are in{' '}
             <Link href="/legal/mark" className="palma-link text-ink">
               use of the PALMA mark
@@ -203,7 +203,7 @@ export default async function PressPage() {
                   ],
                   ['Audience size as a criterion', 'Not used'],
                   ['Cost to nominate', 'Free'],
-                  ['Cost to be shortlisted or to win', 'Free — and unpurchasable'],
+                  ['Cost to be shortlisted or to win', 'Free, and unpurchasable'],
                   ['Honours on the record', String(honours)],
                   [
                     'Ceremony',
@@ -283,8 +283,8 @@ export default async function PressPage() {
                     {CONTACTS.press}
                   </a>
                   . PALMA answers within two working days during a season. It does not brief results
-                  in advance, on or off the record, to anyone — including partners — and a request
-                  for an embargoed winner list will be declined.
+                  in advance, on or off the record, to anyone, including partners, and a request for
+                  an embargoed winner list will be declined.
                 </p>
               </div>
             </div>

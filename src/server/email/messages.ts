@@ -53,12 +53,12 @@ export function sendWelcome(input: { to: string; userId: string; name: string })
       body: [
         lede(`Welcome, ${e(firstName)}.`),
         paragraph(
-          'Your account is open. What it gives you is a way to hold your record — not a profile page you publish, but a place in an archive PALMA keeps.',
+          'Your account is open. What it gives you is a way to hold your record, not a profile page you publish, but a place in an archive PALMA keeps.',
         ),
         rule(),
         label('The difference, since it matters'),
         paragraph(
-          'PALMA writes a creator record the first time someone is nominated. It exists before you do anything, and it goes on existing whether or not you ever sign in. Claiming it means the institution accepts that the person behind the account is the person in the record — after a human has looked.',
+          'PALMA writes a creator record the first time someone is nominated. It exists before you do anything, and it goes on existing whether or not you ever sign in. Claiming it means the institution accepts that the person behind the account is the person in the record. After a human has looked.',
         ),
         paragraph(
           'You decide how you are described. PALMA decides what it says happened. Nobody edits the history, including us, without it showing.',
@@ -66,7 +66,7 @@ export function sendWelcome(input: { to: string; userId: string; name: string })
         rule(),
         label('Where to start'),
         steps([
-          'Search the archive for yourself. If a record exists, claim it — most do.',
+          'Search the archive for yourself. If a record exists, claim it. Most do.',
           'If none exists, start one: write it yourself, or give us the links and our editorial desk writes it from the work.',
           'Complete age and identity assurance. PALMA never receives or stores your documents; we keep only that the check happened.',
         ]),
@@ -80,12 +80,12 @@ export function sendWelcome(input: { to: string; userId: string; name: string })
     text: plain([
       `Welcome, ${firstName}.`,
       '',
-      'Your account is open. It gives you a way to hold your record — not a profile page you publish, but a place in an archive PALMA keeps.',
+      'Your account is open. It gives you a way to hold your record, not a profile page you publish, but a place in an archive PALMA keeps.',
       '',
       'PALMA writes a creator record the first time someone is nominated. Claiming it means the institution accepts that the person behind the account is the person in the record, after a human has looked. You decide how you are described. PALMA decides what it says happened.',
       '',
       'Where to start:',
-      '1. Search the archive for yourself and claim your record — most exist already.',
+      '1. Search the archive for yourself and claim your record. Most exist already.',
       '2. If none exists, start one: write it yourself, or give us the links.',
       '3. Complete age and identity assurance. PALMA never stores your documents.',
       '',
@@ -122,7 +122,7 @@ export function sendPasswordReset(input: { to: string; userId: string; url: stri
         ]),
         aside({
           title: 'If it was not you',
-          body: `Nothing has changed and you do not need to do anything — the link expires on its own. If you are getting these and did not ask, reply to this message and a person will read it.`,
+          body: `Nothing has changed and you do not need to do anything, the link expires on its own. If you are getting these and did not ask, reply to this message and a person will read it.`,
           tone: 'warning',
         }),
         quiet(
@@ -173,11 +173,11 @@ export function sendOperatorInvite(input: {
     subject: 'Set up your PALMA staff account',
     html: shell({
       mailbox: 'security',
-      preheader: `${input.invitedBy} added you to PALMA — ${input.entranceTitle}.`,
+      preheader: `${input.invitedBy} added you to PALMA, ${input.entranceTitle}.`,
       body: [
         lede(`Welcome to the desk, ${e(firstName)}.`),
         paragraph(
-          `${e(input.invitedBy)} has given you a PALMA account with access to ${e(input.entranceTitle)}. The link below sets your password — nobody at PALMA, including whoever invited you, can see or set it for you.`,
+          `${e(input.invitedBy)} has given you a PALMA account with access to ${e(input.entranceTitle)}. The link below sets your password. Nobody at PALMA, including whoever invited you, can see or set it for you.`,
         ),
         action({ href: input.url, label: 'Set your password' }),
         fallbackLink(input.url),
@@ -188,11 +188,11 @@ export function sendOperatorInvite(input: {
         ]),
         aside({
           title: 'Not expecting this',
-          body: 'If you do not recognise PALMA or the person named above, ignore this message — the link expires on its own and no account will be usable without it.',
+          body: 'If you do not recognise PALMA or the person named above, ignore this message, the link expires on its own and no account will be usable without it.',
           tone: 'warning',
         }),
         quiet(
-          'If this link expires before you use it, ask whoever invited you to send a new one from Users & roles — that page can reissue it at any time.',
+          'If this link expires before you use it, ask whoever invited you to send a new one from Users & roles. That page can reissue it at any time.',
         ),
       ].join('\n'),
     }),
@@ -232,7 +232,7 @@ export function sendPasswordChanged(input: { to: string; userId: string; when: D
         ),
         aside({
           title: 'If this was not you',
-          body: `Reply to this message immediately. Do not use the reset link in any other email you have received — reply to this one, which reaches ${MAILBOXES.security.address} directly.`,
+          body: `Reply to this message immediately. Do not use the reset link in any other email you have received. Reply to this one, which reaches ${MAILBOXES.security.address} directly.`,
           tone: 'warning',
         }),
       ].join('\n'),
@@ -329,7 +329,7 @@ export function sendEmailChangeNotice(input: { to: string; userId: string; newEm
       '',
       'The change only completes when the new address confirms it.',
       '',
-      'If this was not you, reply now — we can stop it before it completes.',
+      'If this was not you, reply now. We can stop it before it completes.',
     ]),
     dossier: {
       body: `A change of address to ${input.newEmail} was requested on this account.`,
@@ -358,7 +358,7 @@ export function sendAccountClosed(input: { to: string; userId: string; heldRecor
         label('Kept'),
         paragraph(
           input.heldRecord
-            ? 'The creator record itself, and any honour on it. PALMA’s record of what happened is not a personal profile and does not belong to the account that held it — an award that could be deleted by the person who received it would not be worth receiving.'
+            ? 'The creator record itself, and any honour on it. PALMA’s record of what happened is not a personal profile and does not belong to the account that held it, an award that could be deleted by the person who received it would not be worth receiving.'
             : 'PALMA’s audit log, which records that this account existed and was closed. It contains no personal detail beyond that.',
         ),
         quiet(
@@ -396,14 +396,14 @@ export function sendClaimApproved(input: {
     to: input.to,
     userId: input.userId,
     creatorId: input.creatorId,
-    subject: `Your PALMA record is yours — ${input.creatorName}`,
+    subject: `Your PALMA record is yours, ${input.creatorName}`,
     html: shell({
       mailbox: 'concierge',
       preheader: 'Reviewed by a person. Here is what it does and does not permit.',
       body: [
         plate({ eyebrow: 'Claim upheld', title: input.creatorName, meta: 'Held by your account' }),
         paragraph(
-          'A moderator reviewed your claim and accepted it. The record you claimed is the same record it was a moment ago — it has not been replaced, duplicated or reset. It is simply yours to hold now.',
+          'A moderator reviewed your claim and accepted it. The record you claimed is the same record it was a moment ago. It has not been replaced, duplicated or reset. It is simply yours to hold now.',
         ),
         action({ href: `${siteUrl}/creator`, label: 'Open your portal' }),
         rule(),
@@ -419,9 +419,9 @@ export function sendClaimApproved(input: {
       ].join('\n'),
     }),
     text: plain([
-      `Your PALMA record is yours — ${input.creatorName}`,
+      `Your PALMA record is yours, ${input.creatorName}`,
       '',
-      'A moderator reviewed your claim and accepted it. The record has not been replaced, duplicated or reset — it is the same record, now held by your account.',
+      'A moderator reviewed your claim and accepted it. The record has not been replaced, duplicated or reset. It is the same record, now held by your account.',
       '',
       'You can change how you are described: name, pronouns, country, city, headline, biography, portrait, website and links.',
       '',
@@ -460,7 +460,7 @@ export function sendClaimRefused(input: {
         ),
         aside({ title: 'The reason given', body: e(input.reason) }),
         paragraph(
-          'This is not a judgement about who you are. A claim is refused when the evidence in front of the desk did not establish control of the work — which is often a matter of what was submitted rather than who submitted it.',
+          'This is not a judgement about who you are. A claim is refused when the evidence in front of the desk did not establish control of the work, which is often a matter of what was submitted rather than who submitted it.',
         ),
         rule(),
         label('If you disagree'),
@@ -478,7 +478,7 @@ export function sendClaimRefused(input: {
       '',
       `Reason: ${input.reason}`,
       '',
-      'A claim is refused when the evidence did not establish control of the work — often a matter of what was submitted rather than who submitted it.',
+      'A claim is refused when the evidence did not establish control of the work. Often a matter of what was submitted rather than who submitted it.',
       '',
       'If you disagree, reply with what the desk did not have. A link from a platform you plainly control settles most claims. If you believe the decision was wrong rather than incomplete, say so and a second reviewer looks.',
     ]),
@@ -514,14 +514,14 @@ export function sendRecordPublished(input: {
         ),
         action({ href: url, label: 'See your record' }),
         quiet(
-          'Keep your links current — the desk reads the record from them, and a dead link is the usual reason a record falls out of date.',
+          'Keep your links current, the desk reads the record from them, and a dead link is the usual reason a record falls out of date.',
         ),
       ].join('\n'),
     }),
     text: plain([
       'Your PALMA record is published.',
       '',
-      `${input.creatorName} — ${url}`,
+      `${input.creatorName}, ${url}`,
       '',
       'A moderator checked it against the work before publishing. Keep your links current: the desk reads the record from them.',
     ]),
@@ -616,7 +616,7 @@ export function sendHonourConferred(input: {
       eyebrow: 'Shortlisted',
       subject: `You are on the PALMA ${input.year} shortlist`,
       lede: 'You have been shortlisted.',
-      body: 'An independent panel read the case PALMA prepared and put you through. Nobody campaigned you here — the panel does not see nomination numbers, and PALMA does not publish them.',
+      body: 'An independent panel read the case PALMA prepared and put you through. Nobody campaigned you here, the panel does not see nomination numbers, and PALMA does not publish them.',
     },
     finalist: {
       eyebrow: 'Finalist',
@@ -683,7 +683,7 @@ export function sendHonourConferred(input: {
     text: plain([
       kindCopy.lede,
       '',
-      `${input.creatorName} — ${input.categoryName}, PALMA ${input.year}`,
+      `${input.creatorName}, ${input.categoryName}, PALMA ${input.year}`,
       '',
       kindCopy.body,
       input.verificationCode
@@ -693,7 +693,7 @@ export function sendHonourConferred(input: {
       'You may state the honour you hold and use the PALMA mark to do it.',
     ]),
     dossier: {
-      body: `${kindCopy.eyebrow} — ${input.categoryName}, PALMA ${input.year}.`,
+      body: `${kindCopy.eyebrow}, ${input.categoryName}, PALMA ${input.year}.`,
       href: input.verificationCode ? `/verify/${input.verificationCode}` : '/creator',
     },
   });
@@ -725,7 +725,7 @@ export function sendHonourRevoked(input: {
         ]),
         aside({ title: 'The reason given', body: e(input.reason), tone: 'warning' }),
         paragraph(
-          'Nothing has been deleted. The honour, its achievement and its verification page remain and now read <em>revoked</em> — because an institution that quietly removes what it once said is not keeping a record.',
+          'Nothing has been deleted. The honour, its achievement and its verification page remain and now read <em>revoked</em>, because an institution that quietly removes what it once said is not keeping a record.',
         ),
         rule(),
         label('If you contest this'),
@@ -770,7 +770,7 @@ export function sendCandidacyUpdate(input: {
     userId: input.userId,
     creatorId: input.creatorId,
     subject: accepted
-      ? `You are in contention — ${input.categoryName} ${input.year}`
+      ? `You are in contention, ${input.categoryName} ${input.year}`
       : `A candidacy of yours was ruled ineligible`,
     html: shell({
       mailbox: 'laurels',
@@ -783,7 +783,7 @@ export function sendCandidacyUpdate(input: {
         ]),
         accepted
           ? paragraph(
-              'PALMA has screened the nominations and accepted your candidacy into the category. From here a panel judges the case the institution prepares — not a popularity contest, and not a submission you write.',
+              'PALMA has screened the nominations and accepted your candidacy into the category. From here a panel judges the case the institution prepares, not a popularity contest, and not a submission you write.',
             )
           : paragraph(
               'PALMA has ruled this candidacy ineligible for the season. It does not affect anything else on your record.',
@@ -799,7 +799,7 @@ export function sendCandidacyUpdate(input: {
     text: plain([
       accepted ? 'You are in contention.' : 'A candidacy was ruled ineligible.',
       '',
-      `${input.categoryName} — PALMA ${input.year}`,
+      `${input.categoryName}, PALMA ${input.year}`,
       '',
       accepted
         ? 'PALMA has screened the nominations and accepted your candidacy. A panel judges the case the institution prepares.'
@@ -857,7 +857,7 @@ export function sendPanelAssignment(input: {
       ].join('\n'),
     }),
     text: plain([
-      `You are seated on the ${input.categoryName} panel — PALMA ${input.year}.`,
+      `You are seated on the ${input.categoryName} panel, PALMA ${input.year}.`,
       '',
       `${input.caseCount === 1 ? 'One case is' : `${input.caseCount} cases are`} waiting in the judging room: ${siteUrl}/judge`,
       '',
@@ -901,7 +901,7 @@ export function sendEnforcementNotice(input: {
         input.restored
           ? paragraph('Your account works as it did before. Nothing on your record was altered.')
           : paragraph(
-              'This concerns your account and any record it holds. PALMA’s record of what happened is unchanged — enforcement restricts access, it does not rewrite history.',
+              'This concerns your account and any record it holds. PALMA’s record of what happened is unchanged. Enforcement restricts access, it does not rewrite history.',
             ),
         input.restored
           ? ''
@@ -923,7 +923,7 @@ export function sendEnforcementNotice(input: {
       '',
       input.restored
         ? 'Your account works as it did before. Nothing on your record was altered.'
-        : 'Enforcement restricts access; it does not rewrite history. If you disagree, reply to this message — appeals are read by an administrator who did not take the action.',
+        : 'Enforcement restricts access; it does not rewrite history. If you disagree, reply to this message. Appeals are read by an administrator who did not take the action.',
     ]),
     dossier: {
       body: input.restored
@@ -948,7 +948,7 @@ export function sendNominationCode(input: {
     subject: `${input.code} is your PALMA verification code`,
     html: shell({
       mailbox: 'concierge',
-      preheader: `${input.code} — expires in ${MINUTES} minutes.`,
+      preheader: `${input.code}. Expires in ${MINUTES} minutes.`,
       body: [
         lede('Confirm your nomination.'),
         paragraph(
@@ -960,7 +960,7 @@ export function sendNominationCode(input: {
           ['Uses', 'Once'],
         ]),
         quiet(
-          'If you did not ask to nominate anyone, ignore this — nothing has been recorded and no account has been created.',
+          'If you did not ask to nominate anyone, ignore this. Nothing has been recorded and no account has been created.',
         ),
       ].join('\n'),
     }),
@@ -970,7 +970,7 @@ export function sendNominationCode(input: {
       `It confirms your nomination of ${input.creatorName} for ${input.categoryName}.`,
       `The code expires in ${MINUTES} minutes and can be used once.`,
       '',
-      'If you did not ask to nominate anyone, ignore this email — nothing has been recorded.',
+      'If you did not ask to nominate anyone, ignore this email. Nothing has been recorded.',
     ]),
   });
 }
@@ -988,7 +988,7 @@ export function sendNominationReceipt(input: {
     subject: 'Your PALMA nomination has been recorded',
     html: shell({
       mailbox: 'laurels',
-      preheader: `${input.creatorName} — ${input.categoryName}, PALMA ${input.year}`,
+      preheader: `${input.creatorName}, ${input.categoryName}, PALMA ${input.year}`,
       body: [
         plate({
           eyebrow: 'Nomination recorded',
@@ -1016,7 +1016,7 @@ export function sendNominationReceipt(input: {
     text: plain([
       'Your nomination has been recorded.',
       '',
-      `${input.creatorName} — ${input.categoryName}, PALMA ${input.year}`,
+      `${input.creatorName}, ${input.categoryName}, PALMA ${input.year}`,
       `Reference ${input.reference}`,
       '',
       'PALMA screens every nomination, gathers the evidence itself, and an independent panel judges. Nomination numbers are not a leaderboard and do not decide the outcome.',

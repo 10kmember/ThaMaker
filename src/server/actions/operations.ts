@@ -191,7 +191,7 @@ export async function addInternalNote(
   });
 
   revalidatePath(`/portal/creators/${creator.slug}`);
-  return { status: 'success', message: 'Note added. Staff only — it is never published.' };
+  return { status: 'success', message: 'Note added. Staff only. It is never published.' };
 }
 
 /** Open a manual age-assurance case. */

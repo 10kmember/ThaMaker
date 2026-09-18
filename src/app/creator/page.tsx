@@ -64,7 +64,7 @@ export default async function PortalPage() {
         <section className="border-stone-deep mt-12 border p-8">
           <span className="palma-label text-taupe-deep">No record yet</span>
           <h2 className="mt-3 text-3xl leading-tight">
-            PALMA has not written a record for you — or you have not claimed it.
+            PALMA has not written a record for you, or you have not claimed it.
           </h2>
           <p className="text-taupe-deep mt-4 max-w-160 leading-relaxed">
             A record is usually written the first time a creator is nominated, so one may already
@@ -87,7 +87,7 @@ export default async function PortalPage() {
             <div className="border-stone-deep flex flex-col gap-3 border p-6">
               <span className="palma-label text-champagne-deep">If it does not</span>
               <p className="text-taupe-deep text-sm leading-relaxed">
-                Start one. Write it yourself or ask PALMA to write it from your links — either way a
+                Start one. Write it yourself or ask PALMA to write it from your links. Either way a
                 moderator checks it before it is published.
               </p>
               <Button asChild size="sm" className="mt-auto self-start">
@@ -188,7 +188,7 @@ export default async function PortalPage() {
             </p>
           </section>
 
-          {/* Editable whether or not the record is published — the person
+          {/* Editable whether or not the record is published, the person
               waiting on a moderator is exactly the one who needs to fix it. */}
           {portal.profile ? (
             <>
@@ -197,7 +197,7 @@ export default async function PortalPage() {
                 <p className="text-taupe-deep mb-6 max-w-140 text-sm leading-relaxed">
                   One picture, shown on your record, on your nomination link and wherever PALMA
                   names you. Without one your record carries the PALMA plate, which is a deliberate
-                  design rather than a gap — but the plate is not you.
+                  design rather than a gap, but the plate is not you.
                 </p>
                 <PortraitForm
                   standing={portal.portrait}
@@ -249,7 +249,7 @@ export default async function PortalPage() {
               <>
                 <p className="text-taupe-deep mb-4 text-sm leading-relaxed">
                   Share this with your audience. It opens a nomination page with you already chosen
-                  — nothing more. It carries no extra weight with the panel, and the number of
+                  . Nothing more. It carries no extra weight with the panel, and the number of
                   nominations it brings in does not decide anything.
                 </p>
                 <p className="border-stone-deep bg-stone/25 mb-4 border px-4 py-3 font-mono text-sm break-all">
@@ -297,8 +297,8 @@ export default async function PortalPage() {
               ) : null}
             </div>
             <p className="text-taupe-deep mt-4 text-sm leading-relaxed">
-              Everything PALMA has told you, kept — decisions on your record, honours, and changes
-              to your account. Entries are written whether or not the email reached you.
+              Everything PALMA has told you, kept. Decisions on your record, honours, and changes to
+              your account. Entries are written whether or not the email reached you.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Button asChild variant="outline" size="sm">
@@ -313,7 +313,7 @@ export default async function PortalPage() {
               <h3 className="palma-label text-taupe-deep mb-2">What reaches your inbox</h3>
               <p className="text-taupe mb-5 text-xs leading-relaxed">
                 These govern announcements only. Decisions about your record, and anything
-                concerning the safety of your account, are sent regardless — an institution you can
+                concerning the safety of your account, are sent regardless, an institution you can
                 mute is not keeping you informed.
               </p>
               <PreferencesForm defaults={portal.preferences} />

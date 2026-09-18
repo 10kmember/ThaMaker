@@ -75,7 +75,7 @@ export default async function AdminNominationsPage({
 
       <Notice className="mt-8" title="What the count is for">
         Nomination numbers tell PALMA where the audience is pointing. They are an input to discovery
-        and to integrity screening — nothing in the judging path reads them, judges never see them,
+        and to integrity screening. Nothing in the judging path reads them, judges never see them,
         and they are never published.
       </Notice>
 

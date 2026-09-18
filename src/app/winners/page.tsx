@@ -170,7 +170,7 @@ export default async function WinnersPage({ searchParams }: Props) {
                 The panel judged {declined.length === 1 ? 'this category' : 'these categories'} and
                 recommended that no PALMA be conferred. Where a category receives too few
                 candidacies that meet the standard, PALMA declines it rather than lower the standard
-                — and says so, because an award conferred every year regardless means less every
+                , and says so, because an award conferred every year regardless means less every
                 year.
               </p>
 

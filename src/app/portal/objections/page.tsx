@@ -67,7 +67,7 @@ export default async function ObjectionsPage() {
       <Notice className="mt-8" title="The default answer is yes">
         For an unclaimed record with no honour on it, uphold the objection. It is somebody
         exercising a right, not a negotiation, and PALMA has no institutional interest in a record
-        of somebody who does not want one. Refuse only where an honour has been conferred — and even
+        of somebody who does not want one. Refuse only where an honour has been conferred, and even
         then, the record is reduced to the achievement rather than kept whole.
       </Notice>
 
@@ -142,7 +142,7 @@ export default async function ObjectionsPage() {
                     </div>
                   ) : (
                     <p className="text-taupe mt-6 text-xs leading-relaxed">
-                      No reason given — none is required, and asking for one is not a condition of
+                      No reason given. None is required, and asking for one is not a condition of
                       acting.
                     </p>
                   )}

@@ -32,9 +32,9 @@ export default async function SearchPage({
         <span className="palma-label text-taupe-deep">Command centre</span>
         <h1 className="text-4xl">Search</h1>
         <p className="text-taupe-deep max-w-160 leading-relaxed">
-          One search across the institution — creators, accounts, claims, verification cases,
-          honours and the audit log. It works because there is one record per thing: a creator is
-          the same row wherever you meet them.
+          One search across the institution. Creators, accounts, claims, verification cases, honours
+          and the audit log. It works because there is one record per thing: a creator is the same
+          row wherever you meet them.
         </p>
       </div>
 

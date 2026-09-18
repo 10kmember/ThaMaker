@@ -99,10 +99,10 @@ export default function ThePalmaPage() {
               <div className="palma-prose">
                 <Reveal delay={0.15}>
                   <p>
-                    Every other honour PALMA confers is a judgement about a season — a piece of
-                    work, a year, a category. THE PALMA is a judgement about a career. It is the
-                    only honour the institution names after itself, and the only one conferred
-                    without a category above it, because there is nothing above it.
+                    Every other honour PALMA confers is a judgement about a season, a piece of work,
+                    a year, a category. THE PALMA is a judgement about a career. It is the only
+                    honour the institution names after itself, and the only one conferred without a
+                    category above it, because there is nothing above it.
                   </p>
                 </Reveal>
 
@@ -110,7 +110,7 @@ export default function ThePalmaPage() {
                   <p>
                     There is one a year. It is not shared, there is no runner-up, and no creator
                     receives it twice. An honour that can be given again is a ranking of the already
-                    honoured; THE PALMA is meant to be terminal — the thing there is nothing after.
+                    honoured; THE PALMA is meant to be terminal, the thing there is nothing after.
                   </p>
                 </Reveal>
               </div>
@@ -129,7 +129,7 @@ export default function ThePalmaPage() {
                   </p>
 
                   <p className="text-taupe-deep mt-5 leading-relaxed">
-                    THE PALMA is winnable — is meant to be won — by a creator in the middle of an
+                    THE PALMA is winnable, is meant to be won, by a creator in the middle of an
                     active career whose contribution has already become culturally significant.
                     Someone can receive it and go on to do their best work afterwards. That is not a
                     flaw in the honour; it is the point of it.
@@ -225,7 +225,7 @@ export default function ThePalmaPage() {
             <p className="border-stone-deep text-taupe-deep mt-14 max-w-160 border-t pt-8 leading-relaxed">
               The difference between an award with authority and an award without one is whether its
               answer can be predicted from a public number. If THE PALMA could be worked out from a
-              follower count, nobody would need a panel — and nobody would care who won.
+              follower count, nobody would need a panel, and nobody would care who won.
             </p>
           </Reveal>
         </Container>
@@ -247,8 +247,8 @@ export default function ThePalmaPage() {
                 the institution.
               </p>
               <p className="text-taupe-deep leading-relaxed lg:col-span-5">
-                PALMA is not tied to January and December. The year <em>number</em> matters — it is
-                what the record is filed under, for ever — but the event sits in the middle of the
+                PALMA is not tied to January and December. The year <em>number</em> matters, it is
+                what the record is filed under, for ever, but the event sits in the middle of the
                 calendar, and THE PALMA is conferred in July. An institution that owns a season of
                 the year owns an anticipation that rebuilds itself every twelve months.
               </p>

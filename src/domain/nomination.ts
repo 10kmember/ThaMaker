@@ -141,7 +141,7 @@ export function checkNomination(input: NominationCheckInput): NominationCheck {
     return {
       ok: false,
       code: 'reason_too_long',
-      message: `Keep it under ${MAX_REASON_LENGTH} characters — PALMA does the investigating.`,
+      message: `Keep it under ${MAX_REASON_LENGTH} characters, PALMA does the investigating.`,
     };
   }
 

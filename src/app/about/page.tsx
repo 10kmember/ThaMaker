@@ -64,8 +64,8 @@ export default async function AboutPage() {
             <Reveal className="palma-prose lg:col-span-7">
               <p>
                 PALMA exists because the creator industry has been poorly served by recognition. The
-                awards it has tended to be offered measure audience — which is a measure of
-                distribution, not of work — and expire the moment the post scrolls past.
+                awards it has tended to be offered measure audience, which is a measure of
+                distribution, not of work, and expire the moment the post scrolls past.
               </p>
               <p>
                 PALMA is built the other way round. The archive came before the ceremony. Every
@@ -76,7 +76,7 @@ export default async function AboutPage() {
               <p>
                 We are deliberately narrow. PALMA is not a platform, a marketplace, a subscription
                 service or a social network. It hosts no creator work and brokers no services. Its
-                only authority is the care with which it keeps the record — so that is the thing we
+                only authority is the care with which it keeps the record, so that is the thing we
                 protect.
               </p>
             </Reveal>

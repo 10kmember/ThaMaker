@@ -35,7 +35,7 @@ export function FinalistCard({
         <span className="palma-label opacity-60">{countryName(finalist.creator.countryCode)}</span>
       </div>
 
-      {/* The portrait arrives desaturated and resolves on approach — a finalist
+      {/* The portrait arrives desaturated and resolves on approach, a finalist
           coming into focus, which is what this page is about. */}
       <div className="palma-card-media">
         <EditorialImage

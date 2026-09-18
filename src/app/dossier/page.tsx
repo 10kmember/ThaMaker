@@ -88,7 +88,7 @@ export default async function DossierPage({
             description={
               archived
                 ? 'Entries you file away are kept here. Nothing in the Dossier is ever deleted.'
-                : 'PALMA writes here when something happens that concerns you — a decision on your record, an honour, a change to your account.'
+                : 'PALMA writes here when something happens that concerns you, a decision on your record, an honour, a change to your account.'
             }
           />
         ) : (
@@ -136,7 +136,7 @@ export default async function DossierPage({
       </div>
 
       <p className="text-taupe mt-12 max-w-160 text-xs leading-relaxed">
-        Filing an entry away does not delete it — PALMA does not offer a way to destroy the notice
+        Filing an entry away does not delete it, PALMA does not offer a way to destroy the notice
         that it did something to you. Choose which announcements reach your inbox in your portal
         under Dossier preferences.
       </p>

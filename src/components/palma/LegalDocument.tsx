@@ -126,7 +126,7 @@ export function LegalDocumentPage({
               {doc.status === 'superseded' ? (
                 <Notice tone="warning" title="Superseded" className="mb-10">
                   A later version of this document is in force. This one is kept readable so that
-                  the terms governing a past season can still be produced — an institution that
+                  the terms governing a past season can still be produced, an institution that
                   quietly rewrites its terms has no terms.{' '}
                   <Link href={`/legal/${doc.slug}`} className="palma-link text-ink">
                     Read the current version

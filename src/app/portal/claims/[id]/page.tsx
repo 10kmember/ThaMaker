@@ -252,7 +252,7 @@ export default async function ClaimCasePage({ params }: { params: Promise<{ id: 
                 />
               </section>
             ) : (
-              <Notice tone="neutral" title={`Settled — ${titleCase(claim.status)}`}>
+              <Notice tone="neutral" title={`Settled, ${titleCase(claim.status)}`}>
                 {claim.decidedByEmail ? `Decided by ${claim.decidedByEmail}` : 'Decided'}
                 {claim.decidedAt ? ` on ${formatDate(claim.decidedAt)}` : ''}.
                 {claim.decisionNote ? ` ${claim.decisionNote}` : ''}

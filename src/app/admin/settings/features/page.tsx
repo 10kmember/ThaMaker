@@ -45,7 +45,7 @@ export default async function FeaturesPage() {
 
       <Notice className="mt-8" title="The line none of these crosses">
         PALMA never sells recognition. A sponsor buys visibility, association, hospitality and
-        editorial presence — never a nomination, a score, a finalist or a winner. That separation is
+        editorial presence, never a nomination, a score, a finalist or a winner. That separation is
         enforced in the permission matrix and asserted by tests, not left to this page to remember.
       </Notice>
 

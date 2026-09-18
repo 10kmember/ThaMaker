@@ -25,9 +25,7 @@ export default async function Image({ params }: { params: Promise<{ slug: string
         ? `${wins.length} PALMA ${pluralise(wins.length, 'honour')}`
         : 'In the record',
     name: creator.displayName,
-    line: latest
-      ? `${latest.categoryName} — PALMA ${latest.year}`
-      : (creator.headline ?? undefined),
+    line: latest ? `${latest.categoryName}, PALMA ${latest.year}` : (creator.headline ?? undefined),
     footer: 'palmaawards.com',
   });
 }

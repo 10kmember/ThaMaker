@@ -64,7 +64,7 @@ export function PortraitForm({ standing, name }: { standing: PortraitStanding; n
 
       {standing.status === 'rejected' && standing.rejectionReason ? (
         <Notice tone="warning" title="Not published">
-          {standing.rejectionReason} The image was deleted — upload a different one when you like.
+          {standing.rejectionReason} The image was deleted. Upload a different one when you like.
         </Notice>
       ) : null}
 
@@ -143,8 +143,8 @@ export function PortraitForm({ standing, name }: { standing: PortraitStanding; n
       ) : null}
 
       <p className="text-taupe text-xs leading-relaxed">
-        PALMA does not store the file you send. It is decoded, stripped of every scrap of metadata —
-        including the GPS coordinates a phone writes into a photograph — resized and re-encoded, and
+        PALMA does not store the file you send. It is decoded, stripped of every scrap of metadata,
+        including the GPS coordinates a phone writes into a photograph, resized and re-encoded, and
         only that version is kept. A moderator looks before it appears publicly, because PALMA hosts
         no explicit imagery and an upload is the one route by which some would arrive.
       </p>

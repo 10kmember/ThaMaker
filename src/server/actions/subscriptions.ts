@@ -41,7 +41,7 @@ const subscribeSchema = z.object({
 });
 
 const SAME_ANSWER =
-  'Check your inbox. If this address can join, a confirmation is on its way — nothing is sent until you open it.';
+  'Check your inbox. If this address can join, a confirmation is on its way. Nothing is sent until you open it.';
 
 /** A list PALMA is not running yet is not a list anybody can join. */
 async function listIsOffered(type: EmailListKey): Promise<boolean> {

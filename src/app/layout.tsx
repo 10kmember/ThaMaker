@@ -42,8 +42,8 @@ const annotation = Amatic_SC({
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: `${SITE_NAME} — ${SITE_DESCRIPTOR}`,
-    template: `%s — ${SITE_NAME}`,
+    default: `${SITE_NAME}, ${SITE_DESCRIPTOR}`,
+    template: `%s, ${SITE_NAME}`,
   },
   description:
     'PALMA, The Creator Honours. Recognising the people shaping creator culture, and keeping the permanent record of who they are.',
@@ -119,7 +119,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {chrome ? <SiteFooter /> : null}
         </MotionProvider>
         {/* Counts the page. Sets nothing, stores nothing, sends nothing about
-            the reader — see src/domain/measurement.ts. */}
+            the reader. See src/domain/measurement.ts. */}
         {chrome ? <PageCounter /> : null}
         <JsonLd data={organisationJsonLd()} />
       </body>

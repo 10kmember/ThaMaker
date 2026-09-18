@@ -60,7 +60,7 @@ export default async function SystemHealthPage() {
         <p className={cn('palma-label mt-2', TONE[worst])}>
           {worst === 'operational'
             ? 'All services operational'
-            : `Attention required — ${STATE_LABEL[worst].toLowerCase()}`}
+            : `Attention required, ${STATE_LABEL[worst].toLowerCase()}`}
           <span className="text-taupe ml-3 font-normal normal-case">
             checked {new Date(health.checkedAt).toISOString().slice(11, 19)} UTC
           </span>

@@ -60,7 +60,7 @@ export default async function SponsorsPage() {
               <p>
                 PALMA takes sponsorship, and is not embarrassed about it: an independent panel, a
                 screening team, a permanent archive and a ceremony all cost money, and the
-                alternative — charging creators to be nominated — would corrupt the thing itself.
+                alternative, charging creators to be nominated, would corrupt the thing itself.
               </p>
               <p>
                 What matters is that the money and the judgement never touch. There is no route
@@ -125,7 +125,7 @@ export default async function SponsorsPage() {
                     <div className="border-stone-deep/60 mt-auto flex flex-col gap-2 border-t pt-4 text-xs">
                       {sponsor.categoryName ? (
                         <span className="text-taupe">
-                          Category — <span className="text-ink">{sponsor.categoryName}</span>
+                          Category, <span className="text-ink">{sponsor.categoryName}</span>
                         </span>
                       ) : (
                         <span className="text-taupe">Across the season</span>

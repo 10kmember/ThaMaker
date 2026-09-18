@@ -191,7 +191,7 @@ export function VerificationForm({ status }: { status: string }) {
       <Feedback state={state} />
       <p className="text-taupe-deep text-sm leading-relaxed">
         PALMA creators must be 18 or over. Age and identity assurance is carried out by a specialist
-        third-party provider. PALMA never receives or stores your identity documents — only that the
+        third-party provider. PALMA never receives or stores your identity documents, only that the
         check succeeded, when, and the provider’s reference.
       </p>
       <Button

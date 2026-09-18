@@ -161,7 +161,7 @@ export const TEMPLATES = {
     key: 'candidacy_update',
     name: 'Candidacy update',
     mailbox: 'laurels',
-    purpose: 'A candidacy has moved — accepted into contention, or ruled ineligible.',
+    purpose: 'A candidacy has moved. Accepted into contention, or ruled ineligible.',
     gate: 'nominationUpdates',
     dossier: true,
   },
@@ -205,7 +205,7 @@ export const TEMPLATES = {
   /* ── the lists ────────────────────────────────────────────────────────── */
   list_confirm: {
     key: 'list_confirm',
-    name: 'List — confirm subscription',
+    name: 'List. Confirm subscription',
     mailbox: 'laurels',
     purpose: 'Double opt-in. Nothing is sent to an address that has not opened this.',
     gate: 'always',
@@ -213,7 +213,7 @@ export const TEMPLATES = {
   },
   list_welcome: {
     key: 'list_welcome',
-    name: 'List — welcome',
+    name: 'List. Welcome',
     mailbox: 'laurels',
     purpose: 'Confirms a subscription and says what the list is, how often, and how to leave.',
     gate: 'always',
@@ -221,10 +221,10 @@ export const TEMPLATES = {
   },
   list_issue: {
     key: 'list_issue',
-    name: 'List — issue',
+    name: 'List. Issue',
     mailbox: 'laurels',
     purpose:
-      'An issue sent to confirmed subscribers of one list. Targeting is by list, always — never a merged audience.',
+      'An issue sent to confirmed subscribers of one list. Targeting is by list, always, never a merged audience.',
     gate: 'subscription',
     dossier: false,
   },

@@ -117,7 +117,7 @@ export default async function PortalKulturePage() {
                     <td className="text-taupe-deep p-3">{entry.categoryLabel}</td>
                     <td className="p-3 tabular-nums">
                       {entry.verdict === null ? (
-                        <span className="text-taupe">—</span>
+                        <span className="text-taupe">, </span>
                       ) : (
                         <>
                           {entry.verdict.toFixed(1)}

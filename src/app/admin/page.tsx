@@ -101,7 +101,7 @@ async function Figures({ period, role }: { period: Period; role: Role }) {
 
       {degraded.length > 0 ? (
         <Notice tone="warning" title="A service is not healthy" className="mt-8">
-          {degraded.map((service) => service.name).join(', ')} —{' '}
+          {degraded.map((service) => service.name).join(', ')},{' '}
           <Link href="/admin/health" className="palma-link text-ink">
             system health
           </Link>
@@ -142,7 +142,7 @@ async function Figures({ period, role }: { period: Period; role: Role }) {
 
         {awards ? (
           <StatGrid
-            title={`Awards — ${awards.seasonTitle}, ${STAGE_LABEL[awards.stage as SeasonStage]}`}
+            title={`Awards, ${awards.seasonTitle}, ${STAGE_LABEL[awards.stage as SeasonStage]}`}
             stats={[
               { label: 'Categories', value: awards.categories },
               { label: 'Nominations', value: awards.nominations, href: '/admin/nominations' },

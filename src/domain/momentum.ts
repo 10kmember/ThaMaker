@@ -165,7 +165,7 @@ export function readingFor(input: {
   // category" on five nominations is exactly the over-reading this instrument
   // exists to avoid.
   if (current >= MEANINGFUL_VOLUME && topShare >= 0.6 && candidacies > 1) {
-    return `One creator holds ${Math.round(topShare * 100)}% of this category — ${effectively}. This is a creator with an audience, not a category with interest.`;
+    return `One creator holds ${Math.round(topShare * 100)}% of this category, ${effectively}. This is a creator with an audience, not a category with interest.`;
   }
 
   if (candidacies === 1) {
@@ -181,18 +181,18 @@ export function readingFor(input: {
   switch (direction) {
     case 'surging':
       return broad
-        ? `Rising fast and spread wide — ${effectively}. This is real interest, and probably a category to protect.`
-        : `Rising fast but narrow — ${effectively}. Check whether one campaign is doing the work before reading it as interest.`;
+        ? `Rising fast and spread wide, ${effectively}. This is real interest, and probably a category to protect.`
+        : `Rising fast but narrow, ${effectively}. Check whether one campaign is doing the work before reading it as interest.`;
     case 'rising':
       return broad
-        ? `Building steadily across the field — ${effectively}.`
-        : `Building, but concentrated — ${effectively}.`;
+        ? `Building steadily across the field, ${effectively}.`
+        : `Building, but concentrated, ${effectively}.`;
     case 'cooling':
       return `Down on the previous window, ${effectively}. Worth asking whether it was ever a category or a moment.`;
     case 'steady':
       return broad
-        ? `Holding, with interest spread across the field — ${effectively}.`
-        : `Holding, but the interest sits with a few — ${effectively}.`;
+        ? `Holding, with interest spread across the field, ${effectively}.`
+        : `Holding, but the interest sits with a few, ${effectively}.`;
     case 'quiet':
       return nominators <= 3
         ? `Almost nobody: ${nominators} nominator${nominators === 1 ? '' : 's'} this window. Too little to read.`

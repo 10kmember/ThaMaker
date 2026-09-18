@@ -30,7 +30,7 @@ export default function CookiesPage() {
           <p>
             Under the Privacy and Electronic Communications Regulations, consent is required to
             store information on, or read information from, your device where that storage is not
-            strictly necessary — analytics cookies, advertising, personalisation. PALMA sets none of
+            strictly necessary. Analytics cookies, advertising, personalisation. PALMA sets none of
             those. Its page counting stores nothing on your device and reads nothing from it, so
             there is nothing to consent to and no banner to dismiss.
           </p>
@@ -53,19 +53,19 @@ export default function CookiesPage() {
             rows={[
               [
                 <code key="s">palma_session</code>,
-                'Cookie — strictly necessary',
+                'Cookie. Strictly necessary',
                 'Identifies a signed-in creator, judge or administrator. HttpOnly, so scripts cannot read it; SameSite=Lax; Secure in production. Set only after you sign in.',
                 '14 days, or until you sign out',
               ],
               [
                 <code key="c">palma_csrf</code>,
-                'Cookie — strictly necessary',
+                'Cookie. Strictly necessary',
                 'Carries a cross-site request forgery token, so a form submitted from another site cannot act as you. Readable by the page, because the page has to send it back.',
                 '14 days, or until you sign out',
               ],
               [
                 <code key="t">palma-theme</code>,
-                'Local storage — preference',
+                'Local storage. Preference',
                 'Remembers whether you chose Paper, Ink or Archive, so the site does not flash the wrong theme on the next visit. Never sent to the server.',
                 'Until you clear it',
               ],
@@ -73,7 +73,7 @@ export default function CookiesPage() {
           />
           <p>
             A visitor who never signs in is served no cookies at all. Reading the entire public
-            archive — every honour, every creator, every season — requires nothing to be stored in
+            archive, every honour, every creator, every season, requires nothing to be stored in
             your browser.
           </p>
         </>
@@ -86,9 +86,9 @@ export default function CookiesPage() {
         <>
           <p>
             PALMA keeps a count of how many times each of its pages is opened. When a public page
-            loads, it tells the server its own address — <code>/paroh</code>, say — and a number
-            goes up by one. Terms typed into the Roll of Honour and the creator index are counted
-            the same way, so that PALMA can see what people look for and do not find.
+            loads, it tells the server its own address, <code>/paroh</code>, say, and a number goes
+            up by one. Terms typed into the Roll of Honour and the creator index are counted the
+            same way, so that PALMA can see what people look for and do not find.
           </p>
           <p>That is the whole of it. The request carries a page address and nothing else:</p>
           <Clauses
@@ -108,7 +108,7 @@ export default function CookiesPage() {
             </strong>{' '}
             Every one of those requires telling one reader from another, which requires holding
             something that identifies you. PALMA holds nothing that identifies you, so it does not
-            produce those figures — not as an oversight, but because producing them is the thing it
+            produce those figures, not as an oversight, but because producing them is the thing it
             declined to do.
           </p>
           <p>
@@ -142,8 +142,8 @@ export default function CookiesPage() {
         <>
           <p>
             Every browser lets you block or clear cookies and site data. Blocking PALMA&rsquo;s will
-            not degrade the public site in any way — the archive, the seasons, the categories and
-            the nomination form all work without them.
+            not degrade the public site in any way, the archive, the seasons, the categories and the
+            nomination form all work without them.
           </p>
           <p>
             Two things do break: you will not be able to stay signed in to a portal, and the site
@@ -162,8 +162,8 @@ export default function CookiesPage() {
           <a href={`mailto:${CONTACTS.privacy}`} className="palma-link text-ink">
             {CONTACTS.privacy}
           </a>
-          . The wider picture — what PALMA holds on a server rather than in your browser, and for
-          how long — is in the{' '}
+          . The wider picture, what PALMA holds on a server rather than in your browser, and for how
+          long, is in the{' '}
           <Link href="/legal/privacy" className="palma-link text-ink">
             privacy notice
           </Link>

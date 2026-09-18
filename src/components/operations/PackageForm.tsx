@@ -76,7 +76,7 @@ export function PackageForm({ packages }: { packages: { id: string; name: string
       <Field
         htmlFor="benefits"
         label="Benefits"
-        hint="One per line. Visibility, association, hospitality, editorial presence — never any part of a decision."
+        hint="One per line. Visibility, association, hospitality, editorial presence, never any part of a decision."
       >
         <Textarea
           id="benefits"

@@ -41,7 +41,7 @@ export default async function ResetPasswordPage({
             <h1 className="text-4xl">Set a new password</h1>
             {usable ? (
               <p className="text-taupe-deep leading-relaxed">
-                Setting it signs out every other session on this account — including anyone else who
+                Setting it signs out every other session on this account, including anyone else who
                 was signed in as you.
               </p>
             ) : null}

@@ -26,7 +26,7 @@ export default async function ImportCreatorsPage() {
         <span className="palma-label text-taupe-deep">The record</span>
         <h1 className="text-4xl">Import creators</h1>
         <p className="text-taupe-deep max-w-160 leading-relaxed">
-          PALMA&rsquo;s records exist before their creators do — that is the premise the claim flow
+          PALMA&rsquo;s records exist before their creators do. That is the premise the claim flow
           rests on. This writes them in bulk so an archive can be preset and waiting, rather than
           typed one at a time.
         </p>
@@ -42,20 +42,20 @@ export default async function ImportCreatorsPage() {
             <h2 className="palma-label text-taupe-deep mb-4">The columns</h2>
             <ol className="text-taupe-deep flex flex-col gap-3 text-sm leading-relaxed">
               <li>
-                <strong className="text-ink">1. Name</strong> — required. The name they work under.
+                <strong className="text-ink">1. Name</strong>. Required. The name they work under.
               </li>
               <li>
-                <strong className="text-ink">2. Country</strong> — two letters (GB, IE, NG). Blank
+                <strong className="text-ink">2. Country</strong>, two letters (GB, IE, NG). Blank
                 defaults to GB.
               </li>
               <li>
-                <strong className="text-ink">3. City</strong> — optional.
+                <strong className="text-ink">3. City</strong>. Optional.
               </li>
               <li>
-                <strong className="text-ink">4. Headline</strong> — optional, up to 160 characters.
+                <strong className="text-ink">4. Headline</strong>. Optional, up to 160 characters.
               </li>
               <li>
-                <strong className="text-ink">5. Links</strong> — optional, separated by spaces or
+                <strong className="text-ink">5. Links</strong>. Optional, separated by spaces or
                 pipes. Up to six. PALMA names each one from its domain.
               </li>
             </ol>

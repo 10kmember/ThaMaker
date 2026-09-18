@@ -127,7 +127,7 @@ export function assessClaim(signals: ClaimSignals): ClaimCheck[] {
       label: 'Record is unclaimed',
       detail: signals.recordUnclaimed
         ? 'No account currently holds this PALMA record.'
-        : 'This record is already held. Approving would move it — escalate first.',
+        : 'This record is already held. Approving would move it. Escalate first.',
       state: signals.recordUnclaimed ? 'passed' : 'attention',
     },
     {

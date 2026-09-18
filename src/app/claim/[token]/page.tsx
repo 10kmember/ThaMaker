@@ -77,7 +77,7 @@ export default async function ClaimInvitationPage({
             <>
               <p className="text-taupe-deep leading-relaxed">
                 PALMA has created a record for <strong>{creator.displayName}</strong>. It exists
-                because the work does — a record is written the first time a creator is nominated,
+                because the work does, a record is written the first time a creator is nominated,
                 not when they sign up. Claiming it lets you manage how you are described.
               </p>
 
@@ -93,7 +93,7 @@ export default async function ClaimInvitationPage({
                     <h2 className="font-display text-2xl">First, your PALMA account</h2>
                     <p className="text-taupe-deep text-sm leading-relaxed">
                       Claiming needs an account so PALMA knows who to link the record to. It takes a
-                      name, an email and a password — there is no long registration.
+                      name, an email and a password. There is no long registration.
                     </p>
                     <div className="flex flex-wrap gap-3">
                       <Button asChild size="md">
@@ -117,7 +117,7 @@ export default async function ClaimInvitationPage({
                 </ol>
                 <p className="text-taupe mt-5 text-xs leading-relaxed">
                   Claiming lets you manage your presentation. PALMA&rsquo;s record of nominations,
-                  finalists, winners and judging stays PALMA&rsquo;s — it is the archive, and it is
+                  finalists, winners and judging stays PALMA&rsquo;s. It is the archive, and it is
                   not editable by the people it is about.
                 </p>
               </div>

@@ -28,19 +28,19 @@ export const MAILBOXES = {
     address: MAILBOX_ADDRESSES.laurels,
     name: MAILBOX_NAMES.laurels,
     /** What this voice is for, shown in the template register. */
-    purpose: 'The record itself — honours, seasons, results, the Gazette.',
+    purpose: 'The record itself. Honours, seasons, results, the Gazette.',
   },
   concierge: {
     key: 'concierge',
     address: MAILBOX_ADDRESSES.concierge,
     name: MAILBOX_NAMES.concierge,
-    purpose: 'The desk — accounts, claims, records, verification.',
+    purpose: 'The desk. Accounts, claims, records, verification.',
   },
   security: {
     key: 'security',
     address: MAILBOX_ADDRESSES.security,
     name: MAILBOX_NAMES.security,
-    purpose: 'Account safety — passwords, addresses, sessions.',
+    purpose: 'Account safety. Passwords, addresses, sessions.',
   },
   concerns: {
     key: 'concerns',

@@ -58,7 +58,7 @@ export default async function BusinessPage() {
         <span className="palma-label text-taupe-deep">Business</span>
         <h1 className="text-4xl">The commercial side</h1>
         <p className="text-taupe-deep max-w-160 leading-relaxed">
-          PALMA never sells recognition. It sells the ecosystem around it — association, visibility,
+          PALMA never sells recognition. It sells the ecosystem around it. Association, visibility,
           hospitality, editorial presence. Nothing on this page can reach a nomination, a score, a
           finalist or a winner, and that is enforced in the permission matrix rather than left to
           this page to remember.

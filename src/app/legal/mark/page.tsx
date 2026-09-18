@@ -37,13 +37,13 @@ export default function MarkPage() {
             caption="The test, applied"
             head={['Permitted', 'Not permitted']}
             rows={[
-              ['PALMA 2027 Winner — Best Independent Creator', 'PALMA Winner'],
+              ['PALMA 2027 Winner, Best Independent Creator', 'PALMA Winner'],
               [
-                'PALMA 2027 Finalist — Creator of the Year',
+                'PALMA 2027 Finalist, Creator of the Year',
                 'PALMA Creator of the Year (if you were a finalist)',
               ],
               [
-                'Honoured by PALMA — The Creator Honours, 2027',
+                'Honoured by PALMA, The Creator Honours, 2027',
                 'PALMA-approved · PALMA-endorsed · Official PALMA Creator',
               ],
               ['Nominated for a PALMA, 2027', 'PALMA-nominated Best New Creator, 2025–2027'],
@@ -68,8 +68,8 @@ export default function MarkPage() {
           </p>
           <p>
             The Roll of Honour and the name &ldquo;PaROH&rdquo; are likewise PALMA&rsquo;s. Anyone
-            may link to a PaROH entry — that is what it is for — but nobody may present a copy of
-            the archive as an authoritative record.
+            may link to a PaROH entry, that is what it is for, but nobody may present a copy of the
+            archive as an authoritative record.
           </p>
         </>
       ),
@@ -82,7 +82,7 @@ export default function MarkPage() {
           <Clauses
             items={[
               'You may state the honour you hold on your channels, your site, your press materials, your show notes, your business cards and your CV. There is no fee and no expiry.',
-              'Always include the season year and the category. "PALMA 2027 Winner — Best Independent Creator" is the pattern.',
+              'Always include the season year and the category. "PALMA 2027 Winner, Best Independent Creator" is the pattern.',
               'You may use the seal supplied to you in the creator portal, at the supplied proportions, in ink, ivory or champagne, with clear space around it of at least the height of the mark itself.',
               'You may link the seal to your entry in the Roll of Honour. PALMA would prefer that you did, because it makes the claim checkable.',
               'A finalist may say "finalist". A shortlisted creator may say "shortlisted". Neither may say "winner", and PALMA will ask for a correction where they do.',
@@ -115,7 +115,7 @@ export default function MarkPage() {
       body: (
         <Clauses
           items={[
-            'A sponsor may use the agreed lockup in the agreed tier wording — "Headline Partner, PALMA 2027", "Category Partner — Best New Creator, PALMA 2027".',
+            'A sponsor may use the agreed lockup in the agreed tier wording, "Headline Partner, PALMA 2027", "Category Partner, Best New Creator, PALMA 2027".',
             'A sponsor may not use the honour seal, which belongs to recipients.',
             'A sponsor may not describe itself as selecting, endorsing, presenting or approving any creator, shortlist or winner, because it does none of those things.',
             'A sponsor may not use a recipient’s name or likeness in its own marketing without that recipient’s separate permission. PALMA does not grant it and cannot.',
@@ -130,8 +130,8 @@ export default function MarkPage() {
       body: (
         <p>
           Journalists may use the PALMA name, wordmark and supplied imagery to report on the
-          honours, without permission and without a licence. The press kit — logos, the mark, the
-          seal, approved photography and the correct wording — is at{' '}
+          honours, without permission and without a licence. The press kit, logos, the mark, the
+          seal, approved photography and the correct wording, is at{' '}
           <Link href="/press" className="palma-link text-ink">
             /press
           </Link>
@@ -152,7 +152,7 @@ export default function MarkPage() {
             items={[
               'Where an honour is revoked, the licence to use the mark in connection with it ends on the date of revocation, and all use must stop within 30 days.',
               'Where the mark is used in a way these rules do not permit, PALMA will ask for a correction before it does anything else. Most misuse is a mistake about wording, not bad faith.',
-              'Where misuse is deliberate — claiming an honour that was never conferred, forging a seal, or presenting a fabricated verification code — PALMA will say publicly that the claim is false, and will take the legal steps available to it.',
+              'Where misuse is deliberate, claiming an honour that was never conferred, forging a seal, or presenting a fabricated verification code, PALMA will say publicly that the claim is false, and will take the legal steps available to it.',
             ]}
           />
           <p>
@@ -172,8 +172,8 @@ export default function MarkPage() {
       plainly: 'For anything not covered here, write to us. We answer quickly.',
       body: (
         <p>
-          For a use these rules do not cover — merchandise, broadcast, an unusual lockup, a
-          translation of the wording — write to{' '}
+          For a use these rules do not cover, merchandise, broadcast, an unusual lockup, a
+          translation of the wording, write to{' '}
           <a href={`mailto:${CONTACTS.press}`} className="palma-link text-ink">
             {CONTACTS.press}
           </a>
@@ -194,7 +194,7 @@ export default function MarkPage() {
       intro={
         <p>
           An honour is only worth holding if it cannot be counterfeited or quietly inflated. These
-          rules exist to protect the people who actually won one — by making sure that what the mark
+          rules exist to protect the people who actually won one, by making sure that what the mark
           claims is exactly what the record says.
         </p>
       }

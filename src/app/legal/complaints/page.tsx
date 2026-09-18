@@ -48,7 +48,7 @@ export default function ComplaintsPage() {
                 'a correction request below',
               ],
               [
-                'complain about PALMA — its conduct, its staff, its handling of you',
+                'complain about PALMA, its conduct, its staff, its handling of you',
                 'the complaint route below',
               ],
               [
@@ -62,7 +62,7 @@ export default function ComplaintsPage() {
             ]}
           />
           <p>
-            If something is urgent — a credible threat to a person, or material that is illegal — do
+            If something is urgent, a credible threat to a person, or material that is illegal, do
             not wait for any of this. Use the report form, which is monitored, and contact the
             police. PALMA reports child sexual abuse material and credible threats to life to the
             relevant authorities immediately, without notifying the person who submitted it.
@@ -112,7 +112,7 @@ export default function ComplaintsPage() {
       body: (
         <>
           <p>
-            Anyone may ask for a correction to the public record — a misspelled name, a wrong
+            Anyone may ask for a correction to the public record, a misspelled name, a wrong
             country, a broken link, a mis-stated category. Write to{' '}
             <a href={`mailto:${CONTACTS.general}`} className="palma-link text-ink">
               {CONTACTS.general}
@@ -122,7 +122,7 @@ export default function ComplaintsPage() {
           <Clauses
             items={[
               'Corrections to a creator’s own details are made on request from that creator, once identity is confirmed.',
-              'Corrections that change the meaning of an honour — the category, the season, the recipient — require the same scrutiny as conferring it, and are decided by an administrator, not by a request.',
+              'Corrections that change the meaning of an honour, the category, the season, the recipient, require the same scrutiny as conferring it, and are decided by an administrator, not by a request.',
               'Every correction is written to the audit log with the state before and after it, and by whom. Nothing on PALMA is edited silently.',
               'PALMA corrects; it does not delete. Where an entry was wrong, the record shows that it was corrected rather than pretending it always read this way.',
             ]}
@@ -140,19 +140,19 @@ export default function ComplaintsPage() {
             head={['Stage', 'Who handles it', 'Timescale']}
             rows={[
               [
-                'Stage one — first response',
+                'Stage one. First response',
                 'The team responsible for the area complained about',
                 'Acknowledged in 5 working days, answered in 20',
               ],
               [
-                'Stage two — review',
+                'Stage two. Review',
                 'A director not involved in stage one',
                 'Requested within 28 days of the stage one answer; decided in 20 working days',
               ],
               [
-                'Stage three — external',
+                'Stage three. External',
                 'The relevant external body: the ICO for data protection, a court otherwise',
-                'No PALMA timescale — it is not PALMA’s process',
+                'No PALMA timescale. It is not PALMA’s process',
               ],
             ]}
           />
@@ -166,7 +166,7 @@ export default function ComplaintsPage() {
               {CONTACTS.privacy}
             </a>{' '}
             if the complaint is about personal data. You are never required to exhaust PALMA&rsquo;s
-            stages before going to the ICO — PALMA would prefer the chance to fix it first, but that
+            stages before going to the ICO, PALMA would prefer the chance to fix it first, but that
             is a preference, not a condition.
           </p>
         </>
@@ -180,7 +180,7 @@ export default function ComplaintsPage() {
           items={[
             'PALMA will not make settlement of a complaint conditional on silence about it.',
             'PALMA will not withdraw or withhold an honour because someone complained.',
-            'PALMA will not disclose a complainant’s identity to the person complained about, except where the law requires it or where the complaint cannot be investigated without it — in which case you are asked first.',
+            'PALMA will not disclose a complainant’s identity to the person complained about, except where the law requires it or where the complaint cannot be investigated without it, in which case you are asked first.',
             'PALMA will not refuse to investigate because a complaint is anonymous, though an anonymous complaint limits what it can conclude and what it can tell you.',
             'PALMA will not publish judging material in response to a complaint. Confidentiality of the panel survives any dispute.',
           ]}

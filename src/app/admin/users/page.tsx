@@ -45,7 +45,7 @@ export default async function UsersPage({
         <h1 className="text-4xl">Users &amp; roles</h1>
         <p className="text-taupe-deep max-w-160 leading-relaxed">
           An account is somebody who signs in. A creator is a record in the archive. Most creators
-          have no account at all, and most accounts hold no creator — managing them on one screen
+          have no account at all, and most accounts hold no creator. Managing them on one screen
           would quietly merge two things PALMA keeps apart.
         </p>
       </div>
@@ -177,7 +177,7 @@ export default async function UsersPage({
 
       <Notice className="mt-12" title="What this screen cannot do">
         Nobody changes their own role or suspends their own account. Only a super administrator
-        grants or removes that role. A permanent ban is not here at all — it goes through{' '}
+        grants or removes that role. A permanent ban is not here at all. It goes through{' '}
         <Link href="/admin/enforcement" className="palma-link text-ink">
           enforcement
         </Link>

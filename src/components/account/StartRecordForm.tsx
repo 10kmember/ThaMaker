@@ -128,7 +128,7 @@ export function StartRecordForm() {
         </>
       ) : (
         <Notice title="PALMA will write the copy">
-          Leave the words to us. Give the links below and our desk writes the record from the work —
+          Leave the words to us. Give the links below and our desk writes the record from the work,
           which is how every other record in the archive was made.
         </Notice>
       )}
@@ -138,7 +138,7 @@ export function StartRecordForm() {
           Where is the work? <span className="text-champagne-deep">*</span>
         </legend>
         <p className="text-taupe-deep -mt-2 text-sm leading-relaxed">
-          Channels, sites, profiles, press. This is where PALMA looks — a record with nothing behind
+          Channels, sites, profiles, press. This is where PALMA looks, a record with nothing behind
           it cannot be checked, and an unverifiable record is worse than none.
         </p>
 
@@ -178,7 +178,7 @@ export function StartRecordForm() {
 
       <p className="text-taupe text-xs leading-relaxed">
         Nothing is published until a moderator has checked it. Age and identity assurance is a
-        separate step, and it happens once the record exists — no honour is conferred without it.
+        separate step, and it happens once the record exists, no honour is conferred without it.
       </p>
     </form>
   );

@@ -66,7 +66,7 @@ export default function HowWeGotYourInformationPage() {
       body: (
         <>
           <LegalTable
-            caption="An unclaimed creator record — the complete list"
+            caption="An unclaimed creator record, the complete list"
             head={['Field', 'Why an awards archive needs it', 'Where it came from']}
             rows={UNCLAIMED_RECORD_FIELDS.map((field) => [field.label, field.why, field.source])}
           />
@@ -102,14 +102,14 @@ export default function HowWeGotYourInformationPage() {
               <>
                 <strong>A nomination.</strong> Somebody put your name forward. PALMA takes the name
                 and the category from it.{' '}
-                <strong>It does not take what they wrote about you</strong> — nomination text goes
-                to the panel and is never published, never shown on your record, and never disclosed
-                to you or anyone else as a description of you.
+                <strong>It does not take what they wrote about you</strong>. Nomination text goes to
+                the panel and is never published, never shown on your record, and never disclosed to
+                you or anyone else as a description of you.
               </>,
               <>
                 <strong>Editorial research by PALMA.</strong> Checking that a creator exists, works
-                under the name given, and is the person the nomination meant — done by a person,
-                from sources the creator published themselves.
+                under the name given, and is the person the nomination meant. Done by a person, from
+                sources the creator published themselves.
               </>,
             ]}
           />
@@ -124,7 +124,7 @@ export default function HowWeGotYourInformationPage() {
     {
       heading: 'The lawful basis, honestly',
       plainly:
-        'Legitimate interests. Not your consent — PALMA does not have it and does not claim to.',
+        'Legitimate interests. Not your consent, PALMA does not have it and does not claim to.',
       body: (
         <>
           <p>
@@ -138,7 +138,7 @@ export default function HowWeGotYourInformationPage() {
           </p>
           <p>
             The balance works because the record is minimal, because it is drawn from what you
-            published yourself, because nothing sensitive is in it — and because you can end it. If
+            published yourself, because nothing sensitive is in it, and because you can end it. If
             that last part stopped being true, the basis would stop holding, which is why the
             objection route below exists as a page rather than an inbox.
           </p>
@@ -156,10 +156,10 @@ export default function HowWeGotYourInformationPage() {
             comes down.
           </p>
           <p>
-            There is a link on every unclaimed record — <em>ask PALMA to remove it</em> — and it
-            needs no account and no reason. PALMA keeps only a minimal note that the record was
-            removed and must not be recreated, which exists so that a later nomination does not
-            quietly put you back.
+            There is a link on every unclaimed record, <em>ask PALMA to remove it</em>, and it needs
+            no account and no reason. PALMA keeps only a minimal note that the record was removed
+            and must not be recreated, which exists so that a later nomination does not quietly put
+            you back.
           </p>
           <p>
             You may also ask for a copy of what PALMA holds, ask for a correction, or complain to
@@ -167,7 +167,7 @@ export default function HowWeGotYourInformationPage() {
             <a href="https://ico.org.uk/make-a-complaint/" className="palma-link text-ink">
               ico.org.uk
             </a>{' '}
-            — at any time, including without contacting PALMA first.
+            , at any time, including without contacting PALMA first.
           </p>
           <p>
             The one thing PALMA will normally keep is an honour it has already conferred. That is
@@ -175,7 +175,7 @@ export default function HowWeGotYourInformationPage() {
             <Link href="/legal/privacy" className="palma-link text-ink">
               privacy notice
             </Link>
-            . Even then the record can be reduced to the achievement itself — a name, a category, a
+            . Even then the record can be reduced to the achievement itself, a name, a category, a
             year.
           </p>
         </>

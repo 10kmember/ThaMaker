@@ -44,7 +44,7 @@ export function Wordmark({
   if (!href) return content;
 
   return (
-    <Link href={href} aria-label="PALMA — home" className="inline-flex">
+    <Link href={href} aria-label="PALMA. Home" className="inline-flex">
       {content}
     </Link>
   );

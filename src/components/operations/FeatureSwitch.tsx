@@ -65,7 +65,7 @@ export function FeatureSwitch({
           <Field
             htmlFor={`scope-${featureKey}`}
             label="Applies to"
-            hint="A season setting beats the global one — including when it switches something off that is globally on. Historical seasons must be able to say “not here”."
+            hint="A season setting beats the global one, including when it switches something off that is globally on. Historical seasons must be able to say “not here”."
           >
             <Select
               id={`scope-${featureKey}`}

@@ -50,7 +50,7 @@ export default function LegalIndexPage() {
                 <div className="palma-prose">
                   <p>
                     These documents are kept in version control rather than in a database, and that
-                    is deliberate. The database is PALMA&rsquo;s record of what happened — who was
+                    is deliberate. The database is PALMA&rsquo;s record of what happened, who was
                     nominated, who judged, who won. A legal document is a different kind of object:
                     it has to be diffable, attributable to a commit, and impossible to change
                     quietly. Every amendment to anything below carries an author and a date.

@@ -21,7 +21,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: Params) {
   const { year } = await params;
   return buildMetadata({
-    title: `PaROH — Class of ${year}`,
+    title: `PaROH, Class of ${year}`,
     description: `The PALMA Roll of Honour, class of ${year}. The permanent record of every PALMA conferred in the ${year} season.`,
     path: `/paroh/${year}`,
   });

@@ -43,7 +43,7 @@ export function VerificationModeForm({
         ? `Creators are handed to ${provider}'s hosted flow. PALMA never receives a document. Cases the provider cannot settle are referred back to the desk.`
         : hasApiKey
           ? 'A key is configured but no provider is named. Set AGE_VERIFICATION_PROVIDER and restart.'
-          : 'Not available yet: no provider key is configured. Set AGE_VERIFICATION_API_KEY in the environment, restart, and this becomes selectable — nothing else changes.',
+          : 'Not available yet: no provider key is configured. Set AGE_VERIFICATION_API_KEY in the environment, restart, and this becomes selectable. Nothing else changes.',
       available: automaticAvailable,
     },
   ];

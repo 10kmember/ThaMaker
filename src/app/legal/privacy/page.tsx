@@ -81,8 +81,8 @@ export default function PrivacyPage() {
                 to name a candidate.
               </>,
               <>
-                A <strong>claimed record</strong> is controlled by the creator — they decide how
-                they are described.
+                A <strong>claimed record</strong> is controlled by the creator. They decide how they
+                are described.
               </>,
               <>
                 <strong>Sensitive information is never public</strong>, whatever its source.
@@ -106,7 +106,7 @@ export default function PrivacyPage() {
     {
       heading: 'Creators who have not claimed a record',
       plainly:
-        'If PALMA holds a record about you and you never asked for it, this is exactly what it contains — and you can have it taken down.',
+        'If PALMA holds a record about you and you never asked for it, this is exactly what it contains, and you can have it taken down.',
       body: (
         <>
           <p>
@@ -131,7 +131,7 @@ export default function PrivacyPage() {
 
           <p>An unclaimed record may contain only:</p>
           <LegalTable
-            caption="An unclaimed creator record — the complete list"
+            caption="An unclaimed creator record, the complete list"
             head={['Field', 'Why it is there', 'Source']}
             rows={UNCLAIMED_RECORD_FIELDS.map((field) => [field.label, field.why, field.source])}
           />
@@ -144,7 +144,7 @@ export default function PrivacyPage() {
               'a city, address, or any location more precise than a country;',
               'a date of birth, age, or anything from which one could be inferred;',
               'a biography, characterisation or description written by anyone other than the creator;',
-              'anything a nominator wrote about them — nomination text is never published, and is not shown on the record;',
+              'anything a nominator wrote about them. Nomination text is never published, and is not shown on the record;',
               'contact details of any kind;',
               'anything that reveals or implies health, sexuality, sex life, religion, politics, ethnicity, trade-union membership or biometric identity;',
               'anything inferred, guessed, scraped in bulk, or collected because it might be useful later.',
@@ -187,7 +187,7 @@ export default function PrivacyPage() {
           </p>
           <p>
             <strong>Claimed creator record.</strong> Professional name, pronouns, country, city,
-            headline, biography, portrait, website and links — all supplied and controlled by the
+            headline, biography, portrait, website and links. All supplied and controlled by the
             creator, plus the PALMA achievement history, which is not.
           </p>
           <p>
@@ -197,7 +197,7 @@ export default function PrivacyPage() {
           </p>
           <p>
             <strong>Verification information.</strong> A status, a provider reference, a timestamp
-            and an integrity hash. Nothing else — see below.
+            and an integrity hash. Nothing else. See below.
           </p>
           <p>
             <strong>Judging and operational information.</strong> What is needed to run an award:
@@ -253,14 +253,14 @@ export default function PrivacyPage() {
             caption="The basis PALMA relies on, by activity"
             head={['Processing', 'Lawful basis']}
             rows={[
-              ['Running an account you opened', 'Contract — UK GDPR Article 6(1)(b)'],
+              ['Running an account you opened', 'Contract, UK GDPR Article 6(1)(b)'],
               [
                 'Holding a record about an unclaimed creator',
-                'Legitimate interests — Article 6(1)(f), assessed and balanced, with an unconditional right to object',
+                'Legitimate interests, Article 6(1)(f), assessed and balanced, with an unconditional right to object',
               ],
               [
                 'Verifying and recording a nomination',
-                'Legitimate interests — running a fair award, and protecting it from manipulation',
+                'Legitimate interests. Running a fair award, and protecting it from manipulation',
               ],
               ['Age and identity assurance', 'Legal obligation and legitimate interests'],
               [
@@ -268,7 +268,7 @@ export default function PrivacyPage() {
                 'Legitimate interests, and archiving in the public interest',
               ],
               ['Security, fraud prevention and audit', 'Legitimate interests and legal obligation'],
-              ['The Gazette', 'Consent — freely given, and withdrawable in one click'],
+              ['The Gazette', 'Consent. Freely given, and withdrawable in one click'],
             ]}
           />
           <p>
@@ -286,13 +286,13 @@ export default function PrivacyPage() {
     {
       heading: 'Sensitive and special category data',
       plainly:
-        'PALMA does not want it, does not ask for it, and will not publish it — including where you have published it yourself.',
+        'PALMA does not want it, does not ask for it, and will not publish it, including where you have published it yourself.',
       body: (
         <>
           <p>
             PALMA recognises that information associated with creator participation may be sensitive
             and may, depending on the circumstances, reveal information falling within
-            special-category data rules under Article 9 — in particular data concerning sex life or
+            special-category data rules under Article 9, in particular data concerning sex life or
             sexual orientation.
           </p>
           <p>
@@ -324,14 +324,14 @@ export default function PrivacyPage() {
         <>
           <p>
             PALMA creators must be 18 or over. Assurance is performed either by a specialist
-            third-party provider, or — where no provider is contracted — by a PALMA moderator in a
+            third-party provider, or, where no provider is contracted, by a PALMA moderator in a
             restricted workspace.
           </p>
           <p>The permanent record consists of exactly:</p>
           <Clauses
             lettered
             items={[
-              'a status — verified, or not;',
+              'a status. Verified, or not;',
               'a provider reference;',
               'the date the check was completed; and',
               'an integrity hash binding the outcome to the case.',
@@ -345,9 +345,9 @@ export default function PrivacyPage() {
           <p>
             Where a manual exception requires PALMA to receive material temporarily, access is
             restricted to authorised personnel, processing is limited to the verification purpose,
-            and <strong>the case cannot be closed while the material is still held</strong> —
-            closing is what triggers deletion, and the operator confirms the deletion on the same
-            screen that records the outcome.
+            and <strong>the case cannot be closed while the material is still held</strong>. Closing
+            is what triggers deletion, and the operator confirms the deletion on the same screen
+            that records the outcome.
           </p>
           <p>Verification information is never published and never appears on a public record.</p>
         </>
@@ -359,7 +359,7 @@ export default function PrivacyPage() {
       body: (
         <>
           <p>
-            A claimed creator record may publish: {CLAIMED_RECORD_FIELDS.join(', ')} — together with
+            A claimed creator record may publish: {CLAIMED_RECORD_FIELDS.join(', ')}. Together with
             the PALMA achievement history.
           </p>
           <p>
@@ -476,8 +476,8 @@ export default function PrivacyPage() {
       body: (
         <p>
           Some service providers process personal data outside the United Kingdom. Where personal
-          data is transferred internationally, PALMA relies on a lawful transfer mechanism — an
-          adequacy decision, or the International Data Transfer Agreement or Addendum — and applies
+          data is transferred internationally, PALMA relies on a lawful transfer mechanism, an
+          adequacy decision, or the International Data Transfer Agreement or Addendum, and applies
           the safeguards required by applicable data protection law. Details of material categories
           of international processing are available on request.
         </p>
@@ -490,11 +490,11 @@ export default function PrivacyPage() {
         <>
           <p>
             PALMA applies retention periods according to the purpose for which information is
-            processed. These are applied by a scheduled sweep rather than by hand — a period nobody
+            processed. These are applied by a scheduled sweep rather than by hand, a period nobody
             enforces is a sentence, not a policy.
           </p>
           <LegalTable
-            caption="Operational retention — applied automatically"
+            caption="Operational retention. Applied automatically"
             head={['What', 'Kept for']}
             rows={RETENTION_RULES.map((rule) => [rule.description, `${rule.days} days`])}
           />
@@ -531,7 +531,7 @@ export default function PrivacyPage() {
           <p>
             This is a genuine limit on erasure, and PALMA states it plainly rather than burying it.
             It applies to the fact of an honour, not to everything else: a person who wants their
-            record reduced to the achievement itself — name, category, year — can have that.
+            record reduced to the achievement itself, name, category, year, can have that.
           </p>
         </>
       ),
@@ -553,7 +553,7 @@ export default function PrivacyPage() {
           <p>
             PALMA keeps an aggregate count of how often each of its pages is opened, and of the
             terms typed into its search boxes. These counts hold no personal data: no IP address, no
-            cookie, no device identifier, no user-agent and no session — none of them stored, and
+            cookie, no device identifier, no user-agent and no session. None of them stored, and
             none of them derived and discarded. Because nothing identifies a reader, no part of this
             is personal data about you and there is no record of your visit to request, correct or
             erase. The mechanics are set out in{' '}
@@ -577,8 +577,8 @@ export default function PrivacyPage() {
       body: (
         <>
           <p>
-            Operational messages — a decision on your record, a security notice, a verification
-            outcome — are sent because PALMA owes them to you. An account that could mute the news
+            Operational messages, a decision on your record, a security notice, a verification
+            outcome, are sent because PALMA owes them to you. An account that could mute the news
             that its honour was revoked would not be being kept informed.
           </p>
           <p>
@@ -604,7 +604,7 @@ export default function PrivacyPage() {
               'have inaccurate information corrected;',
               'ask for erasure;',
               'ask PALMA to restrict processing while a dispute is resolved;',
-              'object to processing based on legitimate interests — including, decisively, an unclaimed record about you;',
+              'object to processing based on legitimate interests, including, decisively, an unclaimed record about you;',
               'receive data you gave PALMA in a portable form;',
               'withdraw consent where consent is the basis; and',
               'complain to the Information Commissioner’s Office.',
@@ -657,7 +657,7 @@ export default function PrivacyPage() {
           <p>
             Where information does not need to remain identifiable, it is deleted or anonymised. The
             creator record itself returns to the unclaimed state described at the top of this notice
-            — minimal, and removable on request.
+            . Minimal, and removable on request.
           </p>
         </>
       ),

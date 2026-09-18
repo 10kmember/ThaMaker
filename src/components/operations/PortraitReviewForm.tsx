@@ -33,7 +33,7 @@ export function PortraitReviewForm({ portraitId, name }: { portraitId: string; n
         <>
           <Input
             name="reason"
-            placeholder="Why it cannot be published — the creator is told this."
+            placeholder="Why it cannot be published, the creator is told this."
             maxLength={300}
             autoFocus
           />

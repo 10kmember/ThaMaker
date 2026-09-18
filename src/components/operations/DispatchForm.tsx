@@ -63,7 +63,7 @@ export function DispatchForm({
             const row = lists.find((entry) => entry.key === list.key);
             return (
               <option key={list.key} value={list.key} disabled={!row?.available}>
-                {list.name} — {row?.confirmed ?? 0} subscriber{row?.confirmed === 1 ? '' : 's'}
+                {list.name}, {row?.confirmed ?? 0} subscriber{row?.confirmed === 1 ? '' : 's'}
                 {row?.available ? '' : ' (switched off)'}
               </option>
             );

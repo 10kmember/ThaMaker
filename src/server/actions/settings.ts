@@ -114,7 +114,7 @@ export async function runRetentionNow(
     status: 'success',
     message:
       result.total === 0
-        ? 'Swept. Nothing was old enough to remove — which is the usual result of running it twice.'
+        ? 'Swept. Nothing was old enough to remove, which is the usual result of running it twice.'
         : `Swept ${result.total} row${result.total === 1 ? '' : 's'}: ${detail}.`,
   };
 }

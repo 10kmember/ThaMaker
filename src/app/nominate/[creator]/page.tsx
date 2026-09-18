@@ -151,7 +151,7 @@ export default async function ReferralNominatePage({ params }: Params) {
               <Reveal as="div" delay={0.08} className="flex flex-col gap-6 lg:col-span-5 lg:pl-10">
                 <Notice title="What this link is">
                   This is {creator.displayName}’s nomination page. It only saves you the step of
-                  searching for them — a nomination made here carries no more weight than any other,
+                  searching for them, a nomination made here carries no more weight than any other,
                   and nomination numbers do not decide who wins.
                 </Notice>
 

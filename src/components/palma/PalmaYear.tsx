@@ -170,7 +170,7 @@ export function PalmaYear({
             );
           })}
 
-          {/* Today. A hand rather than a dot — a dial should point. */}
+          {/* Today. A hand rather than a dot, a dial should point. */}
           {reduced ? (
             <line
               x1={polar(INNER - 16, todayAngle).x}
@@ -292,8 +292,8 @@ export function PalmaYear({
                 {chapter.line}
               </p>
 
-              {/* The detail is always in the DOM — it is the substance of the
-                  page, not a reward for hovering — and simply lifts into full
+              {/* The detail is always in the DOM, it is the substance of the
+                  page, not a reward for hovering, and simply lifts into full
                   contrast when the chapter is pointed at. */}
               <motion.p
                 className="text-taupe-deep mt-2 max-w-140 text-sm leading-relaxed"

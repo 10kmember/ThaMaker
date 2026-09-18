@@ -218,8 +218,8 @@ export default async function CreatorRecordPage({ params }: { params: Promise<{ 
             {record.heldBy ? (
               <p className="text-taupe-deep text-sm leading-relaxed">
                 Held by <span className="text-ink break-all">{record.heldBy.email}</span>. The
-                public profile is unchanged by that — claiming changes who may edit the
-                presentation, nothing else.
+                public profile is unchanged by that. Claiming changes who may edit the presentation,
+                nothing else.
               </p>
             ) : (
               <>

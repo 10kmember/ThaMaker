@@ -11,7 +11,7 @@ export const claimRequestSchema = z.object({
   claimedIdentity: z
     .string()
     .trim()
-    .min(40, 'Tell PALMA who you are and why this record is yours — at least 40 characters.')
+    .min(40, 'Tell PALMA who you are and why this record is yours, at least 40 characters.')
     .max(1500),
   supportingNote: z.string().trim().max(1500).optional().or(z.literal('')),
   /** Up to four links offered as evidence of control. Never published. */

@@ -36,7 +36,7 @@ export const SCORING_CRITERIA = [
     weight: 20,
     description: 'Craft, and distinctiveness of the ideas behind it.',
     guidance:
-      'Would this be recognisable as theirs with the name removed? Score the ideas and the form they take — not how unusual the subject happens to be this year, and not production budget.',
+      'Would this be recognisable as theirs with the name removed? Score the ideas and the form they take, not how unusual the subject happens to be this year, and not production budget.',
   },
   {
     key: 'impact',
@@ -68,7 +68,7 @@ export const SCORING_CRITERIA = [
     weight: 10,
     description: 'How squarely the work sits in the category it was entered in.',
     guidance:
-      'Excellent work in the wrong category is still in the wrong category. This is not a penalty for range — it asks whether this category is where the work should be judged, and it is the criterion that keeps a strong creator from sweeping every category they are named in.',
+      'Excellent work in the wrong category is still in the wrong category. This is not a penalty for range. It asks whether this category is where the work should be judged, and it is the criterion that keeps a strong creator from sweeping every category they are named in.',
   },
 ] as const;
 

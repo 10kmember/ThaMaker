@@ -64,7 +64,7 @@ export default async function EnforcementPage() {
                     <p className="text-taupe mt-4 text-xs">
                       Proposed by {entry.requestedBy} on {formatDate(entry.requestedAt)}
                       {entry.requestedBy === session.user.email
-                        ? ' — you. Somebody else has to approve it.'
+                        ? ' (you). Somebody else has to approve it.'
                         : ''}
                     </p>
 

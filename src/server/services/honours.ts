@@ -153,7 +153,7 @@ export async function conferHonour(input: ConferInput): Promise<ConferResult> {
     entityType: 'Honour',
     entityId: result.honourId,
     actor: input.actor,
-    summary: `${candidacy.creator.displayName} — ${candidacy.category.name} (${candidacy.awardYear.year})`,
+    summary: `${candidacy.creator.displayName}, ${candidacy.category.name} (${candidacy.awardYear.year})`,
     after: { kind: input.kind, code: result.code, candidacyId: candidacy.id },
   });
 
@@ -233,7 +233,7 @@ export async function revokeHonour(input: {
     entityType: 'Honour',
     entityId: honour.id,
     actor: input.actor,
-    summary: `${honour.creator.displayName} — ${honourCategoryName(honour.kind, honour.category?.name ?? null)} (${honour.awardYear.year})`,
+    summary: `${honour.creator.displayName}, ${honourCategoryName(honour.kind, honour.category?.name ?? null)} (${honour.awardYear.year})`,
     before: { state: 'active' },
     after: { state: 'revoked', reason: input.reason },
   });
@@ -386,7 +386,7 @@ export async function conferThePalma(input: {
     entityType: 'Honour',
     entityId: result.honourId,
     actor: input.actor,
-    summary: `THE PALMA ${awardYear.year} — ${creator.displayName}`,
+    summary: `THE PALMA ${awardYear.year}, ${creator.displayName}`,
     after: { kind: 'the_palma', code: result.code, citation: input.citation.trim() },
   });
 

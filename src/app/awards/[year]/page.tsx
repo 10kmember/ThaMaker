@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: Params) {
     title: season.title,
     description:
       season.summary ??
-      `${season.title} — the categories, finalists and winners of The Creator Honours.`,
+      `${season.title}, the categories, finalists and winners of The Creator Honours.`,
     path: `/awards/${season.year}`,
   });
 }

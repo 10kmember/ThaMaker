@@ -38,8 +38,8 @@ export default async function NewCreatorPage() {
 
         <div className="lg:col-span-5">
           <Notice title="Public and internal are different things">
-            Everything on this form is published. Anything PALMA wants to record privately —
-            provenance, a conversation, a doubt — goes in an internal note on the record once it
+            Everything on this form is published. Anything PALMA wants to record privately,
+            provenance, a conversation, a doubt, goes in an internal note on the record once it
             exists. The two are never mixed.
           </Notice>
         </div>

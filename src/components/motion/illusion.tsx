@@ -53,7 +53,7 @@ export function InkFill({
 
   return (
     <div ref={scope} className={cn('relative', className)}>
-      {/* The outline sits underneath, always — and is a plain span rather than
+      {/* The outline sits underneath, always, and is a plain span rather than
           a second copy of the heading tag. Hiding a duplicate <h1> from the
           accessibility tree fixes what a screen reader hears and leaves the
           document with two <h1> elements in it, which is still wrong. */}

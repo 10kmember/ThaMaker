@@ -66,8 +66,8 @@ export default async function AudiencePage({
         <p className="font-display mt-3 text-xl leading-snug">{MEASUREMENT_STATEMENT}</p>
         <p className="text-taupe-deep mt-3 max-w-160 text-sm leading-relaxed">
           No cookie, no IP address, no hash of an IP address, no user-agent, no device identifier
-          and no session — not stored and not derived. The consequence is in the last section of
-          this page and is a decision rather than a gap.{' '}
+          and no session, not stored and not derived. The consequence is in the last section of this
+          page and is a decision rather than a gap.{' '}
           <Link href="/legal/cookies" className="palma-link text-ink">
             The cookies notice says the same thing publicly.
           </Link>
@@ -112,7 +112,7 @@ async function Report({ window }: { window: AudienceWindow }) {
         {!report.counting ? (
           <Notice className="mt-6" title="Nothing counted yet">
             No page has been counted in this window. Counting begins the first time a public page is
-            opened in a browser — it is the page itself that reports, so a crawler that never runs
+            opened in a browser. It is the page itself that reports, so a crawler that never runs
             JavaScript is never counted, which is the correct behaviour and worth knowing when these
             figures look lower than a server log.
           </Notice>
@@ -139,7 +139,7 @@ async function Report({ window }: { window: AudienceWindow }) {
         <div className="mt-8 grid gap-px sm:grid-cols-2">
           <ChartFrame
             title="Views by day"
-            note="One row per page per day. Days, not timestamps — a timestamp is a trail."
+            note="One row per page per day. Days, not timestamps. A timestamp is a trail."
             rows={report.byDay.map((day) => [day.label, day.values[0] ?? 0])}
             columns={['Day', 'Views']}
           >
@@ -245,7 +245,7 @@ async function Report({ window }: { window: AudienceWindow }) {
         </h2>
 
         <p className="text-taupe-deep mt-5 max-w-160 text-sm leading-relaxed">
-          The audience discovers, PALMA evaluates, judges decide — counted against the record rather
+          The audience discovers, PALMA evaluates, judges decide. Counted against the record rather
           than restated. Nomination volume is a discovery signal and nothing in the judging path
           reads it.
         </p>
@@ -312,7 +312,7 @@ async function Report({ window }: { window: AudienceWindow }) {
             <p className="text-taupe-deep mt-2 text-sm leading-relaxed">
               Across {report.verification.records} signed record
               {report.verification.records === 1 ? '' : 's'}. Somebody checking whether an honour is
-              real — the closest thing PALMA has to a measure of the record being trusted.
+              real, the closest thing PALMA has to a measure of the record being trusted.
             </p>
             <p className="text-taupe mt-3 text-xs leading-relaxed">
               Counted since the record was issued, not within this window. It has always been a
@@ -371,7 +371,7 @@ async function Report({ window }: { window: AudienceWindow }) {
           )}
 
           <Notice className="mt-5" title="Registrations are not a figure PALMA has">
-            There is no attendee record and no registration model — ticketing is a commercial rail
+            There is no attendee record and no registration model. Ticketing is a commercial rail
             that has never been switched on, and a ticket type with a capacity is not a person who
             signed up. Event interest becomes countable when there is somewhere for somebody to
             register, and not before. Reporting capacity as interest would be inventing a number.

@@ -80,8 +80,8 @@ export default async function VerifyIndexPage({ searchParams }: Props) {
 
               <Notice className="mt-10" title="What verification proves">
                 A PALMA verification page is generated from the record created when the honour was
-                conferred, and is signed. If any detail of the record were altered — the name, the
-                category, the season — the signature would no longer match and the page would refuse
+                conferred, and is signed. If any detail of the record were altered, the name, the
+                category, the season, the signature would no longer match and the page would refuse
                 to render.
               </Notice>
             </div>

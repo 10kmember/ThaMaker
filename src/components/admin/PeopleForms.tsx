@@ -174,7 +174,7 @@ export function InviteOperatorForm() {
       </Button>
       <p className="text-taupe text-xs leading-relaxed">
         This is the only way this kind of account is ever created. There is no sign-up form for one
-        — the account exists the moment you send this, but cannot be signed into until the
+        , the account exists the moment you send this, but cannot be signed into until the
         invitation link sets a password.
       </p>
     </form>
@@ -256,7 +256,7 @@ export function ProposeActionForm() {
           id="subject"
           name="subject"
           required
-          placeholder="e.g. maya@example.com, or PALMA 2027 Winner — Best New Creator"
+          placeholder="e.g. maya@example.com, or PALMA 2027 Winner, Best New Creator"
           className="border-stone-deep bg-ivory-bright text-ink placeholder:text-taupe focus:border-olive h-11 w-full border px-3 text-sm focus:outline-none"
         />
       </div>

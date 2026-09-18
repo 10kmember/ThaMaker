@@ -69,8 +69,8 @@ export default async function AccountPage() {
     <PortalShell title="PALMA Account" subtitle="Your account" userName={user.email}>
       <div className="flex flex-wrap items-start justify-between gap-6">
         <p className="text-taupe-deep max-w-160 leading-relaxed">
-          Your sign-in, your address and your sessions. Your <em>record</em> — how you are described
-          and what PALMA says happened — lives in your portal.
+          Your sign-in, your address and your sessions. Your <em>record</em>, how you are described
+          and what PALMA says happened, lives in your portal.
         </p>
         <div className="flex flex-wrap gap-3">
           <Button asChild variant="outline" size="sm">
@@ -104,7 +104,7 @@ export default async function AccountPage() {
             <h2 className="palma-label text-taupe-deep mb-2">Password</h2>
             <p className="text-taupe-deep mb-6 max-w-140 text-sm leading-relaxed">
               Changing it signs out every other session but this one. Your current password is
-              required even though you are signed in — a borrowed unlocked laptop proves possession
+              required even though you are signed in, a borrowed unlocked laptop proves possession
               too, and this is the control that stops it becoming a stolen account.
             </p>
             <ChangePasswordForm />
@@ -114,7 +114,7 @@ export default async function AccountPage() {
             <h2 className="palma-label text-taupe-deep mb-2">Email address</h2>
             <p className="text-taupe-deep mb-6 max-w-140 text-sm leading-relaxed">
               The new address confirms before anything moves, and the old one is told it was asked
-              for — losing an inbox should not silently lose you the account.
+              for. Losing an inbox should not silently lose you the account.
             </p>
             <ChangeEmailForm current={user.email} />
           </section>
@@ -157,8 +157,8 @@ export default async function AccountPage() {
             <h2 className="palma-label text-taupe-deep mb-4">Two-factor authentication</h2>
             <p className="text-taupe-deep text-sm leading-relaxed">
               Not offered yet. When it is, it will be required for accounts that can confer or
-              revoke an honour rather than merely suggested — and PALMA would rather say that
-              plainly than show a switch that does nothing.
+              revoke an honour rather than merely suggested, and PALMA would rather say that plainly
+              than show a switch that does nothing.
             </p>
           </section>
 

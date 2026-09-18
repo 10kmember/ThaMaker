@@ -56,7 +56,7 @@ export function proposeFinalists(
     ranked[count] &&
     ranked[count - 1]!.trimmedMean === ranked[count]!.trimmedMean;
   if (tie) {
-    warnings.push('A tie exists at the finalist cut line — chair review required.');
+    warnings.push('A tie exists at the finalist cut line. Chair review required.');
   }
 
   return { selected, warnings };
@@ -77,13 +77,13 @@ export function proposeWinner(
   const runnerUp = ranked[1];
 
   if (runnerUp && runnerUp.trimmedMean === top.trimmedMean) {
-    warnings.push('The leading two finalists are tied — chair adjudication required.');
+    warnings.push('The leading two finalists are tied. Chair adjudication required.');
   }
   if (top.judgeCount < MIN_JUDGES_PER_CANDIDACY) {
     warnings.push(`The leading finalist has only ${top.judgeCount} completed score(s).`);
   }
   if (top.spread >= SHARP_DISAGREEMENT) {
-    warnings.push('Judges disagree sharply on the leading finalist — review before confirming.');
+    warnings.push('Judges disagree sharply on the leading finalist. Review before confirming.');
   }
 
   const byId = new Map(eligible.map((candidate) => [candidate.candidacyId, candidate]));

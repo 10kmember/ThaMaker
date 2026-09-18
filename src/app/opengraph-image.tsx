@@ -1,6 +1,6 @@
 import { renderShareCard, SHARE_CARD_SIZE } from '@/lib/share-card';
 
-export const alt = 'PALMA — The Creator Honours';
+export const alt = 'PALMA, The Creator Honours';
 export const size = SHARE_CARD_SIZE;
 export const contentType = 'image/png';
 

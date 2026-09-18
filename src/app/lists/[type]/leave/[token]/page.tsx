@@ -52,7 +52,7 @@ export default async function LeaveListPage({
               </p>
               <Notice title="Only that one">
                 Your other PALMA subscriptions are untouched, and decisions about your own record
-                still reach you — those are not a newsletter.{' '}
+                still reach you. Those are not a newsletter.{' '}
                 <Link href="/account/email-preferences" className="palma-link text-ink">
                   Manage all of them
                 </Link>

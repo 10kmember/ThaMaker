@@ -89,7 +89,7 @@ export default async function ArticlePage({ params }: Params) {
           <Reveal className="border-stone-deep mt-16 flex items-center gap-6 border-t pt-10">
             <PalmMark className="text-stone-deep h-8" />
             <p className="text-taupe-deep text-sm leading-relaxed">
-              The PALMA Journal is published by PALMA — The Creator Honours.
+              The PALMA Journal is published by PALMA, The Creator Honours.
             </p>
           </Reveal>
         </Container>

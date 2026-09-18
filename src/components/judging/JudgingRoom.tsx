@@ -154,8 +154,8 @@ export function JudgingRoom({
                 </span>
               </div>
               <p className="text-taupe-deep text-sm leading-relaxed">
-                What supports your assessment? Short reasoning, not an essay — an argument a
-                stranger reading this case afterwards could follow.
+                What supports your assessment? Short reasoning, not an essay, an argument a stranger
+                reading this case afterwards could follow.
               </p>
               <Textarea
                 id="remarks"
@@ -393,8 +393,8 @@ function CriterionField({
       </div>
 
       <div className="text-taupe flex justify-between text-xs">
-        <span>0 — not evidenced</span>
-        <span>{MAX_SCORE} — exceptional</span>
+        <span>0, not evidenced</span>
+        <span>{MAX_SCORE}, exceptional</span>
       </div>
     </div>
   );
@@ -439,7 +439,7 @@ function ConflictGate({
             Do you have a conflict of interest with {candidateName}?
           </h2>
           <p className="text-taupe-deep text-sm leading-relaxed">
-            Any relationship at all — personal, professional, financial, or work you have been paid
+            Any relationship at all. Personal, professional, financial, or work you have been paid
             for. Declaring removes this candidate from your assignments immediately. You do not have
             to decide whether it matters; that is the chair&rsquo;s call, not yours.
           </p>

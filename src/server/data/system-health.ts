@@ -86,12 +86,12 @@ export async function getSystemHealth(): Promise<SystemHealth> {
 
   const email: ServiceCheck = env.RESEND_API_KEY
     ? {
-        name: 'Email — Resend',
+        name: 'Email, Resend',
         state: 'operational',
         detail: `Configured. Sending as ${env.EMAIL_FROM}.`,
       }
     : {
-        name: 'Email — Resend',
+        name: 'Email, Resend',
         state: 'not_configured',
         detail:
           'No RESEND_API_KEY. Verification codes and receipts are written to the server log instead of sent, which is correct in development and fatal in production.',
@@ -109,7 +109,7 @@ export async function getSystemHealth(): Promise<SystemHealth> {
     sweep && Date.now() - new Date(sweep.at).getTime() < 8 * 24 * 60 * 60 * 1000;
 
   const retentionDetail = sweep
-    ? `${RETENTION_RULES.length} rules. Last run ${new Date(sweep.at).toISOString().slice(0, 10)} — ${sweep.summary}`
+    ? `${RETENTION_RULES.length} rules. Last run ${new Date(sweep.at).toISOString().slice(0, 10)}, ${sweep.summary}`
     : `${RETENTION_RULES.length} rules are defined and the sweep has never run. Schedule it, or run it from Settings.`;
 
   const retentionState: ServiceCheck['state'] = !sweep
@@ -129,7 +129,7 @@ export async function getSystemHealth(): Promise<SystemHealth> {
         ? {
             name: 'Age assurance',
             state: 'degraded',
-            detail: `Automatic is selected but cannot run — provider "${verificationConfig.provider}"${verificationConfig.hasApiKey ? '' : ', no API key'}. Every check is going to the moderation desk instead, which is the safe failure.`,
+            detail: `Automatic is selected but cannot run. Provider "${verificationConfig.provider}"${verificationConfig.hasApiKey ? '' : ', no API key'}. Every check is going to the moderation desk instead, which is the safe failure.`,
           }
         : {
             name: 'Age assurance',

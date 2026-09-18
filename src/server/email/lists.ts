@@ -85,7 +85,7 @@ export function sendListWelcome(input: { to: string; type: EmailListKey; unsubsc
             : 'A leaderboard, a plea for nominations, or a way for a sponsor to reach you. Nomination numbers are not published, and sponsorship buys no part of this letter.',
         }),
         quiet(
-          `Leaving this list leaves exactly this one — every other PALMA subscription is separate. <a href="${siteUrl}/account/email-preferences" style="color:#4a5148;">Manage them all</a>.`,
+          `Leaving this list leaves exactly this one, every other PALMA subscription is separate. <a href="${siteUrl}/account/email-preferences" style="color:#4a5148;">Manage them all</a>.`,
         ),
       ].join('\n'),
     }),

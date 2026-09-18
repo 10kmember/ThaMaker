@@ -9,7 +9,7 @@ import { z } from 'zod';
  */
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required — PostgreSQL is the source of truth.'),
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required, PostgreSQL is the source of truth.'),
   AUTH_SECRET: z.string().min(32).optional(),
   NEXT_PUBLIC_SITE_URL: z.string().url().default('https://palmaawards.com'),
   EMAIL_FROM: z.string().default('PALMA <laurels@palmaawards.com>'),

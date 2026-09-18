@@ -52,7 +52,7 @@ export async function generateMetadata({ params }: Params) {
   const what = isThePalma(honour.kind) ? 'THE PALMA' : honour.categoryName;
 
   return buildMetadata({
-    title: `${creator.displayName} — ${what} ${honour.year}`,
+    title: `${creator.displayName}, ${what} ${honour.year}`,
     description: `${creator.displayName} holds ${HONOUR_LABEL[honour.kind]}${
       isThePalma(honour.kind) ? '' : `, ${honour.categoryName}`
     }, PALMA ${honour.year}. A verified PALMA record.`,

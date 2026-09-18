@@ -49,7 +49,7 @@ export function RetentionPanel({
 
       <p className="text-taupe text-xs leading-relaxed">
         {lastRun
-          ? `Last run ${new Date(lastRun.at).toISOString().replace('T', ' ').slice(0, 16)} UTC — ${lastRun.summary}`
+          ? `Last run ${new Date(lastRun.at).toISOString().replace('T', ' ').slice(0, 16)} UTC, ${lastRun.summary}`
           : 'The sweep has never run in this deployment.'}
       </p>
     </div>

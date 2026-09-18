@@ -149,7 +149,7 @@ export function CloseAccountForm({ heldRecord }: { heldRecord: string | null }) 
           <>
             {' '}
             <strong>{heldRecord}</strong> stays in the archive and becomes unclaimed again, with any
-            honour on it intact — PALMA&rsquo;s record of what happened does not belong to the
+            honour on it intact, PALMA&rsquo;s record of what happened does not belong to the
             account that held it.
           </>
         ) : null}

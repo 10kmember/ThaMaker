@@ -65,7 +65,7 @@ export function mediaStage(media: MediaState): MediaStage {
 }
 
 export const MEDIA_STAGE_LABEL: Record<MediaStage, string> = {
-  none_received: 'No media received — decided on the provider’s result alone',
+  none_received: 'No media received. Decided on the provider’s result alone',
   held: 'Media held in the restricted workspace, pending deletion',
   deleted: 'Submitted media deleted',
 };

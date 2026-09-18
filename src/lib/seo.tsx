@@ -43,18 +43,18 @@ export function buildMetadata({
     alternates: { canonical: url },
     robots: noIndex ? { index: false, follow: false } : undefined,
     openGraph: {
-      title: `${title} — ${SITE_NAME}`,
+      title: `${title}, ${SITE_NAME}`,
       description,
       url,
       siteName: SITE_NAME,
       locale: 'en_GB',
       type: type === 'profile' ? 'profile' : type,
-      images: [{ url: imageUrl, width: 1200, height: 630, alt: `${title} — ${SITE_NAME}` }],
+      images: [{ url: imageUrl, width: 1200, height: 630, alt: `${title}, ${SITE_NAME}` }],
       ...(publishedTime ? { publishedTime } : {}),
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${title} — ${SITE_NAME}`,
+      title: `${title}, ${SITE_NAME}`,
       description,
       images: [imageUrl],
     },
@@ -69,7 +69,7 @@ export function organisationJsonLd(): JsonLd {
     '@type': 'Organization',
     name: SITE_NAME,
     legalName: `${SITE_LEGAL_NAME} Ltd`,
-    alternateName: `${SITE_NAME} — ${SITE_DESCRIPTOR}`,
+    alternateName: `${SITE_NAME}, ${SITE_DESCRIPTOR}`,
     url: siteUrl,
     description:
       'PALMA is the permanent record of achievement in the creator industry, the institution behind The Creator Honours.',
@@ -90,7 +90,7 @@ export function awardJsonLd(input: {
     '@type': 'Person',
     name: input.creatorName,
     url: input.creatorUrl,
-    award: `${SITE_NAME} ${input.year} — ${input.categoryName} (${input.kind})`,
+    award: `${SITE_NAME} ${input.year}, ${input.categoryName} (${input.kind})`,
     ...(input.code
       ? {
           identifier: {

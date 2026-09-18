@@ -36,7 +36,7 @@ export default function PolicyPage() {
             <h2 className="mt-12 mb-4 text-3xl">Evidence is ours to gather</h2>
             <p>
               PALMA does not ask the audience to prove anything. A nomination is a name, a category
-              and a sentence. If a creator’s candidacy needs evidencing, PALMA gathers it — from the
+              and a sentence. If a creator’s candidacy needs evidencing, PALMA gathers it, from the
               creator, from the public record, and from the platforms where the work already lives.
             </p>
             <p>
@@ -52,8 +52,8 @@ export default function PolicyPage() {
             <p>
               Every PALMA creator must be 18 or over. Age and identity assurance is carried out by a
               specialist third-party provider. PALMA stores only the verification status, the
-              provider’s reference and the date — never an identity document, and never anything
-              that is shown publicly.
+              provider’s reference and the date, never an identity document, and never anything that
+              is shown publicly.
             </p>
 
             <h2 className="mt-12 mb-4 text-3xl">Prohibited</h2>

@@ -54,7 +54,7 @@ export default async function CreatorsPage({ searchParams }: Props) {
       <Masthead
         eyebrow={'The record'}
         title="Creators"
-        standfirst="A PALMA profile is an achievement record, not a social profile. No follower counts, no feed, no commentary — only what the panel conferred."
+        standfirst="A PALMA profile is an achievement record, not a social profile. No follower counts, no feed, no commentary, only what the panel conferred."
         meta={['No follower counts', 'No feed', 'No commentary']}
         size="compact"
       />

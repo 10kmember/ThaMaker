@@ -73,7 +73,7 @@ export function EmailPreferencesForm({ lists }: { lists: PreferenceList[] }) {
       <form action={leaveEverything} className="border-stone-deep border-t pt-6">
         <p className="text-taupe-deep mb-4 text-sm leading-relaxed">
           Want none of it? One click, no confirmation screen. Decisions about your own record still
-          reach you — those are not a subscription.
+          reach you. Those are not a subscription.
         </p>
         <Button type="submit" variant="ghost" size="sm">
           Leave every PALMA list

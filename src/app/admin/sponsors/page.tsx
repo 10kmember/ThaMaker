@@ -35,7 +35,7 @@ export default async function SponsorsPage() {
       <Notice tone="warning" className="mt-8" title="The boundary is structural, not a policy">
         A sponsor holds no role in PALMA&rsquo;s permission matrix. There is no sponsor account, no
         sponsor-readable relation on any judging table, and no messaging path between a sponsor and
-        a judge — because none was ever built. The permissions that decide an award (
+        a judge, because none was ever built. The permissions that decide an award (
         {OUTCOME_PERMISSIONS.map((permission) => permission.split(':')[1]?.replace(/_/g, ' ')).join(
           ', ',
         )}
@@ -88,7 +88,7 @@ export default async function SponsorsPage() {
       )}
 
       <p className="text-taupe mt-10 max-w-160 text-sm leading-relaxed">
-        The public statement of all this — what a partnership buys and what it can never buy — is at{' '}
+        The public statement of all this, what a partnership buys and what it can never buy, is at{' '}
         <Link href="/about/sponsors" className="palma-link text-ink">
           /about/sponsors
         </Link>

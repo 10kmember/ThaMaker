@@ -63,7 +63,7 @@ export const FEATURES = {
     key: 'category_sponsorship',
     name: 'Category sponsorship',
     purpose:
-      'Lets a category carry “presented by”. The sponsor buys the association and nothing else — not eligibility, not weighting, not judging, not selection.',
+      'Lets a category carry “presented by”. The sponsor buys the association and nothing else, not eligibility, not weighting, not judging, not selection.',
     requires: 'At least one active sponsor with a signed agreement, and an approved association.',
     group: 'Sponsorship',
     seasonAware: true,
@@ -83,7 +83,7 @@ export const FEATURES = {
     key: 'event_ticketing',
     name: 'Event ticketing',
     purpose:
-      'Public ticket sales for a PALMA event — general admission, premium, and the tables companies buy for clients.',
+      'Public ticket sales for a PALMA event. General admission, premium, and the tables companies buy for clients.',
     requires:
       'A confirmed event with a venue and a date, and a payment provider. PALMA has neither yet, and this stays off until it does.',
     group: 'Events',
@@ -122,7 +122,7 @@ export const FEATURES = {
     key: 'award_mark_licensing',
     name: 'Award mark licensing',
     purpose:
-      'Formal permission to use the PALMA mark, granted against a real achievement — which is what eventually stops fabricated badges.',
+      'Formal permission to use the PALMA mark, granted against a real achievement, which is what eventually stops fabricated badges.',
     requires: 'A registered mark, and licence terms written by a solicitor.',
     group: 'Recognition',
     seasonAware: false,
@@ -173,7 +173,7 @@ export const FEATURES = {
     key: 'palma_insights',
     name: 'PALMA insights',
     purpose:
-      'Aggregate, non-identifying reports on creator culture. Trends and distributions — never a database of people.',
+      'Aggregate, non-identifying reports on creator culture. Trends and distributions, never a database of people.',
     requires:
       'Enough seasons that an aggregate is meaningful, and a disclosure review before anything is published.',
     group: 'Insight',
