@@ -4,9 +4,23 @@ out/
 build/
 dist/
 coverage/
-.env
-.env.local
-.env.*.local
+# Every environment file, whatever it is called.
+#
+# The previous three lines covered `.env`, `.env.local` and `.env.*.local`
+# exactly, which leaves `.env.production` and `.env.staging` tracked: a
+# gitignore is only as good as the filename somebody happens to choose at
+# four in the afternoon. Ignore the lot and re-admit the template, which is
+# the one file here that must be committed and holds no real value.
+.env*
+!.env.example
+
+# Keys and certificates, by extension rather than by name.
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+
 *.log
 npm-debug.log*
 .DS_Store
