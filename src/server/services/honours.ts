@@ -3,13 +3,17 @@ import { signingSecret } from '@/lib/env';
 import { deriveCode, payloadDigest, signAchievement } from '@/lib/verification';
 import { canReceiveHonour } from '@/domain/eligibility';
 import { recordAudit, type AuditActor } from '@/server/audit';
-import { requireDb } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { sql, withTransaction } from '@/server/db/sql';
 import { sendHonourConferred, sendHonourRevoked } from '@/server/email/messages';
 
 export type { HonourKind } from '@/domain/honours';
 import { honourCategoryName, HONOUR_LABEL } from '@/domain/honours';
 import { conferralObjections } from '@/domain/the-palma';
 import type { HonourKind } from '@/domain/honours';
+
+type VerificationStatus =
+  'unverified' | 'pending' | 'verified' | 'failed' | 'expired' | 'revoked';
 
 export type ConferInput = {
   candidacyId: string;
@@ -22,6 +26,22 @@ export type ConferInput = {
 export type ConferResult =
   { ok: true; honourId: string; code: string | null } | { ok: false; reason: string };
 
+type CandidacyHonourRow = {
+  id: string;
+  status: string;
+  awardYearId: string;
+  categoryId: string;
+  creatorId: string;
+  creatorSlug: string;
+  creatorDisplayName: string;
+  creatorIsSuspended: boolean;
+  creatorVerificationStatus: VerificationStatus | null;
+  userId: string | null;
+  userEmail: string | null;
+  categoryName: string;
+  awardYear: number;
+};
+
 /**
  * Confer an honour.
  *
@@ -31,18 +51,30 @@ export type ConferResult =
  * be worse than no honour at all.
  */
 export async function conferHonour(input: ConferInput): Promise<ConferResult> {
-  const db = requireDb();
-
-  const candidacy = await db.candidacy.findUnique({
-    where: { id: input.candidacyId },
-    include: {
-      creator: {
-        include: { verification: true, user: { select: { id: true, email: true } } },
-      },
-      category: true,
-      awardYear: true,
-    },
-  });
+  const [candidacy] = await sql<CandidacyHonourRow[]>`
+    select
+      c.id,
+      c.status,
+      c."awardYearId",
+      c."categoryId",
+      c."creatorId",
+      cr.slug as "creatorSlug",
+      cr."displayName" as "creatorDisplayName",
+      cr."isSuspended" as "creatorIsSuspended",
+      cv.status as "creatorVerificationStatus",
+      u.id as "userId",
+      u.email as "userEmail",
+      cat.name as "categoryName",
+      ay.year as "awardYear"
+    from "Candidacy" c
+    join "Creator" cr on cr.id = c."creatorId"
+    left join "CreatorVerification" cv on cv."creatorId" = cr.id
+    left join "User" u on u.id = cr."userId"
+    join "Category" cat on cat.id = c."categoryId"
+    join "AwardYear" ay on ay.id = c."awardYearId"
+    where c.id = ${input.candidacyId}
+    limit 1
+  `;
 
   if (!candidacy) return { ok: false, reason: 'That candidacy does not exist.' };
 
@@ -51,97 +83,92 @@ export async function conferHonour(input: ConferInput): Promise<ConferResult> {
   }
 
   const standing = canReceiveHonour({
-    creatorIsSuspended: candidacy.creator.isSuspended,
-    creatorVerificationStatus: candidacy.creator.verification?.status ?? 'unverified',
+    creatorIsSuspended: candidacy.creatorIsSuspended,
+    creatorVerificationStatus: candidacy.creatorVerificationStatus ?? 'unverified',
   });
   if (!standing.ok) return { ok: false, reason: standing.reason! };
 
-  const existing = await db.honour.findUnique({
-    where: {
-      awardYearId_categoryId_creatorId_kind: {
-        awardYearId: candidacy.awardYearId,
-        categoryId: candidacy.categoryId,
-        creatorId: candidacy.creatorId,
-        kind: input.kind,
-      },
-    },
-  });
+  const [existing] = await sql<{ id: string }[]>`
+    select id
+    from "Honour"
+    where "awardYearId" = ${candidacy.awardYearId}
+      and "categoryId" = ${candidacy.categoryId}
+      and "creatorId" = ${candidacy.creatorId}
+      and kind = ${input.kind}
+    limit 1
+  `;
   if (existing) return { ok: false, reason: 'That honour has already been conferred.' };
 
   const issuedAt = new Date();
 
-  const result = await db.$transaction(async (tx) => {
-    const honour = await tx.honour.create({
-      data: {
-        awardYearId: candidacy.awardYearId,
-        categoryId: candidacy.categoryId,
-        creatorId: candidacy.creatorId,
-        candidacyId: candidacy.id,
-        kind: input.kind,
-        position: input.position ?? 0,
-        citation: input.citation ?? null,
-        announcedAt: issuedAt,
-      },
-    });
+  const result = await withTransaction(async (tx) => {
+    const honourId = createId();
+    await tx`
+      insert into "Honour" (
+        id, "awardYearId", "categoryId", "creatorId", "candidacyId",
+        kind, position, citation, "announcedAt", "updatedAt"
+      )
+      values (
+        ${honourId}, ${candidacy.awardYearId}, ${candidacy.categoryId}, ${candidacy.creatorId}, ${candidacy.id},
+        ${input.kind}, ${input.position ?? 0}, ${input.citation ?? null}, ${issuedAt}, ${issuedAt}
+      )
+    `;
 
-    await tx.candidacy.update({
-      where: { id: candidacy.id },
-      data: {
-        status:
-          input.kind === 'winner'
-            ? 'winner'
-            : input.kind === 'finalist'
-              ? 'finalist'
-              : 'shortlisted',
-      },
-    });
+    await tx`
+      update "Candidacy"
+      set status = ${
+        input.kind === 'winner'
+          ? 'winner'
+          : input.kind === 'finalist'
+            ? 'finalist'
+            : 'shortlisted'
+      }
+      where id = ${candidacy.id}
+    `;
 
     // The creator profile becomes public the moment they hold an honour.
-    await tx.creator.update({
-      where: { id: candidacy.creatorId },
-      data: { isPublished: true },
-    });
+    await tx`
+      update "Creator" set "isPublished" = true where id = ${candidacy.creatorId}
+    `;
 
     if (input.kind === 'shortlist') {
-      return { honourId: honour.id, code: null as string | null };
+      return { honourId, code: null as string | null };
     }
 
-    const code = deriveCode(signingSecret(), candidacy.awardYear.year, honour.id);
+    const code = deriveCode(signingSecret(), candidacy.awardYear, honourId);
     const payload = {
       code,
-      creatorSlug: candidacy.creator.slug,
-      creatorName: candidacy.creator.displayName,
-      categoryName: candidacy.category.name,
-      year: candidacy.awardYear.year,
+      creatorSlug: candidacy.creatorSlug,
+      creatorName: candidacy.creatorDisplayName,
+      categoryName: candidacy.categoryName,
+      year: candidacy.awardYear,
       kind: input.kind,
       issuedAt: issuedAt.toISOString(),
     };
 
-    const achievement = await tx.achievement.create({
-      data: {
-        honourId: honour.id,
-        creatorId: candidacy.creatorId,
-        code,
-        kind: input.kind,
-        year: candidacy.awardYear.year,
-        categoryName: candidacy.category.name,
-        creatorName: candidacy.creator.displayName,
-        creatorSlug: candidacy.creator.slug,
-        issuedAt,
-      },
-    });
+    const achievementId = createId();
+    await tx`
+      insert into "Achievement" (
+        id, "honourId", "creatorId", code, kind, year,
+        "categoryName", "creatorName", "creatorSlug", "issuedAt"
+      )
+      values (
+        ${achievementId}, ${honourId}, ${candidacy.creatorId}, ${code}, ${input.kind}, ${candidacy.awardYear},
+        ${candidacy.categoryName}, ${candidacy.creatorDisplayName}, ${candidacy.creatorSlug}, ${issuedAt}
+      )
+    `;
 
-    await tx.verificationRecord.create({
-      data: {
-        achievementId: achievement.id,
-        code,
-        signature: signAchievement(signingSecret(), payload),
-        payloadDigest: payloadDigest(payload),
-        issuedAt,
-      },
-    });
+    await tx`
+      insert into "VerificationRecord" (
+        id, "achievementId", code, signature, "payloadDigest", "issuedAt"
+      )
+      values (
+        ${createId()}, ${achievementId}, ${code},
+        ${signAchievement(signingSecret(), payload)}, ${payloadDigest(payload)}, ${issuedAt}
+      )
+    `;
 
-    return { honourId: honour.id, code };
+    return { honourId, code };
   });
 
   await recordAudit({
@@ -154,7 +181,7 @@ export async function conferHonour(input: ConferInput): Promise<ConferResult> {
     entityType: 'Honour',
     entityId: result.honourId,
     actor: input.actor,
-    summary: `${candidacy.creator.displayName}, ${candidacy.category.name} (${candidacy.awardYear.year})`,
+    summary: `${candidacy.creatorDisplayName}, ${candidacy.categoryName} (${candidacy.awardYear})`,
     after: { kind: input.kind, code: result.code, candidacyId: candidacy.id },
   });
 
@@ -164,7 +191,7 @@ export async function conferHonour(input: ConferInput): Promise<ConferResult> {
       entityType: 'Achievement',
       entityId: result.code,
       actor: input.actor,
-      summary: `Verification record issued for ${candidacy.creator.displayName}`,
+      summary: `Verification record issued for ${candidacy.creatorDisplayName}`,
     });
   }
 
@@ -172,21 +199,33 @@ export async function conferHonour(input: ConferInput): Promise<ConferResult> {
   // conferred by a route that forgot to send the email is an honour somebody
   // finds out about from a stranger. A record nobody holds has nobody to tell,
   // and special recognition is announced by the desk rather than by a template.
-  if (candidacy.creator.user && input.kind !== 'special_recognition') {
+  if (candidacy.userId && candidacy.userEmail && input.kind !== 'special_recognition') {
     await sendHonourConferred({
-      to: candidacy.creator.user.email,
-      userId: candidacy.creator.user.id,
+      to: candidacy.userEmail,
+      userId: candidacy.userId,
       creatorId: candidacy.creatorId,
-      creatorName: candidacy.creator.displayName,
+      creatorName: candidacy.creatorDisplayName,
       kind: input.kind,
-      categoryName: candidacy.category.name,
-      year: candidacy.awardYear.year,
+      categoryName: candidacy.categoryName,
+      year: candidacy.awardYear,
       verificationCode: result.code,
     });
   }
 
   return { ok: true, honourId: result.honourId, code: result.code };
 }
+
+type HonourRevokeRow = {
+  id: string;
+  state: string;
+  kind: HonourKind;
+  creatorId: string;
+  creatorDisplayName: string;
+  creatorUserId: string | null;
+  categoryName: string | null;
+  awardYear: number;
+  achievementId: string | null;
+};
 
 /**
  * Revoke an honour.
@@ -200,12 +239,25 @@ export async function revokeHonour(input: {
   reason: string;
   actor: AuditActor;
 }): Promise<{ ok: boolean; reason?: string }> {
-  const db = requireDb();
-
-  const honour = await db.honour.findUnique({
-    where: { id: input.honourId },
-    include: { achievement: true, creator: true, category: true, awardYear: true },
-  });
+  const [honour] = await sql<HonourRevokeRow[]>`
+    select
+      h.id,
+      h.state,
+      h.kind,
+      h."creatorId",
+      cr."displayName" as "creatorDisplayName",
+      cr."userId" as "creatorUserId",
+      cat.name as "categoryName",
+      ay.year as "awardYear",
+      a.id as "achievementId"
+    from "Honour" h
+    join "Creator" cr on cr.id = h."creatorId"
+    left join "Category" cat on cat.id = h."categoryId"
+    join "AwardYear" ay on ay.id = h."awardYearId"
+    left join "Achievement" a on a."honourId" = h.id
+    where h.id = ${input.honourId}
+    limit 1
+  `;
 
   if (!honour) return { ok: false, reason: 'That honour does not exist.' };
   if (honour.state === 'revoked') return { ok: false, reason: 'That honour is already revoked.' };
@@ -215,17 +267,19 @@ export async function revokeHonour(input: {
 
   const revokedAt = new Date();
 
-  await db.$transaction(async (tx) => {
-    await tx.honour.update({
-      where: { id: honour.id },
-      data: { state: 'revoked', revokedAt, revokedReason: input.reason },
-    });
+  await withTransaction(async (tx) => {
+    await tx`
+      update "Honour"
+      set state = 'revoked', "revokedAt" = ${revokedAt}, "revokedReason" = ${input.reason}
+      where id = ${honour.id}
+    `;
 
-    if (honour.achievement) {
-      await tx.achievement.update({
-        where: { id: honour.achievement.id },
-        data: { state: 'revoked', revokedAt },
-      });
+    if (honour.achievementId) {
+      await tx`
+        update "Achievement"
+        set state = 'revoked', "revokedAt" = ${revokedAt}
+        where id = ${honour.achievementId}
+      `;
     }
   });
 
@@ -234,26 +288,25 @@ export async function revokeHonour(input: {
     entityType: 'Honour',
     entityId: honour.id,
     actor: input.actor,
-    summary: `${honour.creator.displayName}, ${honourCategoryName(honour.kind, honour.category?.name ?? null)} (${honour.awardYear.year})`,
+    summary: `${honour.creatorDisplayName}, ${honourCategoryName(honour.kind, honour.categoryName)} (${honour.awardYear})`,
     before: { state: 'active' },
     after: { state: 'revoked', reason: input.reason },
   });
 
   // Never gated by a preference. Finding out from the public page that your
   // honour was revoked is not an acceptable way to be told.
-  if (honour.creator.userId) {
-    const holder = await db.user.findUnique({
-      where: { id: honour.creator.userId },
-      select: { id: true, email: true },
-    });
+  if (honour.creatorUserId) {
+    const [holder] = await sql<{ id: string; email: string }[]>`
+      select id, email from "User" where id = ${honour.creatorUserId} limit 1
+    `;
     if (holder) {
       await sendHonourRevoked({
         to: holder.email,
         userId: holder.id,
         creatorId: honour.creatorId,
-        creatorName: honour.creator.displayName,
-        categoryName: honourCategoryName(honour.kind, honour.category?.name ?? null),
-        year: honour.awardYear.year,
+        creatorName: honour.creatorDisplayName,
+        categoryName: honourCategoryName(honour.kind, honour.categoryName),
+        year: honour.awardYear,
         reason: input.reason,
       });
     }
@@ -261,6 +314,17 @@ export async function revokeHonour(input: {
 
   return { ok: true };
 }
+
+type PalmaCreatorRow = {
+  id: string;
+  slug: string;
+  displayName: string;
+  isSuspended: boolean;
+  isPublished: boolean;
+  verificationStatus: VerificationStatus | null;
+  userId: string | null;
+  userEmail: string | null;
+};
 
 /**
  * Confer THE PALMA.
@@ -282,17 +346,26 @@ export async function conferThePalma(input: {
   citation: string;
   actor: AuditActor;
 }): Promise<ConferResult> {
-  const db = requireDb();
-
-  const [awardYear, creator] = await Promise.all([
-    db.awardYear.findUnique({
-      where: { id: input.awardYearId },
-      select: { id: true, year: true },
-    }),
-    db.creator.findUnique({
-      where: { id: input.creatorId },
-      include: { verification: true, user: { select: { id: true, email: true } } },
-    }),
+  const [[awardYear], [creator]] = await Promise.all([
+    sql<{ id: string; year: number }[]>`
+      select id, year from "AwardYear" where id = ${input.awardYearId} limit 1
+    `,
+    sql<PalmaCreatorRow[]>`
+      select
+        c.id,
+        c.slug,
+        c."displayName",
+        c."isSuspended",
+        c."isPublished",
+        cv.status as "verificationStatus",
+        u.id as "userId",
+        u.email as "userEmail"
+      from "Creator" c
+      left join "CreatorVerification" cv on cv."creatorId" = c.id
+      left join "User" u on u.id = c."userId"
+      where c.id = ${input.creatorId}
+      limit 1
+    `,
   ]);
 
   if (!awardYear) return { ok: false, reason: 'That season does not exist.' };
@@ -300,26 +373,30 @@ export async function conferThePalma(input: {
 
   const standing = canReceiveHonour({
     creatorIsSuspended: creator.isSuspended,
-    creatorVerificationStatus: creator.verification?.status ?? 'unverified',
+    creatorVerificationStatus: creator.verificationStatus ?? 'unverified',
   });
   if (!standing.ok) return { ok: false, reason: standing.reason! };
 
   // Everything the rules need, read once and handed to the domain. The domain
   // decides; this function only gathers and writes.
-  const [existingThisSeason, held] = await Promise.all([
-    db.honour.count({
-      where: { awardYearId: awardYear.id, kind: 'the_palma', state: 'active' },
-    }),
-    db.honour.findMany({
-      where: { creatorId: creator.id, kind: 'the_palma', state: 'active' },
-      select: { awardYear: { select: { year: true } } },
-    }),
+  const [[existingThisSeason], held] = await Promise.all([
+    sql<{ count: number }[]>`
+      select count(*)::int as count
+      from "Honour"
+      where "awardYearId" = ${awardYear.id} and kind = 'the_palma' and state = 'active'
+    `,
+    sql<{ year: number }[]>`
+      select ay.year
+      from "Honour" h
+      join "AwardYear" ay on ay.id = h."awardYearId"
+      where h."creatorId" = ${creator.id} and h.kind = 'the_palma' and h.state = 'active'
+    `,
   ]);
 
   const objections = conferralObjections({
-    existingThisSeason,
-    creatorHeldIn: held.map((honour) => honour.awardYear.year),
-    creatorIsVerified: creator.verification?.status === 'verified',
+    existingThisSeason: existingThisSeason?.count ?? 0,
+    creatorHeldIn: held.map((honour) => honour.year),
+    creatorIsVerified: creator.verificationStatus === 'verified',
     creatorIsPublished: creator.isPublished,
     citation: input.citation,
   });
@@ -329,23 +406,22 @@ export async function conferThePalma(input: {
   const issuedAt = new Date();
   const categoryName = HONOUR_LABEL.the_palma;
 
-  const result = await db.$transaction(async (tx) => {
-    const honour = await tx.honour.create({
-      data: {
-        awardYearId: awardYear.id,
-        categoryId: null,
-        creatorId: creator.id,
-        candidacyId: null,
-        kind: 'the_palma',
-        position: 0,
-        citation: input.citation.trim(),
-        announcedAt: issuedAt,
-      },
-    });
+  const result = await withTransaction(async (tx) => {
+    const honourId = createId();
+    await tx`
+      insert into "Honour" (
+        id, "awardYearId", "categoryId", "creatorId", "candidacyId",
+        kind, position, citation, "announcedAt", "updatedAt"
+      )
+      values (
+        ${honourId}, ${awardYear.id}, ${null}, ${creator.id}, ${null},
+        'the_palma', 0, ${input.citation.trim()}, ${issuedAt}, ${issuedAt}
+      )
+    `;
 
-    await tx.creator.update({ where: { id: creator.id }, data: { isPublished: true } });
+    await tx`update "Creator" set "isPublished" = true where id = ${creator.id}`;
 
-    const code = deriveCode(signingSecret(), awardYear.year, honour.id);
+    const code = deriveCode(signingSecret(), awardYear.year, honourId);
     const payload = {
       code,
       creatorSlug: creator.slug,
@@ -356,31 +432,29 @@ export async function conferThePalma(input: {
       issuedAt: issuedAt.toISOString(),
     };
 
-    const achievement = await tx.achievement.create({
-      data: {
-        honourId: honour.id,
-        creatorId: creator.id,
-        code,
-        kind: 'the_palma',
-        year: awardYear.year,
-        categoryName,
-        creatorName: creator.displayName,
-        creatorSlug: creator.slug,
-        issuedAt,
-      },
-    });
+    const achievementId = createId();
+    await tx`
+      insert into "Achievement" (
+        id, "honourId", "creatorId", code, kind, year,
+        "categoryName", "creatorName", "creatorSlug", "issuedAt"
+      )
+      values (
+        ${achievementId}, ${honourId}, ${creator.id}, ${code}, 'the_palma', ${awardYear.year},
+        ${categoryName}, ${creator.displayName}, ${creator.slug}, ${issuedAt}
+      )
+    `;
 
-    await tx.verificationRecord.create({
-      data: {
-        achievementId: achievement.id,
-        code,
-        signature: signAchievement(signingSecret(), payload),
-        payloadDigest: payloadDigest(payload),
-        issuedAt,
-      },
-    });
+    await tx`
+      insert into "VerificationRecord" (
+        id, "achievementId", code, signature, "payloadDigest", "issuedAt"
+      )
+      values (
+        ${createId()}, ${achievementId}, ${code},
+        ${signAchievement(signingSecret(), payload)}, ${payloadDigest(payload)}, ${issuedAt}
+      )
+    `;
 
-    return { honourId: honour.id, code };
+    return { honourId, code };
   });
 
   await recordAudit({
@@ -400,10 +474,10 @@ export async function conferThePalma(input: {
     summary: `Verification record issued for ${creator.displayName}`,
   });
 
-  if (creator.user) {
+  if (creator.userId && creator.userEmail) {
     await sendHonourConferred({
-      to: creator.user.email,
-      userId: creator.user.id,
+      to: creator.userEmail,
+      userId: creator.userId,
       creatorId: creator.id,
       creatorName: creator.displayName,
       kind: 'the_palma',

@@ -5,7 +5,7 @@ import { PortraitWithdrawForm } from '@/components/operations/PortraitWithdrawFo
 import { EditorialImage } from '@/components/palma/EditorialImage';
 import { buildMetadata } from '@/lib/seo';
 import { requirePermission } from '@/lib/auth/guards';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import { formatShortDate } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -31,23 +31,80 @@ export const metadata = buildMetadata({
  * notice. That is the right way round for a site whose uploaders are verified
  * people putting their own face on a record that carries their name.
  */
+type LivePortraitRow = {
+  id: string;
+  width: number;
+  height: number;
+  byteSize: number;
+  alt: string | null;
+  updatedAt: Date;
+  creatorSlug: string;
+  creatorDisplayName: string;
+  creatorPortraitUrl: string | null;
+};
+
+type WithdrawnPortraitRow = {
+  id: string;
+  withdrawnAt: Date | null;
+  withdrawnReason: string | null;
+  creatorDisplayName: string;
+};
+
 export default async function PortraitsPage() {
   await requirePermission('editorial:edit_creator', '/portal/portraits');
 
-  const [live, withdrawn] = await Promise.all([
-    prisma.creatorPortrait.findMany({
-      where: { status: 'published' },
-      orderBy: { updatedAt: 'desc' },
-      take: 60,
-      include: { creator: { select: { slug: true, displayName: true, portraitUrl: true } } },
-    }),
-    prisma.creatorPortrait.findMany({
-      where: { status: 'withdrawn' },
-      orderBy: { withdrawnAt: 'desc' },
-      take: 15,
-      include: { creator: { select: { slug: true, displayName: true } } },
-    }),
+  const [liveRows, withdrawnRows] = await Promise.all([
+    sql<LivePortraitRow[]>`
+      select
+        p.id,
+        p.width,
+        p.height,
+        p."byteSize",
+        p.alt,
+        p."updatedAt",
+        c.slug as "creatorSlug",
+        c."displayName" as "creatorDisplayName",
+        c."portraitUrl" as "creatorPortraitUrl"
+      from "CreatorPortrait" p
+      join "Creator" c on c.id = p."creatorId"
+      where p.status = 'published'
+      order by p."updatedAt" desc
+      limit 60
+    `,
+    sql<WithdrawnPortraitRow[]>`
+      select
+        p.id,
+        p."withdrawnAt",
+        p."withdrawnReason",
+        c."displayName" as "creatorDisplayName"
+      from "CreatorPortrait" p
+      join "Creator" c on c.id = p."creatorId"
+      where p.status = 'withdrawn'
+      order by p."withdrawnAt" desc
+      limit 15
+    `,
   ]);
+
+  const live = liveRows.map((row) => ({
+    id: row.id,
+    width: row.width,
+    height: row.height,
+    byteSize: row.byteSize,
+    alt: row.alt,
+    updatedAt: row.updatedAt,
+    creator: {
+      slug: row.creatorSlug,
+      displayName: row.creatorDisplayName,
+      portraitUrl: row.creatorPortraitUrl,
+    },
+  }));
+
+  const withdrawn = withdrawnRows.map((row) => ({
+    id: row.id,
+    withdrawnAt: row.withdrawnAt,
+    withdrawnReason: row.withdrawnReason,
+    creator: { displayName: row.creatorDisplayName },
+  }));
 
   return (
     <>

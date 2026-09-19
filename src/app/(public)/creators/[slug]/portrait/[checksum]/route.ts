@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import { getPortrait } from '@/server/services/portrait-storage';
 
 /**
@@ -26,14 +26,18 @@ export async function GET(
 ): Promise<NextResponse> {
   const { slug, checksum } = await params;
 
-  const portrait = await prisma.creatorPortrait.findFirst({
-    where: {
-      status: 'published',
-      checksum,
-      creator: { slug, isPublished: true },
-    },
-    select: { data: true, storageKey: true, contentType: true, byteSize: true },
-  });
+  const [portrait] = await sql<
+    { data: Uint8Array | null; storageKey: string | null; contentType: string; byteSize: number }[]
+  >`
+    select p.data, p."storageKey", p."contentType", p."byteSize"
+    from "CreatorPortrait" p
+    join "Creator" c on c.id = p."creatorId"
+    where p.status = 'published'
+      and p.checksum = ${checksum}
+      and c.slug = ${slug}
+      and c."isPublished" = true
+    limit 1
+  `;
 
   // A mismatched checksum is a stale URL rather than an error worth explaining.
   if (!portrait || portrait.byteSize === 0) {

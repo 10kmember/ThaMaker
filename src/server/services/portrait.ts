@@ -42,9 +42,9 @@ const MIN_EDGE = 200;
 
 export type PreparedPortrait = {
   /**
-   * Prisma's `Bytes` is `Uint8Array<ArrayBuffer>`. A Node Buffer is backed by
-   * `ArrayBufferLike`, which could in principle be a SharedArrayBuffer, so it
-   * is copied into a plain one rather than cast.
+   * The `bytea` column takes a `Uint8Array<ArrayBuffer>`. A Node Buffer is
+   * backed by `ArrayBufferLike`, which could in principle be a
+   * SharedArrayBuffer, so it is copied into a plain one rather than cast.
    */
   data: Uint8Array<ArrayBuffer>;
   contentType: string;
@@ -146,7 +146,7 @@ export async function preparePortrait(input: {
   };
 }
 
-/** Copy into a plain ArrayBuffer, which is what Prisma's Bytes column wants. */
+/** Copy into a plain ArrayBuffer, which is what the bytea column wants. */
 function toBytes(buffer: Buffer): Uint8Array<ArrayBuffer> {
   const out = new Uint8Array(new ArrayBuffer(buffer.byteLength));
   out.set(buffer);

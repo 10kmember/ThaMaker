@@ -5,7 +5,8 @@ import { assertSameOrigin } from '@/lib/auth/session';
 import { authorise } from '@/lib/auth/guards';
 import { containsExplicitLanguage } from '@/domain/content-policy';
 import { recordAudit } from '@/server/audit';
-import { prisma } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { sql, withTransaction } from '@/server/db/sql';
 import { MAX_UPLOAD_BYTES, portraitPath, preparePortrait } from '@/server/services/portrait';
 import { deletePortrait, putPortrait } from '@/server/services/portrait-storage';
 
@@ -88,10 +89,9 @@ export async function uploadPortrait(
   // The slug is the first segment of the serving path, so it is read from the
   // record rather than taken from the session, which was written at sign-in
   // and may predate a rename.
-  const creator = await prisma.creator.findUnique({
-    where: { id: creatorId },
-    select: { slug: true },
-  });
+  const [creator] = await sql<{ slug: string }[]>`
+    select slug from "Creator" where id = ${creatorId} limit 1
+  `;
 
   if (!creator) {
     return { status: 'error', message: 'That record could not be found.' };
@@ -116,9 +116,10 @@ export async function uploadPortrait(
     };
   }
 
-  const previousKey = await prisma.creatorPortrait
-    .findUnique({ where: { creatorId }, select: { storageKey: true } })
-    .then((row) => row?.storageKey ?? null);
+  const [previous] = await sql<{ storageKey: string | null }[]>`
+    select "storageKey" from "CreatorPortrait" where "creatorId" = ${creatorId} limit 1
+  `;
+  const previousKey = previous?.storageKey ?? null;
 
   const stored = {
     // Exactly one of the two: the bytes go to the column only when there is
@@ -134,26 +135,40 @@ export async function uploadPortrait(
     status: 'published' as const,
   };
 
-  await prisma.$transaction(async (tx) => {
-    await tx.creatorPortrait.upsert({
-      where: { creatorId },
-      create: { creatorId, ...stored },
-      // A replacement clears any earlier withdrawal. Somebody told to take a
-      // portrait down and uploading a different one has done the thing that
-      // was asked, and the record should not keep telling them off for it.
-      update: { ...stored, withdrawnAt: null, withdrawnById: null, withdrawnReason: null },
-    });
+  await withTransaction(async (tx) => {
+    await tx`
+      insert into "CreatorPortrait" (
+        id, "creatorId", data, "storageKey", "contentType",
+        width, height, "byteSize", checksum, alt, status, "updatedAt"
+      )
+      values (
+        ${createId()}, ${creatorId}, ${stored.data}, ${stored.storageKey}, ${stored.contentType},
+        ${stored.width}, ${stored.height}, ${stored.byteSize}, ${stored.checksum}, ${stored.alt}, ${stored.status}, ${new Date()}
+      )
+      on conflict ("creatorId") do update set
+        data = excluded.data,
+        "storageKey" = excluded."storageKey",
+        "contentType" = excluded."contentType",
+        width = excluded.width,
+        height = excluded.height,
+        "byteSize" = excluded."byteSize",
+        checksum = excluded.checksum,
+        alt = excluded.alt,
+        status = excluded.status,
+        "withdrawnAt" = null,
+        "withdrawnById" = null,
+        "withdrawnReason" = null
+    `;
 
     // This is the line that makes it public: the serving path carries the
     // checksum, so replacing a portrait is a different URL and no cache
     // anywhere is left holding the old one.
-    await tx.creator.update({
-      where: { id: creatorId },
-      data: {
-        portraitUrl: portraitPath(creator.slug, portrait.checksum),
-        portraitAlt: alt || null,
-      },
-    });
+    await tx`
+      update "Creator"
+      set "portraitUrl" = ${portraitPath(creator.slug, portrait.checksum)},
+          "portraitAlt" = ${alt || null}
+      where id = ${creatorId}
+    `;
   });
 
   // Only now, with the new key committed: an object deleted before the
@@ -197,17 +212,17 @@ export async function removePortrait(): Promise<void> {
 
   const creatorId = session.user.creatorId;
 
-  const existing = await prisma.creatorPortrait.findUnique({
-    where: { creatorId },
-    select: { storageKey: true },
-  });
+  const [existing] = await sql<{ storageKey: string | null }[]>`
+    select "storageKey" from "CreatorPortrait" where "creatorId" = ${creatorId} limit 1
+  `;
 
-  await prisma.$transaction(async (tx) => {
-    await tx.creatorPortrait.deleteMany({ where: { creatorId } });
-    await tx.creator.update({
-      where: { id: creatorId },
-      data: { portraitUrl: null, portraitAlt: null },
-    });
+  await withTransaction(async (tx) => {
+    await tx`delete from "CreatorPortrait" where "creatorId" = ${creatorId}`;
+    await tx`
+      update "Creator"
+      set "portraitUrl" = null, "portraitAlt" = null
+      where id = ${creatorId}
+    `;
   });
 
   // The row is what decides whether anything is served, so it goes first and
@@ -227,6 +242,15 @@ export async function removePortrait(): Promise<void> {
   revalidatePath('/creator');
   if (session.user.creatorSlug) revalidatePath(`/creators/${session.user.creatorSlug}`);
 }
+
+type WithdrawPortraitRow = {
+  id: string;
+  status: string;
+  storageKey: string | null;
+  creatorId: string;
+  creatorSlug: string;
+  creatorDisplayName: string;
+};
 
 /**
  * Taking one down.
@@ -263,36 +287,45 @@ export async function withdrawPortrait(
     };
   }
 
-  const portrait = await prisma.creatorPortrait.findUnique({
-    where: { id: portraitId },
-    include: { creator: { select: { id: true, slug: true, displayName: true } } },
-  });
+  const [portrait] = await sql<WithdrawPortraitRow[]>`
+    select
+      p.id,
+      p.status,
+      p."storageKey",
+      c.id as "creatorId",
+      c.slug as "creatorSlug",
+      c."displayName" as "creatorDisplayName"
+    from "CreatorPortrait" p
+    join "Creator" c on c.id = p."creatorId"
+    where p.id = ${portraitId}
+    limit 1
+  `;
 
   if (!portrait) return { status: 'error', message: 'That portrait does not exist.' };
   if (portrait.status === 'withdrawn') {
     return { status: 'error', message: 'That portrait is already down.' };
   }
 
-  await prisma.$transaction(async (tx) => {
+  await withTransaction(async (tx) => {
     // The bytes go with the decision. PALMA does not keep a copy of an image
     // it has taken off a record, and the row survives only to hold the reason
     // the creator was given.
-    await tx.creatorPortrait.update({
-      where: { id: portrait.id },
-      data: {
-        status: 'withdrawn',
-        withdrawnAt: new Date(),
-        withdrawnById: session.user.id,
-        withdrawnReason: reason,
-        data: null,
-        storageKey: null,
-        byteSize: 0,
-      },
-    });
-    await tx.creator.update({
-      where: { id: portrait.creator.id },
-      data: { portraitUrl: null, portraitAlt: null },
-    });
+    await tx`
+      update "CreatorPortrait"
+      set status = 'withdrawn',
+          "withdrawnAt" = ${new Date()},
+          "withdrawnById" = ${session.user.id},
+          "withdrawnReason" = ${reason},
+          data = null,
+          "storageKey" = null,
+          "byteSize" = 0
+      where id = ${portrait.id}
+    `;
+    await tx`
+      update "Creator"
+      set "portraitUrl" = null, "portraitAlt" = null
+      where id = ${portrait.creatorId}
+    `;
   });
 
   // Clearing the key is what stops it being served; this is what stops it
@@ -303,17 +336,17 @@ export async function withdrawPortrait(
   await recordAudit({
     action: 'creator.portrait_withdrawn',
     entityType: 'Creator',
-    entityId: portrait.creator.id,
+    entityId: portrait.creatorId,
     actor: { id: session.user.id, role: session.user.role, label: session.user.email },
-    summary: `Portrait for ${portrait.creator.displayName} taken down: ${reason}`,
+    summary: `Portrait for ${portrait.creatorDisplayName} taken down: ${reason}`,
   });
 
   revalidatePath('/portal/portraits');
   revalidatePath('/creator');
   revalidatePath('/creator/profile');
   revalidatePath('/creators');
-  revalidatePath(`/creators/${portrait.creator.slug}`);
-  revalidatePath(`/nominate/${portrait.creator.slug}`);
+  revalidatePath(`/creators/${portrait.creatorSlug}`);
+  revalidatePath(`/nominate/${portrait.creatorSlug}`);
 
   return { status: 'success', message: 'Taken down, and the image deleted.' };
 }
