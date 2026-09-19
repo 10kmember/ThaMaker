@@ -3,7 +3,8 @@
 import { assertSameOrigin, getSession } from '@/lib/auth/session';
 import { reportSchema } from '@/lib/validation/integrity';
 import { recordAudit } from '@/server/audit';
-import { prisma } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { sql } from '@/server/db/sql';
 import { RATE_LIMITS, enforceRateLimit } from '@/server/rate-limit';
 
 export type ReportState = { status: 'idle' | 'error' | 'success'; message?: string };
@@ -36,25 +37,34 @@ export async function fileReport(_previous: ReportState, formData: FormData): Pr
   // Honeypot: accept silently rather than teaching an automated client anything.
   if (parsed.data.website) return { status: 'success', message: 'Report received.' };
 
-  const db = prisma;
-
   const session = await getSession();
-  const creator = parsed.data.creatorSlug
-    ? await db.creator.findUnique({ where: { slug: parsed.data.creatorSlug } })
-    : null;
-  const candidacy = parsed.data.candidacyReference
-    ? await db.candidacy.findUnique({ where: { reference: parsed.data.candidacyReference } })
-    : null;
 
-  const report = await db.report.create({
-    data: {
-      reason: parsed.data.reason as 'other',
-      detail: parsed.data.detail,
-      reporterId: session?.user.id ?? null,
-      creatorId: creator?.id ?? null,
-      candidacyId: candidacy?.id ?? null,
-    },
-  });
+  const creator = parsed.data.creatorSlug
+    ? (
+        await sql<{ id: string }[]>`
+          select id from "Creator" where slug = ${parsed.data.creatorSlug} limit 1
+        `
+      )[0]
+    : undefined;
+  const candidacy = parsed.data.candidacyReference
+    ? (
+        await sql<{ id: string }[]>`
+          select id from "Candidacy" where reference = ${parsed.data.candidacyReference} limit 1
+        `
+      )[0]
+    : undefined;
+
+  const report = (
+    await sql<{ id: string }[]>`
+      insert into "Report" (id, reason, detail, "reporterId", "creatorId", "candidacyId", "createdAt")
+      values (
+        ${createId()}, ${parsed.data.reason}, ${parsed.data.detail},
+        ${session?.user.id ?? null}, ${creator?.id ?? null}, ${candidacy?.id ?? null},
+        ${new Date()}
+      )
+      returning id
+    `
+  )[0]!;
 
   await recordAudit({
     action: 'report.filed',

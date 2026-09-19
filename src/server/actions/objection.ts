@@ -5,7 +5,8 @@ import { z } from 'zod';
 import { assertSameOrigin } from '@/lib/auth/session';
 import { authorise } from '@/lib/auth/guards';
 import { recordAudit } from '@/server/audit';
-import { prisma } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { sql, withTransaction } from '@/server/db/sql';
 import { RATE_LIMITS, enforceRateLimit } from '@/server/rate-limit';
 import { CONTACTS } from '@/lib/legal';
 
@@ -55,10 +56,9 @@ export async function objectToRecord(
     };
   }
 
-  const creator = await prisma.creator.findUnique({
-    where: { slug: parsed.data.creatorSlug },
-    select: { id: true, displayName: true, userId: true },
-  });
+  const [creator] = await sql<{ id: string; displayName: string; userId: string | null }[]>`
+    select id, "displayName", "userId" from "Creator" where slug = ${parsed.data.creatorSlug} limit 1
+  `;
 
   if (!creator) {
     return { status: 'error', message: 'That record does not exist.' };
@@ -76,10 +76,11 @@ export async function objectToRecord(
     };
   }
 
-  const existing = await prisma.recordObjection.findFirst({
-    where: { creatorId: creator.id, status: 'received' },
-    select: { id: true },
-  });
+  const [existing] = await sql<{ id: string }[]>`
+    select id from "RecordObjection"
+    where "creatorId" = ${creator.id} and status = 'received'
+    limit 1
+  `;
 
   if (existing) {
     // Same answer either way: whether an objection is already open about
@@ -87,13 +88,10 @@ export async function objectToRecord(
     return { status: 'success', message: SAME_ANSWER };
   }
 
-  await prisma.recordObjection.create({
-    data: {
-      creatorId: creator.id,
-      contactEmail: parsed.data.contactEmail,
-      note: parsed.data.note || null,
-    },
-  });
+  await sql`
+    insert into "RecordObjection" (id, "creatorId", "contactEmail", note, "createdAt")
+    values (${createId()}, ${creator.id}, ${parsed.data.contactEmail}, ${parsed.data.note || null}, ${new Date()})
+  `;
 
   await recordAudit({
     action: 'record.objection_received',
@@ -150,20 +148,26 @@ export async function decideObjection(
     };
   }
 
-  const objection = await prisma.recordObjection.findUnique({
-    where: { id },
-    include: {
-      creator: {
-        select: {
-          id: true,
-          slug: true,
-          displayName: true,
-          userId: true,
-          honours: { select: { id: true }, where: { state: 'active' } },
-        },
-      },
-    },
-  });
+  const [objection] = await sql<
+    {
+      id: string;
+      status: string;
+      creatorId: string;
+      creatorSlug: string;
+      creatorDisplayName: string;
+      activeHonours: number;
+    }[]
+  >`
+    select
+      o.id, o.status,
+      c.id as "creatorId", c.slug as "creatorSlug", c."displayName" as "creatorDisplayName",
+      (select count(*)::int from "Honour" h
+        where h."creatorId" = c.id and h.state = 'active') as "activeHonours"
+    from "RecordObjection" o
+    join "Creator" c on c.id = o."creatorId"
+    where o.id = ${id}
+    limit 1
+  `;
 
   if (!objection) return { status: 'error', message: 'That objection does not exist.' };
   if (objection.status !== 'received') {
@@ -174,17 +178,21 @@ export async function decideObjection(
   const now = new Date();
 
   if (decision === 'refuse') {
-    await prisma.recordObjection.update({
-      where: { id: objection.id },
-      data: { status: 'refused', decidedAt: now, decidedById: session.user.id, decisionNote: note },
-    });
+    await sql`
+      update "RecordObjection" set
+        status = 'refused',
+        "decidedAt" = ${now},
+        "decidedById" = ${session.user.id},
+        "decisionNote" = ${note}
+      where id = ${objection.id}
+    `;
 
     await recordAudit({
       action: 'record.objection_refused',
       entityType: 'Creator',
-      entityId: objection.creator.id,
+      entityId: objection.creatorId,
       actor,
-      summary: `Objection to ${objection.creator.displayName} refused`,
+      summary: `Objection to ${objection.creatorDisplayName} refused`,
       after: { reason: note },
     });
 
@@ -195,53 +203,56 @@ export async function decideObjection(
     };
   }
 
-  const hadHonours = objection.creator.honours.length > 0;
+  const hadHonours = objection.activeHonours > 0;
 
-  await prisma.$transaction(async (tx) => {
-    await tx.recordObjection.update({
-      where: { id: objection.id },
-      data: {
-        status: 'upheld',
-        decidedAt: now,
-        decidedById: session.user.id,
-        decisionNote: note || null,
-      },
-    });
+  await withTransaction(async (tx) => {
+    await tx`
+      update "RecordObjection" set
+        status = 'upheld',
+        "decidedAt" = ${now},
+        "decidedById" = ${session.user.id},
+        "decisionNote" = ${note || null}
+      where id = ${objection.id}
+    `;
 
     if (hadHonours) {
       // The honour stays; everything descriptive goes. The record is reduced
       // to the achievement itself.
-      await tx.creatorLink.deleteMany({ where: { creatorId: objection.creator.id } });
-      await tx.creator.update({
-        where: { id: objection.creator.id },
-        data: {
-          city: null,
-          headline: null,
-          biography: null,
-          pronouns: null,
-          websiteUrl: null,
-          portraitUrl: null,
-        },
-      });
+      await tx`
+        delete from "CreatorLink" where "creatorId" = ${objection.creatorId}
+      `;
+      await tx`
+        update "Creator" set
+          city = null,
+          headline = null,
+          biography = null,
+          pronouns = null,
+          "websiteUrl" = null,
+          "portraitUrl" = null,
+          "updatedAt" = ${now}
+        where id = ${objection.creatorId}
+      `;
     } else {
       // Nothing conferred: the record has no institutional reason to exist.
-      await tx.creator.delete({ where: { id: objection.creator.id } });
+      await tx`
+        delete from "Creator" where id = ${objection.creatorId}
+      `;
     }
   });
 
   await recordAudit({
     action: 'record.objection_upheld',
     entityType: 'Creator',
-    entityId: objection.creator.id,
+    entityId: objection.creatorId,
     actor,
     summary: hadHonours
-      ? `Objection upheld: ${objection.creator.displayName} reduced to the conferred honour`
-      : `Objection upheld: the unclaimed record for ${objection.creator.displayName} was removed`,
+      ? `Objection upheld: ${objection.creatorDisplayName} reduced to the conferred honour`
+      : `Objection upheld: the unclaimed record for ${objection.creatorDisplayName} was removed`,
   });
 
   revalidatePath('/portal/objections');
   revalidatePath('/creators');
-  revalidatePath(`/creators/${objection.creator.slug}`);
+  revalidatePath(`/creators/${objection.creatorSlug}`);
 
   return {
     status: 'success',

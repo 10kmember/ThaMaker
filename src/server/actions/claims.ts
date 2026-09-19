@@ -5,12 +5,13 @@ import { authorise } from '@/lib/auth/guards';
 import { can } from '@/lib/auth/rbac';
 import { assertSameOrigin } from '@/lib/auth/session';
 import { randomToken, sha256 } from '@/lib/crypto';
-import { approvalIsBlocked, isOpenClaim } from '@/domain/claim';
+import { approvalIsBlocked, isOpenClaim, type ClaimStatus } from '@/domain/claim';
 import { claimDecisionSchema, claimRequestSchema, newRecordSchema } from '@/lib/validation/claims';
 import { fieldErrors } from '@/lib/validation/nomination';
 import { recordAudit } from '@/server/audit';
+import { createId } from '@/server/db/ids';
+import { sql, withTransaction } from '@/server/db/sql';
 import { sendClaimApproved, sendClaimRefused } from '@/server/email/messages';
-import { requireDb } from '@/server/db';
 import { slugify } from '@/lib/utils';
 
 export type ClaimState = {
@@ -67,11 +68,9 @@ export async function requestProfileClaim(
     };
   }
 
-  const db = requireDb();
-  const creator = await db.creator.findUnique({
-    where: { slug: parsed.data.creator },
-    select: { id: true, displayName: true, userId: true },
-  });
+  const [creator] = await sql<{ id: string; displayName: string; userId: string | null }[]>`
+    select id, "displayName", "userId" from "Creator" where slug = ${parsed.data.creator} limit 1
+  `;
 
   if (!creator) return { status: 'error', message: 'That profile does not exist.' };
 
@@ -85,14 +84,13 @@ export async function requestProfileClaim(
     };
   }
 
-  const existing = await db.creatorClaim.findFirst({
-    where: {
-      creatorId: creator.id,
-      userId: session.user.id,
-      status: { in: ['submitted', 'awaiting_information', 'escalated'] },
-    },
-    select: { id: true },
-  });
+  const [existing] = await sql<{ id: string }[]>`
+    select id from "CreatorClaim"
+    where "creatorId" = ${creator.id}
+      and "userId" = ${session.user.id}
+      and status in ('submitted', 'awaiting_information', 'escalated')
+    limit 1
+  `;
 
   if (existing) {
     return {
@@ -104,42 +102,49 @@ export async function requestProfileClaim(
   // An invitation PALMA issued is consumed here, and is evidence at review.
   let invitationId: string | null = null;
   if (parsed.data.token) {
-    const invitation = await db.claimInvitation.findUnique({
-      where: { tokenHash: sha256(parsed.data.token) },
-      select: { id: true, creatorId: true, expiresAt: true, usedAt: true, revokedAt: true },
-    });
+    const [invitation] = await sql<{ id: string }[]>`
+      select id from "ClaimInvitation"
+      where "tokenHash" = ${sha256(parsed.data.token)}
+        and "creatorId" = ${creator.id}
+        and "usedAt" is null
+        and "revokedAt" is null
+        and "expiresAt" > timezone('UTC', now())
+      limit 1
+    `;
 
-    const usable =
-      invitation &&
-      invitation.creatorId === creator.id &&
-      !invitation.usedAt &&
-      !invitation.revokedAt &&
-      invitation.expiresAt.getTime() > Date.now();
-
-    if (usable) invitationId = invitation.id;
+    if (invitation) invitationId = invitation.id;
   }
 
-  const claim = await db.$transaction(async (tx) => {
-    const created = await tx.creatorClaim.create({
-      data: {
-        reference: reference('CL'),
-        creatorId: creator.id,
-        userId: session.user.id,
-        contactEmail: parsed.data.contactEmail,
-        claimedIdentity: parsed.data.claimedIdentity,
-        supportingNote: parsed.data.supportingNote || null,
-        links: { create: parsed.data.links },
-      },
-    });
+  const claim = await withTransaction(async (tx) => {
+    const now = new Date();
+    const id = createId();
+    const claimReference = reference('CL');
 
-    if (invitationId) {
-      await tx.claimInvitation.update({
-        where: { id: invitationId },
-        data: { usedAt: new Date() },
-      });
+    await tx`
+      insert into "CreatorClaim" (
+        id, reference, "creatorId", "userId", "contactEmail", "claimedIdentity",
+        "supportingNote", "createdAt", "updatedAt"
+      ) values (
+        ${id}, ${claimReference}, ${creator.id}, ${session.user.id},
+        ${parsed.data.contactEmail}, ${parsed.data.claimedIdentity},
+        ${parsed.data.supportingNote || null}, ${now}, ${now}
+      )
+    `;
+
+    for (const link of parsed.data.links) {
+      await tx`
+        insert into "CreatorClaimLink" (id, "claimId", label, url)
+        values (${createId()}, ${id}, ${link.label}, ${link.url})
+      `;
     }
 
-    return created;
+    if (invitationId) {
+      await tx`
+        update "ClaimInvitation" set "usedAt" = ${now} where id = ${invitationId}
+      `;
+    }
+
+    return { id, reference: claimReference };
   });
 
   await recordAudit({
@@ -197,17 +202,34 @@ export async function decideClaim(_previous: ClaimState, formData: FormData): Pr
     };
   }
 
-  const db = requireDb();
-  const claim = await db.creatorClaim.findUnique({
-    where: { id: parsed.data.claimId },
-    include: {
-      creator: { select: { id: true, slug: true, displayName: true, userId: true } },
-      user: { select: { id: true, email: true, role: true } },
-    },
-  });
+  const [claim] = await sql<
+    {
+      id: string;
+      reference: string;
+      status: string;
+      creatorId: string;
+      userId: string;
+      claimedIdentity: string;
+      creatorSlug: string;
+      creatorDisplayName: string;
+      creatorUserId: string | null;
+      userEmail: string;
+      userRole: string;
+    }[]
+  >`
+    select
+      cl.id, cl.reference, cl.status, cl."creatorId", cl."userId", cl."claimedIdentity",
+      c.slug as "creatorSlug", c."displayName" as "creatorDisplayName", c."userId" as "creatorUserId",
+      u.email as "userEmail", u.role as "userRole"
+    from "CreatorClaim" cl
+    join "Creator" c on c.id = cl."creatorId"
+    join "User" u on u.id = cl."userId"
+    where cl.id = ${parsed.data.claimId}
+    limit 1
+  `;
 
   if (!claim) return { status: 'error', message: 'That claim does not exist.' };
-  if (!isOpenClaim(claim.status)) {
+  if (!isOpenClaim(claim.status as ClaimStatus)) {
     return { status: 'error', message: 'That claim has already been settled.' };
   }
 
@@ -215,14 +237,14 @@ export async function decideClaim(_previous: ClaimState, formData: FormData): Pr
   const now = new Date();
 
   if (parsed.data.decision === 'request_information') {
-    await db.creatorClaim.update({
-      where: { id: claim.id },
-      data: {
-        status: 'awaiting_information',
-        informationRequestedAt: now,
-        informationRequestedNote: parsed.data.note || null,
-      },
-    });
+    await sql`
+      update "CreatorClaim" set
+        status = 'awaiting_information',
+        "informationRequestedAt" = ${now},
+        "informationRequestedNote" = ${parsed.data.note || null},
+        "updatedAt" = ${now}
+      where id = ${claim.id}
+    `;
 
     await recordAudit({
       action: 'claim.information_requested',
@@ -237,10 +259,14 @@ export async function decideClaim(_previous: ClaimState, formData: FormData): Pr
   }
 
   if (parsed.data.decision === 'escalate') {
-    await db.creatorClaim.update({
-      where: { id: claim.id },
-      data: { status: 'escalated', escalatedAt: now, decisionNote: parsed.data.note || null },
-    });
+    await sql`
+      update "CreatorClaim" set
+        status = 'escalated',
+        "escalatedAt" = ${now},
+        "decisionNote" = ${parsed.data.note || null},
+        "updatedAt" = ${now}
+      where id = ${claim.id}
+    `;
 
     await recordAudit({
       action: 'claim.escalated',
@@ -259,22 +285,22 @@ export async function decideClaim(_previous: ClaimState, formData: FormData): Pr
       return { status: 'error', message: 'A rejection has to carry a reason.' };
     }
 
-    await db.creatorClaim.update({
-      where: { id: claim.id },
-      data: {
-        status: 'rejected',
-        decidedAt: now,
-        decidedById: session.user.id,
-        decisionNote: parsed.data.note,
-      },
-    });
+    await sql`
+      update "CreatorClaim" set
+        status = 'rejected',
+        "decidedAt" = ${now},
+        "decidedById" = ${session.user.id},
+        "decisionNote" = ${parsed.data.note},
+        "updatedAt" = ${now}
+      where id = ${claim.id}
+    `;
 
     await recordAudit({
       action: 'claim.rejected',
       entityType: 'CreatorClaim',
       entityId: claim.id,
       actor,
-      summary: `${claim.reference} rejected on ${claim.creator.displayName}`,
+      summary: `${claim.reference} rejected on ${claim.creatorDisplayName}`,
       after: { reason: parsed.data.note },
     });
 
@@ -282,10 +308,10 @@ export async function decideClaim(_previous: ClaimState, formData: FormData): Pr
     // A refusal nobody explains is how an institution loses somebody's trust
     // over something that was usually only an evidence problem.
     await sendClaimRefused({
-      to: claim.user.email,
-      userId: claim.user.id,
-      creatorId: claim.creator.id,
-      creatorName: claim.creator.displayName,
+      to: claim.userEmail,
+      userId: claim.userId,
+      creatorId: claim.creatorId,
+      creatorName: claim.creatorDisplayName,
       reason: parsed.data.note,
     });
 
@@ -294,13 +320,12 @@ export async function decideClaim(_previous: ClaimState, formData: FormData): Pr
   }
 
   // Approval.
-  const verification = await db.creatorVerification.findUnique({
-    where: { creatorId: claim.creatorId },
-    select: { status: true },
-  });
+  const [verification] = await sql<{ status: string }[]>`
+    select status from "CreatorVerification" where "creatorId" = ${claim.creatorId} limit 1
+  `;
 
   const blocked = approvalIsBlocked({
-    recordUnclaimed: !claim.creator.userId,
+    recordUnclaimed: !claim.creatorUserId,
     verificationComplete: verification?.status === 'verified',
     identityStatementSupplied: claim.claimedIdentity.length > 0,
     evidenceLinkCount: 0,
@@ -310,42 +335,42 @@ export async function decideClaim(_previous: ClaimState, formData: FormData): Pr
 
   if (blocked) return { status: 'error', message: blocked };
 
-  await db.$transaction(async (tx) => {
-    await tx.creator.update({
-      where: { id: claim.creatorId },
-      data: { userId: claim.userId, isClaimed: true },
-    });
+  await withTransaction(async (tx) => {
+    await tx`
+      update "Creator" set "userId" = ${claim.userId}, "isClaimed" = true, "updatedAt" = ${now}
+      where id = ${claim.creatorId}
+    `;
 
     // The account is raised to creator only if it holds no role of its own.
     // A judge or a member of staff who also creates keeps the role they have.
-    if (claim.user.role === 'visitor') {
-      await tx.user.update({ where: { id: claim.userId }, data: { role: 'creator' } });
+    if (claim.userRole === 'visitor') {
+      await tx`
+        update "User" set role = 'creator', "updatedAt" = ${now} where id = ${claim.userId}
+      `;
     }
 
-    await tx.creatorClaim.update({
-      where: { id: claim.id },
-      data: {
-        status: 'approved',
-        decidedAt: now,
-        decidedById: session.user.id,
-        decisionNote: parsed.data.note || null,
-      },
-    });
+    await tx`
+      update "CreatorClaim" set
+        status = 'approved',
+        "decidedAt" = ${now},
+        "decidedById" = ${session.user.id},
+        "decisionNote" = ${parsed.data.note || null},
+        "updatedAt" = ${now}
+      where id = ${claim.id}
+    `;
 
     // Any other claim still open on this record is now moot.
-    await tx.creatorClaim.updateMany({
-      where: {
-        creatorId: claim.creatorId,
-        id: { not: claim.id },
-        status: { in: ['submitted', 'awaiting_information', 'escalated'] },
-      },
-      data: {
-        status: 'rejected',
-        decidedAt: now,
-        decidedById: session.user.id,
-        decisionNote: 'Another claim on this record was approved.',
-      },
-    });
+    await tx`
+      update "CreatorClaim" set
+        status = 'rejected',
+        "decidedAt" = ${now},
+        "decidedById" = ${session.user.id},
+        "decisionNote" = 'Another claim on this record was approved.',
+        "updatedAt" = ${now}
+      where "creatorId" = ${claim.creatorId}
+        and id <> ${claim.id}
+        and status in ('submitted', 'awaiting_information', 'escalated')
+    `;
   });
 
   await recordAudit({
@@ -353,28 +378,28 @@ export async function decideClaim(_previous: ClaimState, formData: FormData): Pr
     entityType: 'CreatorClaim',
     entityId: claim.id,
     actor,
-    summary: `${session.user.email} approved ${claim.user.email}'s claim on ${claim.creator.displayName}`,
+    summary: `${session.user.email} approved ${claim.userEmail}'s claim on ${claim.creatorDisplayName}`,
     before: { userId: null, isClaimed: false },
     after: { userId: claim.userId, isClaimed: true },
   });
 
   await sendClaimApproved({
-    to: claim.user.email,
-    userId: claim.user.id,
-    creatorId: claim.creator.id,
-    creatorName: claim.creator.displayName,
-    slug: claim.creator.slug,
+    to: claim.userEmail,
+    userId: claim.userId,
+    creatorId: claim.creatorId,
+    creatorName: claim.creatorDisplayName,
+    slug: claim.creatorSlug,
   });
 
   revalidatePath('/portal/claims');
   revalidatePath('/creator');
   // The public record says whether it is claimed, so it goes stale the moment
   // this succeeds.
-  revalidatePath(`/creators/${claim.creator.slug}`);
+  revalidatePath(`/creators/${claim.creatorSlug}`);
   revalidatePath('/creators');
   return {
     status: 'success',
-    message: `Approved. ${claim.creator.displayName} is now held by ${claim.user.email}.`,
+    message: `Approved. ${claim.creatorDisplayName} is now held by ${claim.userEmail}.`,
   };
 }
 
@@ -399,25 +424,24 @@ export async function issueClaimInvitation(
   }
 
   const creatorId = String(formData.get('creatorId') ?? '');
-  const db = requireDb();
-  const creator = await db.creator.findUnique({
-    where: { id: creatorId },
-    select: { id: true, slug: true, displayName: true, userId: true },
-  });
+  const [creator] = await sql<
+    { id: string; slug: string; displayName: string; userId: string | null }[]
+  >`
+    select id, slug, "displayName", "userId" from "Creator" where id = ${creatorId} limit 1
+  `;
 
   if (!creator) return { status: 'error', message: 'That record does not exist.' };
   if (creator.userId) return { status: 'error', message: 'That record is already held.' };
 
   const token = randomToken(24);
 
-  await db.claimInvitation.create({
-    data: {
-      creatorId: creator.id,
-      tokenHash: sha256(token),
-      issuedById: session.user.id,
-      expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
-    },
-  });
+  await sql`
+    insert into "ClaimInvitation" (id, "creatorId", "tokenHash", "issuedById", "expiresAt", "createdAt")
+    values (
+      ${createId()}, ${creator.id}, ${sha256(token)}, ${session.user.id},
+      ${new Date(Date.now() + 1000 * 60 * 60 * 24 * 30)}, ${new Date()}
+    )
+  `;
 
   await recordAudit({
     action: 'claim.invitation_issued',
@@ -489,14 +513,11 @@ export async function startCreatorRecord(
     };
   }
 
-  const db = requireDb();
-
   // One record per account. An account already holding one is editing, not
   // starting — and an account with a request open is waiting, not stuck.
-  const held = await db.creator.findFirst({
-    where: { userId: session.user.id },
-    select: { slug: true, displayName: true },
-  });
+  const [held] = await sql<{ slug: string; displayName: string }[]>`
+    select slug, "displayName" from "Creator" where "userId" = ${session.user.id} limit 1
+  `;
 
   if (held) {
     return {
@@ -507,53 +528,65 @@ export async function startCreatorRecord(
 
   const base = slugify(parsed.data.displayName);
   let slug = base;
-  for (let attempt = 2; await db.creator.findUnique({ where: { slug } }); attempt += 1) {
+  for (
+    let attempt = 2;
+    (
+      await sql<{ id: string }[]>`
+        select id from "Creator" where slug = ${slug} limit 1
+      `
+    )[0];
+    attempt += 1
+  ) {
     slug = `${base}-${attempt}`;
   }
 
   const requested = parsed.data.route === 'request';
 
-  const creator = await db.$transaction(async (tx) => {
-    const created = await tx.creator.create({
-      data: {
-        slug,
-        displayName: parsed.data.displayName,
-        countryCode: parsed.data.countryCode,
-        city: parsed.data.city || null,
-        pronouns: parsed.data.pronouns || null,
-        // On the request route PALMA writes the copy, so nothing the creator
-        // typed about themselves is published as editorial.
-        headline: requested ? null : parsed.data.headline || null,
-        biography: requested ? null : parsed.data.biography || null,
-        // Held immediately, published only by a moderator.
-        userId: session.user.id,
-        isClaimed: true,
-        isPublished: false,
-        links: {
-          create: parsed.data.links.map((link, position) => ({ ...link, position })),
-        },
-      },
-    });
+  const creator = await withTransaction(async (tx) => {
+    const now = new Date();
+    const id = createId();
 
-    await tx.creatorVerification.create({
-      data: { creatorId: created.id, status: 'unverified' },
-    });
+    await tx`
+      insert into "Creator" (
+        id, slug, "displayName", "countryCode", city, pronouns, headline, biography,
+        "userId", "isClaimed", "isPublished", "createdAt", "updatedAt"
+      ) values (
+        ${id}, ${slug}, ${parsed.data.displayName}, ${parsed.data.countryCode},
+        ${parsed.data.city || null}, ${parsed.data.pronouns || null},
+        ${requested ? null : parsed.data.headline || null},
+        ${requested ? null : parsed.data.biography || null},
+        ${session.user.id}, true, false, ${now}, ${now}
+      )
+    `;
 
-    await tx.creatorNote.create({
-      data: {
-        creatorId: created.id,
-        authorId: session.user.id,
-        body: requested
+    for (const [position, link] of parsed.data.links.entries()) {
+      await tx`
+        insert into "CreatorLink" (id, "creatorId", label, url, position)
+        values (${createId()}, ${id}, ${link.label}, ${link.url}, ${position})
+      `;
+    }
+
+    await tx`
+      insert into "CreatorVerification" (id, "creatorId", status, "createdAt", "updatedAt")
+      values (${createId()}, ${id}, 'unverified', ${now}, ${now})
+    `;
+
+    await tx`
+      insert into "CreatorNote" (id, "creatorId", "authorId", body, "createdAt")
+      values (
+        ${createId()}, ${id}, ${session.user.id},
+        ${requested
           ? `Record requested by ${session.user.email}. PALMA to write from the supplied links.${
               parsed.data.note ? ` They add: ${parsed.data.note}` : ''
             }`
           : `Record written by ${session.user.email} about themselves.${
               parsed.data.note ? ` They add: ${parsed.data.note}` : ''
-            } Review the copy before publishing.`,
-      },
-    });
+            } Review the copy before publishing.`},
+        ${now}
+      )
+    `;
 
-    return created;
+    return { id, displayName: parsed.data.displayName };
   });
 
   await recordAudit({
