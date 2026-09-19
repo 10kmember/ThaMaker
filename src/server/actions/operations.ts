@@ -14,7 +14,8 @@ import {
 import { fieldErrors } from '@/lib/validation/nomination';
 import { recordAudit } from '@/server/audit';
 import { sendRecordPublished, sendVerificationOutcome } from '@/server/email/messages';
-import { requireDb } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { sql, withTransaction } from '@/server/db/sql';
 import { slugify } from '@/lib/utils';
 
 export type OperationsState = {
@@ -66,7 +67,6 @@ export async function saveCreatorRecord(
     };
   }
 
-  const db = requireDb();
   const data = {
     displayName: parsed.data.displayName,
     countryCode: parsed.data.countryCode,
@@ -78,24 +78,50 @@ export async function saveCreatorRecord(
   };
 
   if (creatorId) {
-    const before = await db.creator.findUnique({
-      where: { id: creatorId },
-      select: {
-        slug: true,
-        displayName: true,
-        countryCode: true,
-        city: true,
-        headline: true,
-        biography: true,
-        websiteUrl: true,
-        isPublished: true,
-        user: { select: { id: true, email: true } },
-      },
-    });
+    type BeforeRow = {
+      slug: string;
+      displayName: string;
+      countryCode: string;
+      city: string | null;
+      headline: string | null;
+      biography: string | null;
+      websiteUrl: string | null;
+      isPublished: boolean;
+      userId: string | null;
+      userEmail: string | null;
+    };
+    const [before] = await sql<BeforeRow[]>`
+      select
+        c.slug,
+        c."displayName",
+        c."countryCode",
+        c.city,
+        c.headline,
+        c.biography,
+        c."websiteUrl",
+        c."isPublished",
+        u.id as "userId",
+        u.email as "userEmail"
+      from "Creator" c
+      left join "User" u on u.id = c."userId"
+      where c.id = ${creatorId}
+      limit 1
+    `;
 
     if (!before) return { status: 'error', message: 'That record does not exist.' };
 
-    await db.creator.update({ where: { id: creatorId }, data });
+    await sql`
+      update "Creator"
+      set
+        "displayName" = ${data.displayName},
+        "countryCode" = ${data.countryCode},
+        city = ${data.city},
+        headline = ${data.headline},
+        biography = ${data.biography},
+        "websiteUrl" = ${data.websiteUrl},
+        "isPublished" = ${data.isPublished}
+      where id = ${creatorId}
+    `;
 
     await recordAudit({
       action: 'creator.record_updated',
@@ -103,7 +129,17 @@ export async function saveCreatorRecord(
       entityId: creatorId,
       actor: { id: session.user.id, role: session.user.role, label: session.user.email },
       summary: `${before.displayName} updated`,
-      before,
+      before: {
+        slug: before.slug,
+        displayName: before.displayName,
+        countryCode: before.countryCode,
+        city: before.city,
+        headline: before.headline,
+        biography: before.biography,
+        websiteUrl: before.websiteUrl,
+        isPublished: before.isPublished,
+        user: before.userId ? { id: before.userId, email: before.userEmail } : null,
+      },
       after: data,
     });
 
@@ -111,10 +147,10 @@ export async function saveCreatorRecord(
     // that writes to them. Every other change is editorial housekeeping and
     // does not need an email about it.
     const justPublished = !before.isPublished && data.isPublished;
-    if (justPublished && before.user) {
+    if (justPublished && before.userId && before.userEmail) {
       await sendRecordPublished({
-        to: before.user.email,
-        userId: before.user.id,
+        to: before.userEmail,
+        userId: before.userId,
         creatorId,
         creatorName: data.displayName,
         slug: before.slug,
@@ -130,11 +166,32 @@ export async function saveCreatorRecord(
   // A new record needs a slug that does not collide with an existing one.
   const base = slugify(parsed.data.displayName);
   let slug = base;
-  for (let attempt = 2; await db.creator.findUnique({ where: { slug } }); attempt += 1) {
+  for (
+    let attempt = 2;
+    (await sql<{ id: string }[]>`select id from "Creator" where slug = ${slug} limit 1`).length > 0;
+    attempt += 1
+  ) {
     slug = `${base}-${attempt}`;
   }
 
-  const created = await db.creator.create({ data: { ...data, slug } });
+  const [created] = await sql<{ id: string; displayName: string }[]>`
+    insert into "Creator" (
+      id, slug, "displayName", "countryCode", city, headline, biography, "websiteUrl", "isPublished"
+    ) values (
+      ${createId()},
+      ${slug},
+      ${data.displayName},
+      ${data.countryCode},
+      ${data.city},
+      ${data.headline},
+      ${data.biography},
+      ${data.websiteUrl},
+      ${data.isPublished}
+    )
+    returning id, "displayName"
+  `;
+
+  if (!created) return { status: 'error', message: 'The record could not be created.' };
 
   await recordAudit({
     action: 'creator.record_created',
@@ -170,17 +227,19 @@ export async function addInternalNote(
 
   if (!parsed.success) return { status: 'error', message: 'Write the note.' };
 
-  const db = requireDb();
-  const creator = await db.creator.findUnique({
-    where: { id: parsed.data.creatorId },
-    select: { id: true, slug: true, displayName: true },
-  });
+  const [creator] = await sql<{ id: string; slug: string; displayName: string }[]>`
+    select id, slug, "displayName"
+    from "Creator"
+    where id = ${parsed.data.creatorId}
+    limit 1
+  `;
 
   if (!creator) return { status: 'error', message: 'That record does not exist.' };
 
-  await db.creatorNote.create({
-    data: { creatorId: creator.id, authorId: session.user.id, body: parsed.data.body },
-  });
+  await sql`
+    insert into "CreatorNote" (id, "creatorId", "authorId", body)
+    values (${createId()}, ${creator.id}, ${session.user.id}, ${parsed.data.body})
+  `;
 
   await recordAudit({
     action: 'creator.internal_note_added',
@@ -216,25 +275,35 @@ export async function openVerificationCase(
 
   if (!parsed.success) return { status: 'error', message: 'Choose why this needs a person.' };
 
-  const db = requireDb();
-  const creator = await db.creator.findUnique({
-    where: { id: parsed.data.creatorId },
-    select: { id: true, displayName: true },
-  });
+  const [creator] = await sql<{ id: string; displayName: string }[]>`
+    select id, "displayName"
+    from "Creator"
+    where id = ${parsed.data.creatorId}
+    limit 1
+  `;
 
   if (!creator) return { status: 'error', message: 'That record does not exist.' };
 
   const year = new Date().getUTCFullYear();
-  const sequence = (await db.verificationCase.count()) + 1;
+  const [countRow] = await sql<{ count: number }[]>`
+    select count(*)::int as count from "VerificationCase"
+  `;
+  const sequence = (countRow?.count ?? 0) + 1;
 
-  const opened = await db.verificationCase.create({
-    data: {
-      reference: caseReference(year, sequence),
-      creatorId: creator.id,
-      reason: parsed.data.reason,
-      mediaReceivedAt: parsed.data.mediaReceived ? new Date() : null,
-    },
-  });
+  const [opened] = await sql<{ id: string; reference: string }[]>`
+    insert into "VerificationCase" (
+      id, reference, "creatorId", reason, "mediaReceivedAt"
+    ) values (
+      ${createId()},
+      ${caseReference(year, sequence)},
+      ${creator.id},
+      ${parsed.data.reason},
+      ${parsed.data.mediaReceived ? new Date() : null}
+    )
+    returning id, reference
+  `;
+
+  if (!opened) return { status: 'error', message: 'The case could not be opened.' };
 
   await recordAudit({
     action: 'verification.case_opened',
@@ -280,20 +349,36 @@ export async function decideVerificationCase(
 
   if (!parsed.success) return { status: 'error', message: 'Choose an outcome.' };
 
-  const db = requireDb();
-  const record = await db.verificationCase.findUnique({
-    where: { id: parsed.data.caseId },
-    include: {
-      creator: {
-        select: {
-          id: true,
-          slug: true,
-          displayName: true,
-          user: { select: { id: true, email: true } },
-        },
-      },
-    },
-  });
+  type CaseRow = {
+    id: string;
+    reference: string;
+    creatorId: string;
+    decidedAt: Date | null;
+    mediaReceivedAt: Date | null;
+    mediaDeletedAt: Date | null;
+    creatorSlug: string;
+    creatorDisplayName: string;
+    userId: string | null;
+    userEmail: string | null;
+  };
+  const [record] = await sql<CaseRow[]>`
+    select
+      v.id,
+      v.reference,
+      v."creatorId",
+      v."decidedAt",
+      v."mediaReceivedAt",
+      v."mediaDeletedAt",
+      c.slug as "creatorSlug",
+      c."displayName" as "creatorDisplayName",
+      u.id as "userId",
+      u.email as "userEmail"
+    from "VerificationCase" v
+    join "Creator" c on c.id = v."creatorId"
+    left join "User" u on u.id = c."userId"
+    where v.id = ${parsed.data.caseId}
+    limit 1
+  `;
 
   if (!record) return { status: 'error', message: 'That case does not exist.' };
   if (record.decidedAt) return { status: 'error', message: 'That case is already decided.' };
@@ -302,16 +387,17 @@ export async function decideVerificationCase(
   const now = new Date();
 
   if (parsed.data.outcome === 'request_information') {
-    await db.verificationCase.update({
-      where: { id: record.id },
-      data: { status: 'awaiting_information', decisionNote: parsed.data.note || null },
-    });
+    await sql`
+      update "VerificationCase"
+      set status = 'awaiting_information', "decisionNote" = ${parsed.data.note || null}
+      where id = ${record.id}
+    `;
 
-    if (record.creator.user) {
+    if (record.userId && record.userEmail) {
       await sendVerificationOutcome({
-        to: record.creator.user.email,
-        userId: record.creator.user.id,
-        creatorId: record.creator.id,
+        to: record.userEmail,
+        userId: record.userId,
+        creatorId: record.creatorId,
         outcome: 'more_needed',
         note: parsed.data.note || null,
       });
@@ -340,50 +426,61 @@ export async function decideVerificationCase(
       ? sha256(`${record.reference}:${record.creatorId}:${now.toISOString()}:${randomToken(8)}`)
       : null;
 
-  await db.$transaction(async (tx) => {
-    await tx.verificationCase.update({
-      where: { id: record.id },
-      data: {
-        status: outcome,
-        decidedAt: now,
-        decidedById: session.user.id,
-        decisionNote: parsed.data.note || null,
-        providerReference: parsed.data.providerReference || null,
-        resultHash,
-        mediaDeletedAt,
-      },
-    });
+  await withTransaction(async (tx) => {
+    await tx`
+      update "VerificationCase"
+      set
+        status = ${outcome},
+        "decidedAt" = ${now},
+        "decidedById" = ${session.user.id},
+        "decisionNote" = ${parsed.data.note || null},
+        "providerReference" = ${parsed.data.providerReference || null},
+        "resultHash" = ${resultHash},
+        "mediaDeletedAt" = ${mediaDeletedAt}
+      where id = ${record.id}
+    `;
 
     if (outcome === 'verified') {
-      await tx.creatorVerification.upsert({
-        where: { creatorId: record.creatorId },
-        update: {
-          status: 'verified',
-          provider: 'palma_manual',
-          providerReference: parsed.data.providerReference || record.reference,
-          method: 'manual_review',
-          verifiedAt: now,
-          lastCheckedAt: now,
-          failureCode: null,
-        },
-        create: {
-          creatorId: record.creatorId,
-          status: 'verified',
-          provider: 'palma_manual',
-          providerReference: parsed.data.providerReference || record.reference,
-          method: 'manual_review',
-          verifiedAt: now,
-          lastCheckedAt: now,
-        },
-      });
+      await tx`
+        insert into "CreatorVerification" (
+          id, "creatorId", status, provider, "providerReference", method, "verifiedAt", "lastCheckedAt"
+        ) values (
+          ${createId()},
+          ${record.creatorId},
+          'verified',
+          'palma_manual',
+          ${parsed.data.providerReference || record.reference},
+          'manual_review',
+          ${now},
+          ${now}
+        )
+        on conflict ("creatorId") do update set
+          status = 'verified',
+          provider = 'palma_manual',
+          "providerReference" = excluded."providerReference",
+          method = 'manual_review',
+          "verifiedAt" = excluded."verifiedAt",
+          "lastCheckedAt" = excluded."lastCheckedAt",
+          "failureCode" = null
+      `;
     }
 
     if (outcome === 'refused') {
-      await tx.creatorVerification.upsert({
-        where: { creatorId: record.creatorId },
-        update: { status: 'failed', lastCheckedAt: now, failureCode: 'manual_refusal' },
-        create: { creatorId: record.creatorId, status: 'failed', lastCheckedAt: now },
-      });
+      await tx`
+        insert into "CreatorVerification" (
+          id, "creatorId", status, "lastCheckedAt", "failureCode"
+        ) values (
+          ${createId()},
+          ${record.creatorId},
+          'failed',
+          ${now},
+          'manual_refusal'
+        )
+        on conflict ("creatorId") do update set
+          status = 'failed',
+          "lastCheckedAt" = excluded."lastCheckedAt",
+          "failureCode" = 'manual_refusal'
+      `;
     }
   });
 
@@ -413,11 +510,11 @@ export async function decideVerificationCase(
 
   // Told to the creator, never quoting anything they submitted. An abandoned
   // case is one nobody is waiting on, so it writes nothing.
-  if (record.creator.user && outcome !== 'abandoned') {
+  if (record.userId && record.userEmail && outcome !== 'abandoned') {
     await sendVerificationOutcome({
-      to: record.creator.user.email,
-      userId: record.creator.user.id,
-      creatorId: record.creator.id,
+      to: record.userEmail,
+      userId: record.userId,
+      creatorId: record.creatorId,
       outcome: outcome === 'verified' ? 'verified' : 'failed',
       note: parsed.data.note || null,
     });
@@ -425,7 +522,7 @@ export async function decideVerificationCase(
 
   revalidatePath('/portal/verification');
   revalidatePath('/creator');
-  revalidatePath(`/creators/${record.creator.slug}`);
+  revalidatePath(`/creators/${record.creatorSlug}`);
   return {
     status: 'success',
     message:

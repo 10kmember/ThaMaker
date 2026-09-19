@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { assertSameOrigin, getSession } from '@/lib/auth/session';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 
 /**
  * Reading and filing.
@@ -22,10 +22,11 @@ export async function markDossierEntryRead(formData: FormData): Promise<void> {
   const id = String(formData.get('id') ?? '');
   if (!id) return;
 
-  await prisma.notification.updateMany({
-    where: { id, userId: session.user.id, readAt: null },
-    data: { readAt: new Date() },
-  });
+  await sql`
+    update "Notification"
+    set "readAt" = ${new Date()}
+    where id = ${id} and "userId" = ${session.user.id} and "readAt" is null
+  `;
 
   revalidatePath('/creator/dossier');
 }
@@ -35,10 +36,11 @@ export async function markAllDossierRead(): Promise<void> {
   const session = await getSession();
   if (!session) return;
 
-  await prisma.notification.updateMany({
-    where: { userId: session.user.id, readAt: null, archivedAt: null },
-    data: { readAt: new Date() },
-  });
+  await sql`
+    update "Notification"
+    set "readAt" = ${new Date()}
+    where "userId" = ${session.user.id} and "readAt" is null and "archivedAt" is null
+  `;
 
   revalidatePath('/creator/dossier');
 }
@@ -61,15 +63,14 @@ export async function archiveDossierEntry(formData: FormData): Promise<void> {
   const id = String(formData.get('id') ?? '');
   if (!id) return;
 
-  await prisma.notification.updateMany({
-    where: {
-      id,
-      userId: session.user.id,
-      archivedAt: null,
-      NOT: { isImportant: true, readAt: null },
-    },
-    data: { archivedAt: new Date(), readAt: new Date() },
-  });
+  await sql`
+    update "Notification"
+    set "archivedAt" = ${new Date()}, "readAt" = ${new Date()}
+    where id = ${id}
+      and "userId" = ${session.user.id}
+      and "archivedAt" is null
+      and not ("isImportant" = true and "readAt" is null)
+  `;
 
   revalidatePath('/creator/dossier');
 }
@@ -82,10 +83,11 @@ export async function restoreDossierEntry(formData: FormData): Promise<void> {
   const id = String(formData.get('id') ?? '');
   if (!id) return;
 
-  await prisma.notification.updateMany({
-    where: { id, userId: session.user.id, archivedAt: { not: null } },
-    data: { archivedAt: null },
-  });
+  await sql`
+    update "Notification"
+    set "archivedAt" = null
+    where id = ${id} and "userId" = ${session.user.id} and "archivedAt" is not null
+  `;
 
   revalidatePath('/creator/dossier');
 }

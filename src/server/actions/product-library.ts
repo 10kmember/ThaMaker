@@ -5,7 +5,8 @@ import { assertSameOrigin } from '@/lib/auth/session';
 import { authorise } from '@/lib/auth/guards';
 import { slugify } from '@/lib/utils';
 import { recordAudit } from '@/server/audit';
-import { prisma } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { sql } from '@/server/db/sql';
 import {
   disclosureFor,
   MAX_VERDICT,
@@ -117,14 +118,57 @@ export async function saveProduct(
   };
 
   const entry = id
-    ? await prisma.productEntry.update({ where: { id }, data })
-    : await prisma.productEntry.create({
-        data: {
-          ...data,
-          slug: `${slugify(draft.brand)}-${slugify(draft.name)}`.slice(0, 80),
-          createdById: session.user.id,
-        },
-      });
+    ? (
+        await sql<{ id: string }[]>`
+          update "ProductEntry"
+          set
+            name = ${data.name},
+            brand = ${data.brand},
+            category = ${data.category},
+            verdict = ${data.verdict},
+            "bestFor" = ${data.bestFor},
+            strengths = ${data.strengths},
+            limitations = ${data.limitations},
+            review = ${data.review},
+            "testedBy" = ${data.testedBy},
+            "externalUrl" = ${data.externalUrl},
+            "isPublished" = ${data.isPublished},
+            "publishedAt" = ${data.publishedAt},
+            "updatedById" = ${data.updatedById}
+          where id = ${id}
+          returning id
+        `
+      )[0]
+    : (
+        await sql<{ id: string }[]>`
+          insert into "ProductEntry" (
+            id, slug, name, brand, category, verdict, "bestFor", strengths, limitations,
+            review, "testedBy", "externalUrl", "isPublished", "publishedAt", "createdById", "updatedById"
+          ) values (
+            ${createId()},
+            ${`${slugify(draft.brand)}-${slugify(draft.name)}`.slice(0, 80)},
+            ${data.name},
+            ${data.brand},
+            ${data.category},
+            ${data.verdict},
+            ${data.bestFor},
+            ${data.strengths},
+            ${data.limitations},
+            ${data.review},
+            ${data.testedBy},
+            ${data.externalUrl},
+            ${data.isPublished},
+            ${data.publishedAt},
+            ${session.user.id},
+            ${data.updatedById}
+          )
+          returning id
+        `
+      )[0];
+
+  if (!entry) {
+    return { status: 'error', message: 'The Library entry could not be written.' };
+  }
 
   await recordAudit({
     action: id ? 'product.updated' : 'product.created',
@@ -169,22 +213,26 @@ export async function setProductSponsor(
   if (!id) return { status: 'error', message: 'No entry named.' };
 
   const sponsor = sponsorId
-    ? await prisma.sponsor.findUnique({ where: { id: sponsorId }, select: { name: true } })
+    ? (
+        await sql<{ name: string }[]>`
+          select name from "Sponsor" where id = ${sponsorId} limit 1
+        `
+      )[0]
     : null;
 
   if (sponsorId && !sponsor) {
     return { status: 'error', message: 'That partner does not exist.' };
   }
 
-  await prisma.productEntry.update({
-    where: { id },
-    data: {
-      sponsorId,
-      sponsorDisclosure: disclosureFor(sponsor?.name ?? null),
-      sponsoredAt: sponsorId ? new Date() : null,
-      updatedById: session.user.id,
-    },
-  });
+  await sql`
+    update "ProductEntry"
+    set
+      "sponsorId" = ${sponsorId},
+      "sponsorDisclosure" = ${disclosureFor(sponsor?.name ?? null)},
+      "sponsoredAt" = ${sponsorId ? new Date() : null},
+      "updatedById" = ${session.user.id}
+    where id = ${id}
+  `;
 
   await recordAudit({
     action: sponsorId ? 'product.sponsored' : 'product.sponsorship_cleared',
