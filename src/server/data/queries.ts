@@ -1,7 +1,7 @@
 import 'server-only';
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import type { SeasonStage } from '@/domain/season';
 import { finalistsArePublic, winnersArePublic } from '@/domain/season';
 import {
@@ -37,7 +37,25 @@ import type {
  * only to populate that database — it is never read at runtime.
  */
 
-const iso = (value: Date | null | undefined) => (value ? value.toISOString() : null);
+/**
+ * DateTime columns are `timestamp(3)` without time zone, holding UTC wall
+ * clock. Render the same wall-clock UTC ISO string straight out of Postgres so the
+ * DTOs do not depend on the session time zone. Returns a raw SQL fragment;
+ * only ever called with static, quoted column references.
+ */
+const isoTs = (ref: string) =>
+  sql.unsafe(`to_char(${ref}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`);
+
+const iso = (value: Date | string | null | undefined) => {
+  if (!value) return null;
+  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+};
+
+/**
+ * A substring filter escapes LIKE metacharacters before matching; ILIKE with
+ * the default backslash escape behaves the same way.
+ */
+const likePattern = (value: string) => `%${value.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
 
 /**
  * Public read cache.
@@ -54,11 +72,41 @@ const publicData = <Args extends unknown[], Result>(
 
 // ── Seasons ──────────────────────────────────────────────────────────────────
 
+type SeasonRow = {
+  id: string;
+  year: number;
+  title: string;
+  stage: string;
+  tagline: string | null;
+  summary: string | null;
+  nominationsOpenAt: string | null;
+  nominationsCloseAt: string | null;
+  shortlistAt: string | null;
+  finalistsAt: string | null;
+  ceremonyAt: string | null;
+  isCurrent: boolean;
+  categoryCount: number;
+};
+
 export const listSeasons = publicData('seasons', async (): Promise<SeasonView[]> => {
-  const rows = await prisma.awardYear.findMany({
-    orderBy: { year: 'desc' },
-    include: { _count: { select: { categories: true } } },
-  });
+  const rows = await sql<SeasonRow[]>`
+    SELECT
+      ay."id",
+      ay."year",
+      ay."title",
+      ay."stage",
+      ay."tagline",
+      ay."summary",
+      ${isoTs('ay."nominationsOpenAt"')} AS "nominationsOpenAt",
+      ${isoTs('ay."nominationsCloseAt"')} AS "nominationsCloseAt",
+      ${isoTs('ay."shortlistAt"')} AS "shortlistAt",
+      ${isoTs('ay."finalistsAt"')} AS "finalistsAt",
+      ${isoTs('ay."ceremonyAt"')} AS "ceremonyAt",
+      ay."isCurrent",
+      (SELECT count(*)::int FROM "Category" c WHERE c."awardYearId" = ay."id") AS "categoryCount"
+    FROM "AwardYear" ay
+    ORDER BY ay."year" DESC
+  `;
 
   return rows.map((row) => ({
     id: row.id,
@@ -73,7 +121,7 @@ export const listSeasons = publicData('seasons', async (): Promise<SeasonView[]>
     finalistsAt: iso(row.finalistsAt),
     ceremonyAt: iso(row.ceremonyAt),
     isCurrent: row.isCurrent,
-    categoryCount: row._count.categories,
+    categoryCount: row.categoryCount,
   }));
 });
 
@@ -89,26 +137,54 @@ export const getCurrentSeason = cache(async (): Promise<SeasonView> => {
 
 // ── Categories ───────────────────────────────────────────────────────────────
 
+type CategoryRow = {
+  id: string;
+  slug: string;
+  name: string;
+  strapline: string | null;
+  description: string;
+  eligibility: string;
+  judgingCriteria: string;
+  isOpen: boolean;
+  position: number;
+  year: number;
+  stage: string;
+  partner: { name: string; slug: string } | null;
+};
+
 export const listCategories = publicData('categories', async (year: number): Promise<CategoryView[]> => {
-  const rows = await prisma.category.findMany({
-    where: { awardYear: { year } },
-    orderBy: { position: 'asc' },
-    include: {
-      awardYear: true,
-      // Only an approved association, with a live sponsor, and only a category
-      // placement. An unapproved sponsorship is a conversation, and a logo on
-      // the strength of one is a claim PALMA cannot support.
-      sponsorships: {
-        where: {
-          isApproved: true,
-          placement: 'category',
-          sponsor: { status: 'active', isActive: true },
-        },
-        include: { sponsor: true },
-        take: 1,
-      },
-    },
-  });
+  const rows = await sql<CategoryRow[]>`
+    SELECT
+      c."id",
+      c."slug",
+      c."name",
+      c."strapline",
+      c."description",
+      c."eligibility",
+      c."judgingCriteria",
+      c."isOpen",
+      c."position",
+      ay."year",
+      ay."stage",
+      -- Only an approved association, with a live sponsor, and only a category
+      -- placement. An unapproved sponsorship is a conversation, and a logo on
+      -- the strength of one is a claim PALMA cannot support.
+      (
+        SELECT json_build_object('name', s."name", 'slug', s."slug")
+        FROM "Sponsorship" sp
+        JOIN "Sponsor" s ON s."id" = sp."sponsorId"
+        WHERE sp."categoryId" = c."id"
+          AND sp."isApproved"
+          AND sp."placement" = 'category'
+          AND s."status" = 'active'
+          AND s."isActive"
+        LIMIT 1
+      ) AS "partner"
+    FROM "Category" c
+    JOIN "AwardYear" ay ON ay."id" = c."awardYearId"
+    WHERE ay."year" = ${year}
+    ORDER BY c."position" ASC
+  `;
 
   return rows.map((row) => ({
     id: row.id,
@@ -120,11 +196,9 @@ export const listCategories = publicData('categories', async (year: number): Pro
     judgingCriteria: row.judgingCriteria,
     isOpen: row.isOpen,
     position: row.position,
-    year: row.awardYear.year,
-    stage: row.awardYear.stage as SeasonStage,
-    partner: row.sponsorships[0]
-      ? { name: row.sponsorships[0].sponsor.name, slug: row.sponsorships[0].sponsor.slug }
-      : null,
+    year: row.year,
+    stage: row.stage as SeasonStage,
+    partner: row.partner ? { name: row.partner.name, slug: row.partner.slug } : null,
   }));
 });
 
@@ -157,36 +231,51 @@ export type CreatorFilter = {
   limit?: number;
 };
 
+type CreatorSummaryRow = {
+  id: string;
+  slug: string;
+  displayName: string;
+  countryCode: string;
+  headline: string | null;
+  portraitUrl: string | null;
+  portraitAlt: string | null;
+  verificationStatus: string | null;
+  honourCount: number;
+  winCount: number;
+};
+
 export const listCreators = publicData('creators', async (filter: CreatorFilter = {}): Promise<CreatorSummary[]> => {
-  const rows = await prisma.creator.findMany({
-    where: {
-      isPublished: true,
-      isSuspended: false,
-      ...(filter.country ? { countryCode: filter.country.toUpperCase() } : {}),
-      ...(filter.query
-        ? {
-            OR: [
-              { displayName: { contains: filter.query, mode: 'insensitive' } },
-              { headline: { contains: filter.query, mode: 'insensitive' } },
-            ],
-          }
-        : {}),
-      ...(filter.honoursOnly ? { honours: { some: { state: 'active' } } } : {}),
-    },
-    take: filter.limit ?? 60,
-    select: {
-      id: true,
-      slug: true,
-      displayName: true,
-      countryCode: true,
-      headline: true,
-      portraitUrl: true,
-      portraitAlt: true,
-      verification: { select: { status: true } },
-      honours: { where: { state: 'active' }, select: { kind: true } },
-    },
-    orderBy: { displayName: 'asc' },
-  });
+  const rows = await sql<CreatorSummaryRow[]>`
+    SELECT
+      c."id",
+      c."slug",
+      c."displayName",
+      c."countryCode",
+      c."headline",
+      c."portraitUrl",
+      c."portraitAlt",
+      v."status" AS "verificationStatus",
+      (SELECT count(*)::int FROM "Honour" h
+        WHERE h."creatorId" = c."id" AND h."state" = 'active') AS "honourCount",
+      (SELECT count(*)::int FROM "Honour" h
+        WHERE h."creatorId" = c."id" AND h."state" = 'active' AND h."kind" = 'winner') AS "winCount"
+    FROM "Creator" c
+    LEFT JOIN "CreatorVerification" v ON v."creatorId" = c."id"
+    WHERE c."isPublished"
+      AND NOT c."isSuspended"
+      ${filter.country ? sql`AND c."countryCode" = ${filter.country.toUpperCase()}` : sql``}
+      ${filter.query
+        ? sql`AND (
+            c."displayName" ILIKE ${likePattern(filter.query)}
+            OR c."headline" ILIKE ${likePattern(filter.query)}
+          )`
+        : sql``}
+      ${filter.honoursOnly
+        ? sql`AND EXISTS (SELECT 1 FROM "Honour" h WHERE h."creatorId" = c."id" AND h."state" = 'active')`
+        : sql``}
+    ORDER BY c."displayName" ASC
+    LIMIT ${filter.limit ?? 60}
+  `;
 
   return rows
     .map((row) => ({
@@ -197,10 +286,10 @@ export const listCreators = publicData('creators', async (filter: CreatorFilter 
       headline: row.headline,
       portraitUrl: row.portraitUrl,
       portraitAlt: row.portraitAlt,
-      verificationStatus: (row.verification?.status ??
+      verificationStatus: (row.verificationStatus ??
         'unverified') as CreatorSummary['verificationStatus'],
-      honourCount: row.honours.length,
-      winCount: row.honours.filter((honour) => honour.kind === 'winner').length,
+      honourCount: row.honourCount,
+      winCount: row.winCount,
     }))
     .sort((a, b) =>
       b.winCount !== a.winCount ? b.winCount - a.winCount : b.honourCount - a.honourCount,
@@ -246,59 +335,113 @@ export const getCreatorAchievement = cache(
   },
 );
 
-export const getCreator = publicData('creator', async (slug: string): Promise<CreatorProfile | null> => {
-  const row = await prisma.creator.findUnique({
-    where: { slug },
-    select: {
-      id: true,
-      slug: true,
-      displayName: true,
-      countryCode: true,
-      city: true,
-      pronouns: true,
-      headline: true,
-      biography: true,
-      portraitUrl: true,
-      portraitAlt: true,
-      websiteUrl: true,
-      isPublished: true,
-      userId: true,
-      verification: { select: { status: true } },
-      links: { orderBy: { position: 'asc' }, select: { label: true, url: true } },
-      honours: {
-        select: {
-          id: true,
-          kind: true,
-          state: true,
-          citation: true,
-          announcedAt: true,
-          position: true,
-          category: { select: { name: true, slug: true } },
-          awardYear: { select: { year: true, stage: true } },
-          achievement: { select: { code: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-      },
-    },
-  });
+type CreatorHonourJson = {
+  id: string;
+  kind: HonourEntry['kind'];
+  state: HonourEntry['state'];
+  citation: string | null;
+  announcedAt: string | null;
+  position: number;
+  categoryName: string | null;
+  categorySlug: string | null;
+  year: number;
+  stage: string;
+  code: string | null;
+};
 
+type CreatorRow = {
+  id: string;
+  slug: string;
+  displayName: string;
+  countryCode: string;
+  city: string | null;
+  pronouns: string | null;
+  headline: string | null;
+  biography: string | null;
+  portraitUrl: string | null;
+  portraitAlt: string | null;
+  websiteUrl: string | null;
+  isPublished: boolean;
+  userId: string | null;
+  verificationStatus: string | null;
+  links: { label: string; url: string }[];
+  honours: CreatorHonourJson[];
+};
+
+export const getCreator = publicData('creator', async (slug: string): Promise<CreatorProfile | null> => {
+  const rows = await sql<CreatorRow[]>`
+    SELECT
+      c."id",
+      c."slug",
+      c."displayName",
+      c."countryCode",
+      c."city",
+      c."pronouns",
+      c."headline",
+      c."biography",
+      c."portraitUrl",
+      c."portraitAlt",
+      c."websiteUrl",
+      c."isPublished",
+      c."userId",
+      v."status" AS "verificationStatus",
+      (
+        SELECT COALESCE(
+          json_agg(json_build_object('label', l."label", 'url', l."url") ORDER BY l."position" ASC),
+          '[]'::json
+        )
+        FROM "CreatorLink" l
+        WHERE l."creatorId" = c."id"
+      ) AS "links",
+      (
+        SELECT COALESCE(
+          json_agg(
+            json_build_object(
+              'id', h."id",
+              'kind', h."kind",
+              'state', h."state",
+              'citation', h."citation",
+              'announcedAt', ${isoTs('h."announcedAt"')},
+              'position', h."position",
+              'categoryName', cat."name",
+              'categorySlug', cat."slug",
+              'year', ay."year",
+              'stage', ay."stage",
+              'code', ach."code"
+            )
+            ORDER BY h."createdAt" DESC
+          ),
+          '[]'::json
+        )
+        FROM "Honour" h
+        JOIN "AwardYear" ay ON ay."id" = h."awardYearId"
+        LEFT JOIN "Category" cat ON cat."id" = h."categoryId"
+        LEFT JOIN "Achievement" ach ON ach."honourId" = h."id"
+        WHERE h."creatorId" = c."id"
+      ) AS "honours"
+    FROM "Creator" c
+    LEFT JOIN "CreatorVerification" v ON v."creatorId" = c."id"
+    WHERE c."slug" = ${slug}
+  `;
+
+  const row = rows[0];
   if (!row || !row.isPublished) return null;
 
   const record: HonourEntry[] = row.honours
     .filter(
       (honour) =>
-        winnersArePublic(honour.awardYear.stage as SeasonStage) || honour.kind !== 'winner',
+        winnersArePublic(honour.stage as SeasonStage) || honour.kind !== 'winner',
     )
     .map((honour) => ({
       id: honour.id,
-      kind: honour.kind as HonourEntry['kind'],
-      state: honour.state as HonourEntry['state'],
-      year: honour.awardYear.year,
-      categoryName: honourCategoryName(honour.kind, honour.category?.name ?? null),
-      categorySlug: honourCategorySlug(honour.kind, honour.category?.slug ?? null),
+      kind: honour.kind,
+      state: honour.state,
+      year: honour.year,
+      categoryName: honourCategoryName(honour.kind, honour.categoryName),
+      categorySlug: honourCategorySlug(honour.kind, honour.categorySlug),
       citation: honour.citation,
       announcedAt: iso(honour.announcedAt),
-      code: honour.achievement?.code ?? null,
+      code: honour.code,
       position: honour.position,
     }))
     .sort((a, b) => b.year - a.year);
@@ -316,7 +459,7 @@ export const getCreator = publicData('creator', async (slug: string): Promise<Cr
     portraitAlt: row.portraitAlt,
     websiteUrl: row.websiteUrl,
     links: row.links.map((link) => ({ label: link.label, url: link.url })),
-    verificationStatus: (row.verification?.status ??
+    verificationStatus: (row.verificationStatus ??
       'unverified') as CreatorSummary['verificationStatus'],
     // `userId` is the truth about who holds a record. The `isClaimed` column is
     // a denormalised convenience written on approval, and a boolean that can
@@ -342,40 +485,57 @@ type HonourRow = {
   announcedAt: string | null;
 };
 
+type HonourQueryRow = {
+  kind: string;
+  citation: string | null;
+  position: number;
+  announcedAt: string | null;
+  year: number;
+  stage: string;
+  categoryName: string | null;
+  categorySlug: string | null;
+  creatorSlug: string;
+  code: string | null;
+};
+
 const honourRows = cache(async (year?: number, kind?: HonourEntry['kind']): Promise<HonourRow[]> => {
-  const rows = await prisma.honour.findMany({
-    where: {
-      state: 'active',
-      ...(kind ? { kind } : {}),
-      awardYear: { ...(year ? { year } : {}) },
-    },
-    select: {
-      kind: true,
-      citation: true,
-      position: true,
-      announcedAt: true,
-      awardYear: { select: { year: true, stage: true } },
-      category: { select: { name: true, slug: true } },
-      creator: { select: { slug: true } },
-      achievement: { select: { code: true } },
-    },
-    orderBy: [{ position: 'asc' }],
-  });
+  const rows = await sql<HonourQueryRow[]>`
+    SELECT
+      h."kind",
+      h."citation",
+      h."position",
+      ${isoTs('h."announcedAt"')} AS "announcedAt",
+      ay."year",
+      ay."stage",
+      cat."name" AS "categoryName",
+      cat."slug" AS "categorySlug",
+      cr."slug" AS "creatorSlug",
+      ach."code"
+    FROM "Honour" h
+    JOIN "AwardYear" ay ON ay."id" = h."awardYearId"
+    LEFT JOIN "Category" cat ON cat."id" = h."categoryId"
+    JOIN "Creator" cr ON cr."id" = h."creatorId"
+    LEFT JOIN "Achievement" ach ON ach."honourId" = h."id"
+    WHERE h."state" = 'active'
+      ${kind ? sql`AND h."kind" = ${kind}` : sql``}
+      ${year ? sql`AND ay."year" = ${year}` : sql``}
+    ORDER BY h."position" ASC
+  `;
 
   return rows
     .filter((row) =>
       row.kind === 'winner'
-        ? winnersArePublic(row.awardYear.stage as SeasonStage)
-        : finalistsArePublic(row.awardYear.stage as SeasonStage),
+        ? winnersArePublic(row.stage as SeasonStage)
+        : finalistsArePublic(row.stage as SeasonStage),
     )
     .map((row) => ({
       kind: row.kind as HonourEntry['kind'],
-      year: row.awardYear.year,
-      categorySlug: honourCategorySlug(row.kind, row.category?.slug ?? null),
-      categoryName: honourCategoryName(row.kind, row.category?.name ?? null),
-      creatorSlug: row.creator.slug,
+      year: row.year,
+      categorySlug: honourCategorySlug(row.kind as HonourEntry['kind'], row.categorySlug),
+      categoryName: honourCategoryName(row.kind as HonourEntry['kind'], row.categoryName),
+      creatorSlug: row.creatorSlug,
       citation: row.citation,
-      code: row.achievement?.code ?? null,
+      code: row.code,
       position: row.position,
       announcedAt: iso(row.announcedAt),
     }));
@@ -561,44 +721,77 @@ export const listRecentHonours = publicData('recent-honours', async (limit: numb
 
 // ── Verification ─────────────────────────────────────────────────────────────
 
+type AchievementRow = {
+  signature: string;
+  payloadDigest: string;
+  code: string;
+  kind: string;
+  state: string;
+  year: number;
+  categoryName: string;
+  creatorName: string;
+  creatorSlug: string;
+  issuedAt: string;
+  revokedAt: string | null;
+  creatorProfileSlug: string;
+  creatorCountry: string;
+  honourKind: string;
+  honourCategorySlug: string | null;
+  citation: string | null;
+};
+
 export const getAchievementByCode = publicData(
   'achievement-by-code',
   async (code: string): Promise<AchievementRecord | null> => {
-    const row = await prisma.verificationRecord.findUnique({
-      where: { code },
-      include: {
-        achievement: {
-          include: {
-            creator: true,
-            honour: { include: { category: true, awardYear: true } },
-          },
-        },
-      },
-    });
+    const rows = await sql<AchievementRow[]>`
+      SELECT
+        vr."signature",
+        vr."payloadDigest",
+        a."code",
+        a."kind",
+        a."state",
+        a."year",
+        a."categoryName",
+        a."creatorName",
+        a."creatorSlug",
+        ${isoTs('a."issuedAt"')} AS "issuedAt",
+        ${isoTs('a."revokedAt"')} AS "revokedAt",
+        cr."slug" AS "creatorProfileSlug",
+        cr."countryCode" AS "creatorCountry",
+        h."kind" AS "honourKind",
+        cat."slug" AS "honourCategorySlug",
+        h."citation"
+      FROM "VerificationRecord" vr
+      JOIN "Achievement" a ON a."id" = vr."achievementId"
+      JOIN "Creator" cr ON cr."id" = a."creatorId"
+      JOIN "Honour" h ON h."id" = a."honourId"
+      LEFT JOIN "Category" cat ON cat."id" = h."categoryId"
+      WHERE vr."code" = ${code}
+    `;
 
+    const row = rows[0];
     if (!row) return null;
-    const achievement = row.achievement;
 
     return {
-      code: achievement.code,
-      kind: achievement.kind as AchievementRecord['kind'],
-      state: achievement.state as AchievementRecord['state'],
-      year: achievement.year,
-      categoryName: achievement.categoryName,
+      code: row.code,
+      kind: row.kind as AchievementRecord['kind'],
+      state: row.state as AchievementRecord['state'],
+      year: row.year,
+      categoryName: row.categoryName,
       categorySlug: honourCategorySlug(
-        achievement.honour.kind,
-        achievement.honour.category?.slug ?? null,
+        row.honourKind as AchievementRecord['kind'],
+        row.honourCategorySlug,
       ),
-      creatorName: achievement.creatorName,
+      creatorName: row.creatorName,
       // What was sealed, not where the person lives now. These are the same
       // string today and must not be assumed to be tomorrow: one is part of
       // the signature and the other is a link.
-      creatorSlug: achievement.creatorSlug,
-      creatorProfileSlug: achievement.creator.slug,
-      creatorCountry: achievement.creator.countryCode,
-      citation: achievement.honour.citation,
-      issuedAt: achievement.issuedAt.toISOString(),
-      revokedAt: iso(achievement.revokedAt),
+      creatorSlug: row.creatorSlug,
+      creatorProfileSlug: row.creatorProfileSlug,
+      creatorCountry: row.creatorCountry,
+      citation: row.citation,
+      issuedAt: iso(row.issuedAt)!,
+      revokedAt: iso(row.revokedAt),
       signature: row.signature,
       payloadDigest: row.payloadDigest,
     };
@@ -607,26 +800,49 @@ export const getAchievementByCode = publicData(
 
 // ── Journal ──────────────────────────────────────────────────────────────────
 
+type ArticleSummaryRow = {
+  slug: string;
+  title: string;
+  standfirst: string;
+  authorName: string;
+  publishedAt: string | null;
+  readingMinutes: number;
+  heroImageUrl: string | null;
+  heroImageAlt: string | null;
+  category: string | null;
+  categorySlug: string | null;
+};
+
 export const listArticles = publicData(
   'articles',
   async (options: { category?: string; limit?: number } = {}): Promise<ArticleSummary[]> => {
-    const rows = await prisma.article.findMany({
-      where: {
-        status: 'published',
-        publishedAt: { lte: new Date() },
-        ...(options.category ? { category: { slug: options.category } } : {}),
-      },
-      orderBy: { publishedAt: 'desc' },
-      take: options.limit ?? 24,
-      include: { category: true },
-    });
+    const rows = await sql<ArticleSummaryRow[]>`
+      SELECT
+        a."slug",
+        a."title",
+        a."standfirst",
+        a."authorName",
+        ${isoTs('a."publishedAt"')} AS "publishedAt",
+        a."readingMinutes",
+        a."heroImageUrl",
+        a."heroImageAlt",
+        ac."name" AS "category",
+        ac."slug" AS "categorySlug"
+      FROM "Article" a
+      LEFT JOIN "ArticleCategory" ac ON ac."id" = a."categoryId"
+      WHERE a."status" = 'published'
+        AND a."publishedAt" <= timezone('UTC', now())
+        ${options.category ? sql`AND ac."slug" = ${options.category}` : sql``}
+      ORDER BY a."publishedAt" DESC
+      LIMIT ${options.limit ?? 24}
+    `;
 
     return rows.map((row) => ({
       slug: row.slug,
       title: row.title,
       standfirst: row.standfirst,
-      category: row.category?.name ?? null,
-      categorySlug: row.category?.slug ?? null,
+      category: row.category,
+      categorySlug: row.categorySlug,
       authorName: row.authorName,
       publishedAt: iso(row.publishedAt),
       readingMinutes: row.readingMinutes,
@@ -637,7 +853,26 @@ export const listArticles = publicData(
 );
 
 export const getArticle = cache(async (slug: string): Promise<ArticleDetail | null> => {
-  const row = await prisma.article.findUnique({ where: { slug }, include: { category: true } });
+  const rows = await sql<(ArticleSummaryRow & { body: string; status: string })[]>`
+    SELECT
+      a."slug",
+      a."title",
+      a."standfirst",
+      a."body",
+      a."status",
+      a."authorName",
+      ${isoTs('a."publishedAt"')} AS "publishedAt",
+      a."readingMinutes",
+      a."heroImageUrl",
+      a."heroImageAlt",
+      ac."name" AS "category",
+      ac."slug" AS "categorySlug"
+    FROM "Article" a
+    LEFT JOIN "ArticleCategory" ac ON ac."id" = a."categoryId"
+    WHERE a."slug" = ${slug}
+  `;
+
+  const row = rows[0];
   if (!row || row.status !== 'published') return null;
 
   return {
@@ -645,8 +880,8 @@ export const getArticle = cache(async (slug: string): Promise<ArticleDetail | nu
     title: row.title,
     standfirst: row.standfirst,
     body: row.body,
-    category: row.category?.name ?? null,
-    categorySlug: row.category?.slug ?? null,
+    category: row.category,
+    categorySlug: row.categorySlug,
     authorName: row.authorName,
     publishedAt: iso(row.publishedAt),
     readingMinutes: row.readingMinutes,
@@ -656,27 +891,51 @@ export const getArticle = cache(async (slug: string): Promise<ArticleDetail | nu
 });
 
 export const listArticleCategories = cache(async () => {
-  const rows = await prisma.articleCategory.findMany({ orderBy: { position: 'asc' } });
+  const rows = await sql<{ slug: string; name: string }[]>`
+    SELECT ac."slug", ac."name"
+    FROM "ArticleCategory" ac
+    ORDER BY ac."position" ASC
+  `;
   return rows.map((row) => ({ slug: row.slug, name: row.name }));
 });
 
 // ── Sponsors & operational stats ─────────────────────────────────────────────
 
+type SponsorshipRow = {
+  tier: string;
+  slug: string;
+  name: string;
+  summary: string | null;
+  websiteUrl: string | null;
+  isActive: boolean;
+  categoryName: string | null;
+};
+
 export const listSponsors = cache(async (): Promise<SponsorView[]> => {
-  const rows = await prisma.sponsorship.findMany({
-    include: { sponsor: true, category: true },
-    orderBy: { createdAt: 'asc' },
-  });
+  const rows = await sql<SponsorshipRow[]>`
+    SELECT
+      sp."tier",
+      s."slug",
+      s."name",
+      s."summary",
+      s."websiteUrl",
+      s."isActive",
+      cat."name" AS "categoryName"
+    FROM "Sponsorship" sp
+    JOIN "Sponsor" s ON s."id" = sp."sponsorId"
+    LEFT JOIN "Category" cat ON cat."id" = sp."categoryId"
+    ORDER BY sp."createdAt" ASC
+  `;
 
   return rows
-    .filter((row) => row.sponsor.isActive)
+    .filter((row) => row.isActive)
     .map((row) => ({
-      slug: row.sponsor.slug,
-      name: row.sponsor.name,
-      summary: row.sponsor.summary,
-      websiteUrl: row.sponsor.websiteUrl,
+      slug: row.slug,
+      name: row.name,
+      summary: row.summary,
+      websiteUrl: row.websiteUrl,
       tier: row.tier as SponsorView['tier'],
-      categoryName: row.category?.name ?? null,
+      categoryName: row.categoryName,
     }));
 });
 
@@ -688,17 +947,45 @@ export const listSponsors = cache(async (): Promise<SponsorView[]> => {
  * scores, no assignments, no conflict declarations. Who sat is public; how they
  * voted is not, permanently.
  */
+type JudgeRow = {
+  id: string;
+  displayName: string;
+  title: string | null;
+  organisation: string | null;
+  biography: string | null;
+  countryCode: string | null;
+  memberships: { year: number; isChair: boolean }[];
+};
+
 export const listJudges = cache(async (): Promise<JudgeView[]> => {
-  const rows = await prisma.judge.findMany({
-    where: { isActive: true },
-    include: { memberships: { include: { awardYear: true } } },
-    orderBy: { displayName: 'asc' },
-  });
+  const rows = await sql<JudgeRow[]>`
+    SELECT
+      j."id",
+      j."displayName",
+      j."title",
+      j."organisation",
+      j."biography",
+      j."countryCode",
+      (
+        SELECT COALESCE(
+          json_agg(
+            json_build_object('year', ay."year", 'isChair', m."isChair")
+          ),
+          '[]'::json
+        )
+        FROM "JudgePanelMembership" m
+        JOIN "AwardYear" ay ON ay."id" = m."awardYearId"
+        WHERE m."judgeId" = j."id"
+      ) AS "memberships"
+    FROM "Judge" j
+    WHERE j."isActive"
+    ORDER BY j."displayName" ASC
+  `;
 
   return rows.map((row) => {
     const seasons = row.memberships
       .map((membership) => ({
-        year: membership.awardYear.year,
+        year: membership.year,
         isChair: membership.isChair,
       }))
       .sort((a, b) => b.year - a.year);
@@ -717,18 +1004,45 @@ export const listJudges = cache(async (): Promise<JudgeView[]> => {
 });
 
 export const getSeasonStats = cache(async (year: number): Promise<SeasonStats> => {
-  const [nominations, underReview, eligible, judging, finalists, winners] = await Promise.all([
-    prisma.nomination.count({ where: { candidacy: { awardYear: { year } }, status: 'counted' } }),
-    prisma.candidacy.count({ where: { awardYear: { year }, status: 'under_review' } }),
-    prisma.candidacy.count({ where: { awardYear: { year }, status: 'eligible' } }),
-    prisma.judgingAssignment.count({
-      where: { candidacy: { awardYear: { year } }, status: { in: ['assigned', 'in_progress'] } },
-    }),
-    prisma.honour.count({ where: { awardYear: { year }, kind: 'finalist', state: 'active' } }),
-    prisma.honour.count({ where: { awardYear: { year }, kind: 'winner', state: 'active' } }),
-  ]);
+  const rows = await sql<SeasonStats[]>`
+    SELECT
+      (SELECT count(*)::int
+        FROM "Nomination" n
+        JOIN "Candidacy" ca ON ca."id" = n."candidacyId"
+        JOIN "AwardYear" ay ON ay."id" = ca."awardYearId"
+        WHERE ay."year" = ${year} AND n."status" = 'counted') AS "nominations",
+      (SELECT count(*)::int
+        FROM "Candidacy" ca
+        JOIN "AwardYear" ay ON ay."id" = ca."awardYearId"
+        WHERE ay."year" = ${year} AND ca."status" = 'under_review') AS "underReview",
+      (SELECT count(*)::int
+        FROM "Candidacy" ca
+        JOIN "AwardYear" ay ON ay."id" = ca."awardYearId"
+        WHERE ay."year" = ${year} AND ca."status" = 'eligible') AS "eligible",
+      (SELECT count(*)::int
+        FROM "JudgingAssignment" ja
+        JOIN "Candidacy" ca ON ca."id" = ja."candidacyId"
+        JOIN "AwardYear" ay ON ay."id" = ca."awardYearId"
+        WHERE ay."year" = ${year} AND ja."status" IN ('assigned', 'in_progress')) AS "judging",
+      (SELECT count(*)::int
+        FROM "Honour" h
+        JOIN "AwardYear" ay ON ay."id" = h."awardYearId"
+        WHERE ay."year" = ${year} AND h."kind" = 'finalist' AND h."state" = 'active') AS "finalists",
+      (SELECT count(*)::int
+        FROM "Honour" h
+        JOIN "AwardYear" ay ON ay."id" = h."awardYearId"
+        WHERE ay."year" = ${year} AND h."kind" = 'winner' AND h."state" = 'active') AS "winners"
+  `;
 
-  return { nominations, underReview, eligible, judging, finalists, winners };
+  const stats = rows[0]!;
+  return {
+    nominations: stats.nominations,
+    underReview: stats.underReview,
+    eligible: stats.eligible,
+    judging: stats.judging,
+    finalists: stats.finalists,
+    winners: stats.winners,
+  };
 });
 
 export const listCountries = cache(async (): Promise<string[]> => {
