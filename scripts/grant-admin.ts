@@ -19,16 +19,16 @@
  *   npx tsx scripts/grant-admin.ts you@example.com
  *
  * Against Supabase, set DIRECT_URL to the direct connection (port 5432) as
- * well as the pooled DATABASE_URL, or Prisma cannot run this at all.
+ * well as the pooled DATABASE_URL, or the migration/runtime split is wrong.
  */
 import { loadEnvConfig } from '@next/env';
-import { PrismaClient } from '@prisma/client';
 
 loadEnvConfig(process.cwd());
 
-const prisma = new PrismaClient();
-
 async function main() {
+  const { createId } = await import('../src/server/db/ids');
+  const { sql, withTransaction } = await import('../src/server/db/sql');
+
   const email = process.argv[2]?.trim().toLowerCase();
 
   if (!email) {
@@ -38,10 +38,14 @@ async function main() {
     return;
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email },
-    select: { id: true, email: true, name: true, role: true, isActive: true },
-  });
+  const [user] = await sql<
+    { id: string; email: string; name: string; role: string; isActive: boolean }[]
+  >`
+    select id, email, name, role, "isActive"
+    from "User"
+    where email = ${email}
+    limit 1
+  `;
 
   if (!user) {
     console.error(`\n  No PALMA account for ${email}.`);
@@ -58,25 +62,31 @@ async function main() {
 
   const previous = user.role;
 
-  await prisma.$transaction(async (tx) => {
-    await tx.user.update({ where: { id: user.id }, data: { role: 'super_admin' } });
+  await withTransaction(async (tx) => {
+    await tx`
+      update "User" set role = 'super_admin' where id = ${user.id}
+    `;
 
     // On the record like any other privilege change, and named as what it is,
     // so an audit reader can tell a bootstrap apart from a promotion somebody
     // made through the interface.
-    await tx.auditLog.create({
-      data: {
-        actorId: user.id,
-        actorRole: 'super_admin',
-        actorLabel: 'scripts/grant-admin.ts',
-        action: 'user.role_changed',
-        entityType: 'User',
-        entityId: user.id,
-        summary: `${user.email}: ${previous} to super_admin, granted from the command line`,
-        before: { role: previous },
-        after: { role: 'super_admin' },
-      },
-    });
+    await tx`
+      insert into "AuditLog" (
+        id, "actorId", "actorRole", "actorLabel", action, "entityType", "entityId",
+        summary, before, after
+      ) values (
+        ${createId()},
+        ${user.id},
+        'super_admin',
+        'scripts/grant-admin.ts',
+        'user.role_changed',
+        'User',
+        ${user.id},
+        ${`${user.email}: ${previous} to super_admin, granted from the command line`},
+        ${JSON.stringify({ role: previous })},
+        ${JSON.stringify({ role: 'super_admin' })}
+      )
+    `;
   });
 
   console.log(`\n  ${user.email} is now a super administrator (was ${previous}).`);
@@ -93,4 +103,7 @@ main()
     console.error('  is set to the direct connection on port 5432.\n');
     process.exitCode = 1;
   })
-  .finally(() => prisma.$disconnect());
+  .finally(async () => {
+    const { closeSql } = await import('../src/server/db/sql');
+    await closeSql();
+  });
