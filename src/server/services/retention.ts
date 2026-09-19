@@ -1,6 +1,6 @@
 import 'server-only';
-import { prisma } from '@/server/db';
 import { recordAudit, type AuditActor } from '@/server/audit';
+import { sql } from '@/server/db/sql';
 import { RETENTION_RULES, retentionDays, type RetentionRule } from '@/domain/retention-schedule';
 
 export { RETENTION_RULES, type RetentionRule };
@@ -46,79 +46,67 @@ export async function runRetentionSweep(actor?: AuditActor): Promise<RetentionRe
 
   // Sessions that have ended. A live session is untouched however old it is.
   removed.auth_sessions = (
-    await prisma.authSession.deleteMany({
-      where: {
-        OR: [
-          { expiresAt: { lt: cutoff(ruleDays('auth_sessions')) } },
-          { revokedAt: { lt: cutoff(ruleDays('auth_sessions')) } },
-        ],
-      },
-    })
+    await sql`
+      delete from "AuthSession"
+      where "expiresAt" < ${cutoff(ruleDays('auth_sessions'))}
+         or "revokedAt" < ${cutoff(ruleDays('auth_sessions'))}
+    `
   ).count;
 
   removed.password_resets = (
-    await prisma.passwordResetToken.deleteMany({
-      where: {
-        OR: [
-          { usedAt: { lt: cutoff(ruleDays('password_resets')) } },
-          { expiresAt: { lt: cutoff(ruleDays('password_resets')) } },
-        ],
-      },
-    })
+    await sql`
+      delete from "PasswordResetToken"
+      where "usedAt" < ${cutoff(ruleDays('password_resets'))}
+         or "expiresAt" < ${cutoff(ruleDays('password_resets'))}
+    `
   ).count;
 
   removed.email_changes = (
-    await prisma.emailChangeRequest.deleteMany({
-      where: {
-        OR: [
-          { confirmedAt: { lt: cutoff(ruleDays('email_changes')) } },
-          { cancelledAt: { lt: cutoff(ruleDays('email_changes')) } },
-          { expiresAt: { lt: cutoff(ruleDays('email_changes')) } },
-        ],
-      },
-    })
+    await sql`
+      delete from "EmailChangeRequest"
+      where "confirmedAt" < ${cutoff(ruleDays('email_changes'))}
+         or "cancelledAt" < ${cutoff(ruleDays('email_changes'))}
+         or "expiresAt" < ${cutoff(ruleDays('email_changes'))}
+    `
   ).count;
 
   removed.rate_limits = (
-    await prisma.rateLimitCounter.deleteMany({
-      where: { windowEndsAt: { lt: cutoff(ruleDays('rate_limits')) } },
-    })
+    await sql`
+      delete from "RateLimitCounter"
+      where "windowEndsAt" < ${cutoff(ruleDays('rate_limits'))}
+    `
   ).count;
 
   removed.subscriptions_left = (
-    await prisma.emailSubscription.deleteMany({
-      where: {
-        status: 'unsubscribed',
-        unsubscribedAt: { lt: cutoff(ruleDays('subscriptions_left')) },
-      },
-    })
+    await sql`
+      delete from "EmailSubscription"
+      where status = 'unsubscribed'
+        and "unsubscribedAt" < ${cutoff(ruleDays('subscriptions_left'))}
+    `
   ).count;
 
   removed.email_deliveries = (
-    await prisma.emailDelivery.deleteMany({
-      where: {
-        status: { in: ['sent', 'suppressed'] },
-        createdAt: { lt: cutoff(ruleDays('email_deliveries')) },
-      },
-    })
+    await sql`
+      delete from "EmailDelivery"
+      where status in ('sent', 'suppressed')
+        and "createdAt" < ${cutoff(ruleDays('email_deliveries'))}
+    `
   ).count;
 
   removed.email_deliveries_failed = (
-    await prisma.emailDelivery.deleteMany({
-      where: {
-        status: 'failed',
-        createdAt: { lt: cutoff(ruleDays('email_deliveries_failed')) },
-      },
-    })
+    await sql`
+      delete from "EmailDelivery"
+      where status = 'failed'
+        and "createdAt" < ${cutoff(ruleDays('email_deliveries_failed'))}
+    `
   ).count;
 
   removed.dossier_archived = (
-    await prisma.notification.deleteMany({
-      where: {
-        isImportant: false,
-        archivedAt: { lt: cutoff(ruleDays('dossier_archived')) },
-      },
-    })
+    await sql`
+      delete from "Notification"
+      where "isImportant" = false
+        and "archivedAt" < ${cutoff(ruleDays('dossier_archived'))}
+    `
   ).count;
 
   const total = Object.values(removed).reduce((sum, count) => sum + count, 0);
@@ -140,11 +128,13 @@ export async function runRetentionSweep(actor?: AuditActor): Promise<RetentionRe
 
 /** When the sweep last ran, from the audit log rather than a second table. */
 export async function lastRetentionSweep(): Promise<{ at: string; summary: string } | null> {
-  const entry = await prisma.auditLog.findFirst({
-    where: { action: 'retention.swept' },
-    orderBy: { createdAt: 'desc' },
-    select: { createdAt: true, summary: true },
-  });
+  const [entry] = await sql<{ createdAt: Date; summary: string | null }[]>`
+    select "createdAt", summary
+    from "AuditLog"
+    where action = 'retention.swept'
+    order by "createdAt" desc
+    limit 1
+  `;
 
   if (!entry) return null;
   return { at: entry.createdAt.toISOString(), summary: entry.summary ?? '' };

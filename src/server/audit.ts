@@ -2,7 +2,8 @@ import 'server-only';
 import { headers } from 'next/headers';
 import { hashIdentifier } from '@/lib/crypto';
 import { signingSecret } from '@/lib/env';
-import { prisma } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { sql } from '@/server/db/sql';
 import type { Role } from '@/lib/auth/rbac';
 
 /**
@@ -133,9 +134,6 @@ export type AuditInput = {
  * but they are loud in the server log — a silent audit gap is a governance bug.
  */
 export async function recordAudit(input: AuditInput): Promise<void> {
-  const db = prisma;
-  if (!db) return;
-
   let ipHash: string | null = null;
   let userAgent: string | null = null;
   try {
@@ -148,28 +146,35 @@ export async function recordAudit(input: AuditInput): Promise<void> {
     // Outside a request scope (scripts, jobs) — metadata is simply absent.
   }
 
+  const before = serialise(input.before);
+  const after = serialise(input.after);
+
   try {
-    await db.auditLog.create({
-      data: {
-        action: input.action,
-        entityType: input.entityType,
-        entityId: input.entityId,
-        actorId: input.actor?.id ?? null,
-        actorRole: input.actor?.role ?? null,
-        actorLabel: input.actor?.label ?? null,
-        summary: input.summary ?? null,
-        before: serialise(input.before),
-        after: serialise(input.after),
-        ipHash,
-        userAgent,
-      },
-    });
+    await sql`
+      insert into "AuditLog" (
+        id, action, "entityType", "entityId", "actorId", "actorRole", "actorLabel",
+        summary, before, after, "ipHash", "userAgent"
+      ) values (
+        ${createId()},
+        ${input.action},
+        ${input.entityType},
+        ${input.entityId},
+        ${input.actor?.id ?? null},
+        ${input.actor?.role ?? null},
+        ${input.actor?.label ?? null},
+        ${input.summary ?? null},
+        ${before === undefined ? null : sql.json(before)},
+        ${after === undefined ? null : sql.json(after)},
+        ${ipHash},
+        ${userAgent}
+      )
+    `;
   } catch (error) {
     console.error('[palma:audit] failed to write audit entry', input.action, error);
   }
 }
 
-function serialise(value: unknown) {
+function serialise(value: unknown): Parameters<typeof sql.json>[0] | undefined {
   if (value === undefined || value === null) return undefined;
-  return JSON.parse(JSON.stringify(value)) as object;
+  return JSON.parse(JSON.stringify(value)) as Parameters<typeof sql.json>[0];
 }
