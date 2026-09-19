@@ -9,7 +9,6 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
@@ -18,27 +17,16 @@
     "test": "vitest run --config vitest.config.mts",
     "test:integration": "vitest run --config vitest.config.mts tests/integration",
     "test:watch": "vitest --config vitest.config.mts",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev",
-    "db:deploy": "prisma migrate deploy",
-    "db:status": "prisma migrate status",
-    "db:sql:migrate": "tsx scripts/db-migrate.ts",
+    "db:migrate": "tsx scripts/db-migrate.ts",
     "check:no-prisma": "tsx scripts/check-no-prisma.ts",
-    "db:seed": "tsx prisma/seed.ts",
     "retention": "tsx scripts/retention.ts",
     "honours:check": "tsx scripts/reseal-honours.ts",
     "honours:reseal": "tsx scripts/reseal-honours.ts --apply",
     "grant-admin": "tsx scripts/grant-admin.ts",
-    "db:studio": "prisma studio",
-    "verify": "npm run typecheck && npm run lint && npm run test"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "verify": "npm run check:no-prisma && npm run typecheck && npm run lint && npm run test"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1136.0",
-    "@prisma/client": "^6.19.3",
     "@radix-ui/react-accordion": "^1.2.20",
     "@radix-ui/react-checkbox": "^1.3.11",
     "@radix-ui/react-dialog": "^1.1.23",
@@ -74,7 +62,6 @@
     "postcss": "^8.5.28",
     "prettier": "^3.9.6",
     "prettier-plugin-tailwindcss": "^0.8.1",
-    "prisma": "^6.19.3",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.13",
     "typescript": "^5.9.3",

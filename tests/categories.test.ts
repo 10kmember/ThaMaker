@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { categorySeeds, seasonSeeds, citations } from '../prisma/seed-data';
+import { categorySeeds, seasonSeeds, citations } from './fixtures/seed-data';
 import { CATEGORY_PIGMENTS, pigmentFor } from '@/lib/category-identity';
 
 /**

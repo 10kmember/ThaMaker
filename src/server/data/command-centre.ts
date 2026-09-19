@@ -14,15 +14,6 @@ import { byUrgency, momentumFor, type CategoryMomentum } from '@/domain/momentum
  * array, so a wider window costs the database more and the process nothing.
  */
 
-/**
- * DateTime columns are `timestamp(3)` without time zone, holding UTC wall
- * clock. Render the same wall-clock UTC ISO string straight out of Postgres so
- * the DTOs do not depend on the session time zone. Returns a raw SQL fragment;
- * only ever called with static, quoted column references.
- */
-const isoTs = (ref: string) =>
-  sql.unsafe(`to_char(${ref}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`);
-
 export const PERIODS = ['7d', '30d', '90d', 'season', 'all'] as const;
 export type Period = (typeof PERIODS)[number];
 

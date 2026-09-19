@@ -1,6 +1,6 @@
 import { loadEnvConfig } from '@next/env';
-import { PrismaClient } from '@prisma/client';
 import Module from 'node:module';
+import postgres from 'postgres';
 
 type ModuleLoad = (this: unknown, request: string, ...args: unknown[]) => unknown;
 
@@ -13,38 +13,30 @@ moduleWithLoad._load = function (this: unknown, request: string, ...args: unknow
 
 loadEnvConfig(process.cwd());
 
-const prisma = new PrismaClient({
-  log: [{ emit: 'event', level: 'query' }],
-});
-
 let count = 0;
-let totalMs = 0;
-const byShape = new Map<string, { count: number; ms: number }>();
+const byShape = new Map<string, number>();
 
-prisma.$on('query', (event) => {
-  count += 1;
-  totalMs += event.duration;
-  const shape = event.query.replace(/"[^"]+"/g, '?').replace(/\s+/g, ' ').slice(0, 180);
-  const bucket = byShape.get(shape) ?? { count: 0, ms: 0 };
-  bucket.count += 1;
-  bucket.ms += event.duration;
-  byShape.set(shape, bucket);
+const profileSql = postgres(process.env.DATABASE_URL!, {
+  max: 1,
+  prepare: false,
+  debug: (_connection, query) => {
+    count += 1;
+    const shape = query.replace(/"[^"]+"/g, '?').replace(/\s+/g, ' ').slice(0, 180);
+    byShape.set(shape, (byShape.get(shape) ?? 0) + 1);
+  },
 });
 
-(globalThis as unknown as { palmaPrisma?: PrismaClient }).palmaPrisma = prisma;
+(globalThis as unknown as { palmaSql?: postgres.Sql }).palmaSql = profileSql;
 
 async function main() {
   const started = Date.now();
   const queries = await import('../src/server/data/queries');
 
   async function time<T>(label: string, run: () => Promise<T>): Promise<T> {
-    const beforeCount = count;
-    const beforeMs = totalMs;
+    const before = count;
     const startedAt = Date.now();
     const result = await run();
-    console.log(
-      `${label}: wall=${Date.now() - startedAt}ms db=${(totalMs - beforeMs).toFixed(1)}ms queries=${count - beforeCount}`,
-    );
+    console.log(`${label}: wall=${Date.now() - startedAt}ms queries=${count - before}`);
     return result;
   }
 
@@ -57,17 +49,18 @@ async function main() {
   await time('listCreators limit 120', () => queries.listCreators({ limit: 120 }));
   await time('listCountries', () => queries.listCountries());
 
-  console.log(`TOTAL: wall=${Date.now() - started}ms db=${totalMs.toFixed(1)}ms queries=${count}`);
+  console.log(`TOTAL: wall=${Date.now() - started}ms queries=${count}`);
   console.log('\nTop query shapes:');
-  for (const [shape, bucket] of [...byShape.entries()].sort((a, b) => b[1].ms - a[1].ms).slice(0, 12)) {
-    console.log(`${bucket.count}x ${bucket.ms.toFixed(1)}ms :: ${shape}`);
+  for (const [shape, shapeCount] of [...byShape.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12)) {
+    console.log(`${shapeCount}x :: ${shape}`);
   }
-
-  await prisma.$disconnect();
 }
 
-main().catch(async (error) => {
-  console.error(error);
-  await prisma.$disconnect();
-  process.exit(1);
-});
+main()
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(async () => {
+    await profileSql.end({ timeout: 5 });
+  });

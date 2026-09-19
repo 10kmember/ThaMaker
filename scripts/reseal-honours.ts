@@ -10,58 +10,65 @@
  * an environment variable, and a public page must never call the second the
  * first.
  *
- * Two things break a seal without anybody touching a record.
- *
- * AUTH_SECRET changed. Rotating it, or moving a database to an installation
- * that was generated its own, invalidates every signature at once. The digests
- * still match, so the verify page already says so, and this script re-signs.
- *
- * The seed wrote a bad digest. Until the seed stopped carrying its own drifted
- * copy of the crypto, it wrote `payloadDigest` as an HMAC keyed with the
- * literal string 'digest' where the application computes a plain SHA-256. Any
- * database seeded before that fix has digests that can never match, so the
- * verify page falls through to its last branch and tells a visitor that an
- * intact honour does not match its contents. That is the failure this script
- * mostly exists to clear.
- *
  *   npx tsx scripts/reseal-honours.ts            # report, change nothing
  *   npx tsx scripts/reseal-honours.ts --apply    # re-seal what it can explain
  *
- * It reports by default and never writes without --apply. What it will not do
- * on its own is re-seal a record it cannot explain: when the signature and the
- * digest both fail, the contents may genuinely have been altered, and re-
- * sealing would bless whatever is in the row and destroy the only evidence
- * that anything happened. Those need --force as well, and they are listed
- * individually first so somebody can look before deciding.
- *
- * Every write lands in the audit log, named as what it is.
+ * It reports by default and never writes without --apply. Records whose
+ * signature and digest both fail are listed separately and only written with
+ * --force as well, because re-sealing those would bless whatever is in the row.
  */
 import { loadEnvConfig } from '@next/env';
-import { PrismaClient } from '@prisma/client';
+import type { HonourKind } from '../src/domain/honours';
 
 loadEnvConfig(process.cwd());
-
-const prisma = new PrismaClient();
 
 const apply = process.argv.includes('--apply');
 const force = process.argv.includes('--force');
 
 type Verdict = 'sealed' | 'wrong-key' | 'stale-digest' | 'unexplained';
 
+type RecordRow = {
+  id: string;
+  achievementId: string;
+  code: string;
+  signature: string;
+  payloadDigest: string;
+  achievementCode: string;
+  creatorSlug: string;
+  creatorName: string;
+  categoryName: string;
+  year: number;
+  kind: HonourKind;
+  issuedAt: Date;
+};
+
 async function main() {
-  // Imported inside main, after loadEnvConfig has run: signingSecret() reads
-  // AUTH_SECRET at call time but env.ts validates at module scope, and ES
-  // imports hoist above everything including the env load.
   const { signingSecret } = await import('../src/lib/env');
   const { payloadDigest, signAchievement, verifyAchievement } =
     await import('../src/lib/verification');
+  const { createId } = await import('../src/server/db/ids');
+  const { sql, withTransaction, closeSql } = await import('../src/server/db/sql');
 
   const secret = signingSecret();
 
-  const records = await prisma.verificationRecord.findMany({
-    include: { achievement: true },
-    orderBy: { issuedAt: 'asc' },
-  });
+  const records = await sql<RecordRow[]>`
+    select
+      v.id,
+      v."achievementId",
+      v.code,
+      v.signature,
+      v."payloadDigest",
+      a.code as "achievementCode",
+      a."creatorSlug",
+      a."creatorName",
+      a."categoryName",
+      a.year,
+      a.kind,
+      a."issuedAt"
+    from "VerificationRecord" v
+    join "Achievement" a on a.id = v."achievementId"
+    order by v."issuedAt" asc
+  `;
 
   if (records.length === 0) {
     console.log('\n  No honours in this database. Nothing to check.\n');
@@ -69,32 +76,21 @@ async function main() {
   }
 
   const findings = records.map((row) => {
-    const a = row.achievement;
     const payload = {
-      code: a.code,
+      code: row.achievementCode,
       // The frozen slug, not the live one: see the schema comment on the
       // column. Reading it live is what broke these seals in the first place.
-      creatorSlug: a.creatorSlug,
-      creatorName: a.creatorName,
-      categoryName: a.categoryName,
-      year: a.year,
-      kind: a.kind,
-      issuedAt: a.issuedAt.toISOString(),
+      creatorSlug: row.creatorSlug,
+      creatorName: row.creatorName,
+      categoryName: row.categoryName,
+      year: row.year,
+      kind: row.kind,
+      issuedAt: row.issuedAt.toISOString(),
     };
 
     const signatureValid = verifyAchievement(secret, payload, row.signature);
     const digestValid = payloadDigest(payload) === row.payloadDigest;
 
-    // Four states, and the pair of checks separates them cleanly.
-    //
-    // A good signature over a bad digest is the old seed's bug and nothing
-    // else: this very key signed these very contents, so the fields are the
-    // ones that were sealed and only the digest column is wrong.
-    //
-    // A bad signature over a good digest is a key that changed. The digest
-    // needs no key, so it still says the contents are untouched.
-    //
-    // Both bad says nothing at all, which is why it is handled separately.
     const verdict: Verdict = signatureValid
       ? digestValid
         ? 'sealed'
@@ -106,7 +102,7 @@ async function main() {
     return { row, payload, verdict, signatureValid, digestValid };
   });
 
-  const by = (verdict: Verdict) => findings.filter((f) => f.verdict === verdict);
+  const by = (verdict: Verdict) => findings.filter((finding) => finding.verdict === verdict);
 
   console.log(`\n  ${records.length} honours, sealed with a ${secret.length}-character key.\n`);
   report('Verify correctly', by('sealed'));
@@ -154,31 +150,36 @@ async function main() {
   }
 
   for (const finding of targets) {
-    await prisma.$transaction(async (tx) => {
-      await tx.verificationRecord.update({
-        where: { id: finding.row.id },
-        data: {
-          signature: signAchievement(secret, finding.payload),
-          payloadDigest: payloadDigest(finding.payload),
-        },
-      });
+    await withTransaction(async (tx) => {
+      await tx`
+        update "VerificationRecord"
+        set
+          signature = ${signAchievement(secret, finding.payload)},
+          "payloadDigest" = ${payloadDigest(finding.payload)}
+        where id = ${finding.row.id}
+      `;
 
-      await tx.auditLog.create({
-        data: {
-          actorRole: 'super_admin',
-          actorLabel: 'scripts/reseal-honours.ts',
-          action: 'honour.resealed',
-          entityType: 'Achievement',
-          entityId: finding.row.achievementId,
-          summary: `${finding.row.code} re-sealed from the command line (${finding.verdict})`,
-          before: { verdict: finding.verdict },
-          after: { verdict: 'sealed' },
-        },
-      });
+      await tx`
+        insert into "AuditLog" (
+          id, "actorRole", "actorLabel", action, "entityType", "entityId", summary, before, after
+        ) values (
+          ${createId()},
+          'super_admin',
+          'scripts/reseal-honours.ts',
+          'honour.resealed',
+          'Achievement',
+          ${finding.row.achievementId},
+          ${`${finding.row.code} re-sealed from the command line (${finding.verdict})`},
+          ${tx.json({ verdict: finding.verdict })},
+          ${tx.json({ verdict: 'sealed' })}
+        )
+      `;
     });
   }
 
   console.log(`\n  Re-sealed ${targets.length}. Every one is in the audit log.\n`);
+
+  await closeSql();
 }
 
 function report(label: string, findings: unknown[]) {
@@ -186,11 +187,9 @@ function report(label: string, findings: unknown[]) {
   console.log(`    ${String(findings.length).padStart(4)}  ${label}`);
 }
 
-main()
-  .catch((error) => {
-    console.error('\n  Failed:', error instanceof Error ? error.message : error);
-    console.error('  If this is a connection error against Supabase, check that DIRECT_URL');
-    console.error('  is set to the direct connection on port 5432.\n');
-    process.exitCode = 1;
-  })
-  .finally(() => prisma.$disconnect());
+main().catch((error) => {
+  console.error('\n  Failed:', error instanceof Error ? error.message : error);
+  console.error('  If this is a connection error against Supabase, check that DIRECT_URL');
+  console.error('  is set to the direct connection on port 5432.\n');
+  process.exitCode = 1;
+});

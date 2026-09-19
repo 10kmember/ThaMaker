@@ -1,18 +1,18 @@
 /**
  * Integration coverage for conferring and revoking an honour.
  *
- * Runs only when DATABASE_URL is set — `npm run test:integration` after
- * `npm run db:push`. Everything it creates is namespaced and removed again.
+ * Runs only when DATABASE_URL is set. Everything it creates is namespaced and
+ * removed again, in FK-safe order: honours first, then candidacies, seasons,
+ * creators, and the integration audit rows.
  */
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { PrismaClient } from '@prisma/client';
 import { conferHonour, revokeHonour } from '@/server/services/honours';
 import { verifyAchievement } from '@/lib/verification';
 import { signingSecret } from '@/lib/env';
+import { createId } from '@/server/db/ids';
+import { closeSql, sql } from '@/server/db/sql';
 
 const hasDatabase = Boolean(process.env.DATABASE_URL);
-const prisma = hasDatabase ? new PrismaClient() : null;
-
 const SUFFIX = `it-${Date.now()}`;
 const actor = { id: null, role: 'super_admin' as const, label: 'integration-test' };
 
@@ -25,104 +25,109 @@ let unverifiedCandidacyId = '';
 
 describe.skipIf(!hasDatabase)('conferring an honour (integration)', () => {
   beforeAll(async () => {
-    const db = prisma!;
-
     // Clear anything an interrupted earlier run left behind, so a failed
     // cleanup never leaks a fake season into the public record.
-    const stale = await db.awardYear.findMany({
-      where: { title: { startsWith: 'PALMA Integration' } },
-      select: { id: true },
-    });
+    const stale = await sql<{ id: string }[]>`
+      select id from "AwardYear" where title like 'PALMA Integration %'
+    `;
     if (stale.length > 0) {
       const ids = stale.map((entry) => entry.id);
-      await db.candidacy.deleteMany({ where: { awardYearId: { in: ids } } });
-      await db.awardYear.deleteMany({ where: { id: { in: ids } } });
-      await db.creator.deleteMany({
-        where: {
-          OR: [
-            { slug: { startsWith: 'verified-it-' } },
-            { slug: { startsWith: 'unverified-it-' } },
-          ],
-        },
-      });
+      await sql`
+        delete from "Honour" where "awardYearId" in ${sql(ids)}
+      `;
+      await sql`
+        delete from "Candidacy" where "awardYearId" in ${sql(ids)}
+      `;
+      await sql`
+        delete from "AwardYear" where id in ${sql(ids)}
+      `;
+      await sql`
+        delete from "Creator"
+        where slug like 'verified-it-%' or slug like 'unverified-it-%'
+      `;
     }
 
-    const season = await db.awardYear.create({
-      data: {
-        year: 2900 + (Date.now() % 90),
-        title: `PALMA Integration ${SUFFIX}`,
-        stage: 'judging',
-      },
-    });
-    seasonId = season.id;
+    seasonId = createId();
+    const year = 2900 + (Date.now() % 90);
+    await sql`
+      insert into "AwardYear" (id, year, title, stage)
+      values (${seasonId}, ${year}, ${`PALMA Integration ${SUFFIX}`}, 'judging')
+    `;
 
-    const category = await db.category.create({
-      data: {
-        awardYearId: season.id,
-        slug: `integration-${SUFFIX}`,
-        name: 'Integration Category',
-        description: 'x',
-        eligibility: 'x',
-        judgingCriteria: 'x',
-      },
-    });
-    categoryId = category.id;
+    categoryId = createId();
+    await sql`
+      insert into "Category" (
+        id, "awardYearId", slug, name, description, eligibility, "judgingCriteria"
+      ) values (
+        ${categoryId},
+        ${seasonId},
+        ${`integration-${SUFFIX}`},
+        'Integration Category',
+        'x',
+        'x',
+        'x'
+      )
+    `;
 
-    const verified = await db.creator.create({
-      data: {
-        slug: `verified-${SUFFIX}`,
-        displayName: 'Verified Creator',
-        countryCode: 'GB',
-        verification: { create: { status: 'verified', verifiedAt: new Date() } },
-      },
-    });
-    verifiedCreatorId = verified.id;
+    verifiedCreatorId = createId();
+    await sql`
+      insert into "Creator" (id, slug, "displayName", "countryCode")
+      values (${verifiedCreatorId}, ${`verified-${SUFFIX}`}, 'Verified Creator', 'GB')
+    `;
+    await sql`
+      insert into "CreatorVerification" (id, "creatorId", status, "verifiedAt")
+      values (${createId()}, ${verifiedCreatorId}, 'verified', ${new Date()})
+    `;
 
-    const unverified = await db.creator.create({
-      data: {
-        slug: `unverified-${SUFFIX}`,
-        displayName: 'Unverified Creator',
-        countryCode: 'GB',
-        verification: { create: { status: 'pending' } },
-      },
-    });
-    unverifiedCreatorId = unverified.id;
+    unverifiedCreatorId = createId();
+    await sql`
+      insert into "Creator" (id, slug, "displayName", "countryCode")
+      values (${unverifiedCreatorId}, ${`unverified-${SUFFIX}`}, 'Unverified Creator', 'GB')
+    `;
+    await sql`
+      insert into "CreatorVerification" (id, "creatorId", status)
+      values (${createId()}, ${unverifiedCreatorId}, 'pending')
+    `;
 
-    const candidacy = await db.candidacy.create({
-      data: {
-        reference: `PC-INT-${SUFFIX}-1`,
-        awardYearId: season.id,
-        categoryId: category.id,
-        creatorId: verified.id,
-        status: 'eligible',
-      },
-    });
-    candidacyId = candidacy.id;
+    candidacyId = createId();
+    await sql`
+      insert into "Candidacy" (id, reference, "awardYearId", "categoryId", "creatorId", status)
+      values (
+        ${candidacyId},
+        ${`PC-INT-${SUFFIX}-1`},
+        ${seasonId},
+        ${categoryId},
+        ${verifiedCreatorId},
+        'eligible'
+      )
+    `;
 
-    const second = await db.candidacy.create({
-      data: {
-        reference: `PC-INT-${SUFFIX}-2`,
-        awardYearId: season.id,
-        categoryId: category.id,
-        creatorId: unverified.id,
-        status: 'eligible',
-      },
-    });
-    unverifiedCandidacyId = second.id;
+    unverifiedCandidacyId = createId();
+    await sql`
+      insert into "Candidacy" (id, reference, "awardYearId", "categoryId", "creatorId", status)
+      values (
+        ${unverifiedCandidacyId},
+        ${`PC-INT-${SUFFIX}-2`},
+        ${seasonId},
+        ${categoryId},
+        ${unverifiedCreatorId},
+        'eligible'
+      )
+    `;
   });
 
   afterAll(async () => {
-    const db = prisma;
-    if (!db) return;
     // Order matters: a season cannot be deleted while candidacies reference it,
     // which is the behaviour an institution wants — seasons are not disposable.
-    await db.auditLog.deleteMany({ where: { actorLabel: 'integration-test' } });
-    await db.candidacy.deleteMany({ where: { awardYearId: seasonId } });
-    await db.awardYear.delete({ where: { id: seasonId } }).catch(() => undefined);
-    await db.creator.deleteMany({
-      where: { id: { in: [verifiedCreatorId, unverifiedCreatorId] } },
-    });
-    await db.$disconnect();
+    await sql`delete from "AuditLog" where "actorLabel" = 'integration-test'`;
+    await sql`delete from "Honour" where "categoryId" = ${categoryId}`;
+    await sql`delete from "Candidacy" where "awardYearId" = ${seasonId}`;
+    await sql`delete from "AwardYear" where id = ${seasonId}`.catch(() => undefined);
+    await sql`
+      delete from "Creator"
+      where id in (${verifiedCreatorId}, ${unverifiedCreatorId})
+    `;
+    await closeSql();
   });
 
   it('mints a signed, verifiable record when a PALMA is conferred', async () => {
@@ -131,40 +136,65 @@ describe.skipIf(!hasDatabase)('conferring an honour (integration)', () => {
     if (!result.ok) return;
     expect(result.code).toMatch(/^PM-\d{4}-[0-9A-HJKMNP-TV-Z]{6}$/);
 
-    const record = await prisma!.verificationRecord.findUnique({
-      where: { code: result.code! },
-      include: { achievement: { include: { creator: true, honour: true } } },
-    });
+    type RecordRow = {
+      code: string;
+      signature: string;
+      creatorSlug: string;
+      creatorName: string;
+      categoryName: string;
+      year: number;
+      issuedAt: Date;
+    };
+    const [record] = await sql<RecordRow[]>`
+      select
+        v.code,
+        v.signature,
+        a."creatorSlug",
+        a."creatorName",
+        a."categoryName",
+        a.year,
+        a."issuedAt"
+      from "VerificationRecord" v
+      join "Achievement" a on a.id = v."achievementId"
+      where v.code = ${result.code!}
+      limit 1
+    `;
 
-    expect(record).not.toBeNull();
+    if (!record) throw new Error('Conferral did not mint a verification record.');
+
     expect(
       verifyAchievement(
         signingSecret(),
         {
-          code: record!.code,
-          creatorSlug: record!.achievement.creator.slug,
-          creatorName: record!.achievement.creatorName,
-          categoryName: record!.achievement.categoryName,
-          year: record!.achievement.year,
+          code: record.code,
+          creatorSlug: record.creatorSlug,
+          creatorName: record.creatorName,
+          categoryName: record.categoryName,
+          year: record.year,
           kind: 'winner',
-          issuedAt: record!.achievement.issuedAt.toISOString(),
+          issuedAt: record.issuedAt.toISOString(),
         },
-        record!.signature,
+        record.signature,
       ),
     ).toBe(true);
   });
 
   it('publishes the creator and updates the candidacy status', async () => {
-    const creator = await prisma!.creator.findUnique({ where: { id: verifiedCreatorId } });
-    const candidacy = await prisma!.candidacy.findUnique({ where: { id: candidacyId } });
+    const [creator] = await sql<{ isPublished: boolean }[]>`
+      select "isPublished" from "Creator" where id = ${verifiedCreatorId} limit 1
+    `;
+    const [candidacy] = await sql<{ status: string }[]>`
+      select status from "Candidacy" where id = ${candidacyId} limit 1
+    `;
     expect(creator?.isPublished).toBe(true);
     expect(candidacy?.status).toBe('winner');
   });
 
   it('writes the conferral to the audit log', async () => {
-    const entries = await prisma!.auditLog.findMany({
-      where: { actorLabel: 'integration-test', action: 'honour.winner_selected' },
-    });
+    const entries = await sql<{ id: string }[]>`
+      select id from "AuditLog"
+      where "actorLabel" = 'integration-test' and action = 'honour.winner_selected'
+    `;
     expect(entries.length).toBeGreaterThan(0);
   });
 
@@ -185,7 +215,9 @@ describe.skipIf(!hasDatabase)('conferring an honour (integration)', () => {
   });
 
   it('revokes without deleting, so the record still answers', async () => {
-    const honour = await prisma!.honour.findFirst({ where: { categoryId, kind: 'winner' } });
+    const [honour] = await sql<{ id: string }[]>`
+      select id from "Honour" where "categoryId" = ${categoryId} and kind = 'winner' limit 1
+    `;
     const result = await revokeHonour({
       honourId: honour!.id,
       reason: 'Integration test revocation with a sufficiently detailed reason.',
@@ -193,17 +225,21 @@ describe.skipIf(!hasDatabase)('conferring an honour (integration)', () => {
     });
     expect(result.ok).toBe(true);
 
-    const after = await prisma!.honour.findUnique({
-      where: { id: honour!.id },
-      include: { achievement: true },
-    });
+    const [after] = await sql<{ state: string; achievementState: string | null }[]>`
+      select h.state, a.state as "achievementState"
+      from "Honour" h
+      left join "Achievement" a on a."honourId" = h.id
+      where h.id = ${honour!.id}
+      limit 1
+    `;
     expect(after?.state).toBe('revoked');
-    expect(after?.achievement?.state).toBe('revoked');
-    expect(after?.achievement).not.toBeNull();
+    expect(after?.achievementState).toBe('revoked');
   });
 
   it('refuses a revocation without an explanation', async () => {
-    const honour = await prisma!.honour.findFirst({ where: { categoryId } });
+    const [honour] = await sql<{ id: string }[]>`
+      select id from "Honour" where "categoryId" = ${categoryId} limit 1
+    `;
     const result = await revokeHonour({ honourId: honour!.id, reason: 'no', actor });
     expect(result.ok).toBe(false);
   });
