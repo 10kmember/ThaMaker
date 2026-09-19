@@ -13,6 +13,8 @@ const LOOPBACK = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])/i;
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required, PostgreSQL is the source of truth.'),
+  /** Unpooled connection used only by SQL migrations. Defaults to DATABASE_URL locally. */
+  DIRECT_URL: z.string().optional(),
   AUTH_SECRET: z.string().min(32).optional(),
   NEXT_PUBLIC_SITE_URL: z.string().url().default('https://palmaawards.com'),
   EMAIL_FROM: z.string().default('PALMA <laurels@palmaawards.com>'),
@@ -52,6 +54,7 @@ function read() {
   const parsed = schema.safeParse({
     NODE_ENV: process.env.NODE_ENV,
     DATABASE_URL: process.env.DATABASE_URL || undefined,
+    DIRECT_URL: process.env.DIRECT_URL || undefined,
     AUTH_SECRET: process.env.AUTH_SECRET || undefined,
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || undefined,
     EMAIL_FROM: process.env.EMAIL_FROM || undefined,
@@ -147,3 +150,13 @@ export function signingSecret(): string {
 }
 
 export const siteUrl = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, '');
+
+/** Pooled application connection string. */
+export function databaseUrl(): string {
+  return env.DATABASE_URL;
+}
+
+/** Unpooled migration connection string; identical locally, direct port in hosted Postgres. */
+export function directDatabaseUrl(): string {
+  return env.DIRECT_URL || env.DATABASE_URL;
+}
