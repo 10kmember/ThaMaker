@@ -1,5 +1,6 @@
 import 'server-only';
-import { prisma } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { sql } from '@/server/db/sql';
 
 /**
  * Addresses PALMA has stopped writing to.
@@ -20,10 +21,12 @@ export type SuppressionReason = 'hard_bounce' | 'soft_bounce' | 'complaint';
 export async function isSuppressed(
   email: string,
 ): Promise<{ reason: string; detail: string } | null> {
-  const row = await prisma.suppressedAddress.findUnique({
-    where: { email: email.toLowerCase() },
-    select: { reason: true, detail: true, clearedAt: true },
-  });
+  const [row] = await sql<{ reason: string; detail: string | null; clearedAt: Date | null }[]>`
+    select reason, detail, "clearedAt"
+    from "SuppressedAddress"
+    where email = ${email.toLowerCase()}
+    limit 1
+  `;
 
   if (!row || row.clearedAt) return null;
   return { reason: row.reason, detail: row.detail ?? '' };
@@ -37,24 +40,16 @@ export async function suppress(input: {
 }): Promise<void> {
   const email = input.email.toLowerCase();
 
-  await prisma.suppressedAddress.upsert({
-    where: { email },
-    create: {
-      email,
-      reason: input.reason,
-      detail: input.detail ?? null,
-      deliveryId: input.deliveryId ?? null,
-    },
-    // A repeat re-opens it: an address that bounced again after being cleared
-    // has not fixed itself.
-    update: {
-      reason: input.reason,
-      detail: input.detail ?? null,
-      deliveryId: input.deliveryId ?? null,
-      clearedAt: null,
-      clearedById: null,
-    },
-  });
+  await sql`
+    insert into "SuppressedAddress" (id, email, reason, detail, "deliveryId")
+    values (${createId()}, ${email}, ${input.reason}, ${input.detail ?? null}, ${input.deliveryId ?? null})
+    on conflict (email) do update set
+      reason = excluded.reason,
+      detail = excluded.detail,
+      "deliveryId" = excluded."deliveryId",
+      "clearedAt" = null,
+      "clearedById" = null
+  `;
 }
 
 /**
@@ -65,8 +60,9 @@ export async function suppress(input: {
  * confirming a subscription or a password reset already does.
  */
 export async function clearSuppression(email: string, clearedById?: string | null): Promise<void> {
-  await prisma.suppressedAddress.updateMany({
-    where: { email: email.toLowerCase(), clearedAt: null },
-    data: { clearedAt: new Date(), clearedById: clearedById ?? null },
-  });
+  await sql`
+    update "SuppressedAddress"
+    set "clearedAt" = ${new Date()}, "clearedById" = ${clearedById ?? null}
+    where email = ${email.toLowerCase()} and "clearedAt" is null
+  `;
 }

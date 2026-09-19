@@ -1,5 +1,6 @@
 import 'server-only';
-import { prisma } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { sql } from '@/server/db/sql';
 import { dayOf, isCountable, normalisePath, normaliseTerm, surfaceOf } from '@/domain/measurement';
 
 /**
@@ -28,11 +29,12 @@ export async function countPage(rawPath: string): Promise<boolean> {
   try {
     // Postgres does this atomically, so two simultaneous requests for the same
     // page on the same day increment to two rather than racing to one.
-    await prisma.pageCount.upsert({
-      where: { path_day: { path, day } },
-      create: { path, day, surface, count: 1 },
-      update: { count: { increment: 1 } },
-    });
+    await sql`
+      insert into "PageCount" (id, path, day, surface, count)
+      values (${createId()}, ${path}, ${day}, ${surface}, 1)
+      on conflict (path, day) do update set
+        count = "PageCount".count + 1
+    `;
     return true;
   } catch (error) {
     console.error('[palma:measurement] could not count a page view', error);
@@ -52,11 +54,13 @@ export async function countSearch(
   const day = dayOf();
 
   try {
-    await prisma.searchCount.upsert({
-      where: { scope_term_day: { scope, term, day } },
-      create: { scope, term, day, count: 1, results },
-      update: { count: { increment: 1 }, results },
-    });
+    await sql`
+      insert into "SearchCount" (id, scope, term, day, count, results)
+      values (${createId()}, ${scope}, ${term}, ${day}, 1, ${results})
+      on conflict (scope, term, day) do update set
+        count = "SearchCount".count + 1,
+        results = excluded.results
+    `;
     return true;
   } catch (error) {
     console.error('[palma:measurement] could not count a search', error);

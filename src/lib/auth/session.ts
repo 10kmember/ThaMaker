@@ -2,7 +2,8 @@ import 'server-only';
 import { cookies, headers } from 'next/headers';
 import { constantTimeEquals, hashIdentifier, hmac, randomToken, sha256 } from '@/lib/crypto';
 import { signingSecret } from '@/lib/env';
-import { prisma } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { sql, withTransaction } from '@/server/db/sql';
 import type { Role } from './rbac';
 
 export const SESSION_COOKIE = 'palma_session';
@@ -50,22 +51,28 @@ export function csrfTokenFor(csrfSecret: string): string {
 }
 
 export async function createSession(userId: string): Promise<string> {
-  const db = prisma;
-  if (!db) throw new Error('Cannot create a session without a database.');
-
   const token = randomToken(32);
   const csrfSecret = randomToken(24);
   const meta = await requestMeta();
+  const sessionId = createId();
 
-  const session = await db.authSession.create({
-    data: {
-      userId,
-      tokenHash: sha256(token),
-      csrfSecret,
-      userAgent: meta.userAgent,
-      ipHash: meta.ipHash,
-      expiresAt: new Date(Date.now() + SESSION_TTL_SECONDS * 1000),
-    },
+  await withTransaction(async (tx) => {
+    await tx`
+      insert into "AuthSession" (id, "userId", "tokenHash", "csrfSecret", "userAgent", "ipHash", "expiresAt")
+      values (
+        ${sessionId},
+        ${userId},
+        ${sha256(token)},
+        ${csrfSecret},
+        ${meta.userAgent},
+        ${meta.ipHash},
+        ${new Date(Date.now() + SESSION_TTL_SECONDS * 1000)}
+      )
+    `;
+
+    await tx`
+      update "User" set "lastLoginAt" = ${new Date()} where id = ${userId}
+    `;
   });
 
   const jar = await cookies();
@@ -76,58 +83,79 @@ export async function createSession(userId: string): Promise<string> {
     httpOnly: false,
   });
 
-  await db.user.update({ where: { id: userId }, data: { lastLoginAt: new Date() } });
-
-  return session.id;
+  return sessionId;
 }
 
 export async function getSession(): Promise<ActiveSession | null> {
-  const db = prisma;
-  if (!db) return null;
-
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
   if (!token) return null;
 
-  const record = await db.authSession.findUnique({
-    where: { tokenHash: sha256(token) },
-    include: {
-      user: {
-        include: {
-          creator: { select: { id: true, slug: true } },
-          judge: { select: { id: true } },
-        },
-      },
-    },
-  });
+  type SessionRow = {
+    sessionId: string;
+    csrfSecret: string;
+    expiresAt: Date;
+    revokedAt: Date | null;
+    userId: string;
+    email: string;
+    name: string;
+    role: Role;
+    isActive: boolean;
+    creatorId: string | null;
+    creatorSlug: string | null;
+    judgeId: string | null;
+  };
+
+  const [record] = await sql<SessionRow[]>`
+    select
+      s.id as "sessionId",
+      s."csrfSecret",
+      s."expiresAt",
+      s."revokedAt",
+      u.id as "userId",
+      u.email,
+      u.name,
+      u.role,
+      u."isActive",
+      c.id as "creatorId",
+      c.slug as "creatorSlug",
+      j.id as "judgeId"
+    from "AuthSession" s
+    join "User" u on u.id = s."userId"
+    left join "Creator" c on c."userId" = u.id
+    left join "Judge" j on j."userId" = u.id
+    where s."tokenHash" = ${sha256(token)}
+    limit 1
+  `;
 
   if (!record || record.revokedAt || record.expiresAt.getTime() < Date.now()) return null;
-  if (!record.user.isActive) return null;
+  if (!record.isActive) return null;
 
   return {
-    sessionId: record.id,
+    sessionId: record.sessionId,
     csrfToken: csrfTokenFor(record.csrfSecret),
     user: {
-      id: record.user.id,
-      email: record.user.email,
-      name: record.user.name,
-      role: record.user.role as Role,
-      creatorId: record.user.creator?.id ?? null,
-      creatorSlug: record.user.creator?.slug ?? null,
-      judgeId: record.user.judge?.id ?? null,
+      id: record.userId,
+      email: record.email,
+      name: record.name,
+      role: record.role,
+      creatorId: record.creatorId,
+      creatorSlug: record.creatorSlug,
+      judgeId: record.judgeId,
     },
   };
 }
 
 export async function destroySession(): Promise<void> {
-  const db = prisma;
   const jar = await cookies();
   const token = jar.get(SESSION_COOKIE)?.value;
 
-  if (db && token) {
-    await db.authSession
-      .updateMany({ where: { tokenHash: sha256(token) }, data: { revokedAt: new Date() } })
-      .catch(() => undefined);
+  if (token) {
+    await sql`
+      update "AuthSession"
+      set "revokedAt" = ${new Date()}
+      where "tokenHash" = ${sha256(token)}
+    `.catch(() => undefined);
   }
 
   jar.delete(SESSION_COOKIE);

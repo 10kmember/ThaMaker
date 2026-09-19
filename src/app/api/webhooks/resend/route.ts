@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { env } from '@/lib/env';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import { suppress } from '@/server/email/suppression';
 import { signatureIsValid } from '@/lib/webhook-signature';
 
@@ -77,14 +77,17 @@ export async function POST(request: Request): Promise<NextResponse> {
   if (providerId && status) {
     // updateMany rather than update: an event for a message this deployment
     // never sent is not an error, it is somebody else's message.
-    await prisma.emailDelivery.updateMany({
-      where: { providerId },
-      data: {
-        status,
-        settledAt,
-        ...(status === 'bounced' || status === 'complained' ? { detail: describe(event) } : {}),
-      },
-    });
+    await sql`
+      update "EmailDelivery"
+      set
+        status = ${status},
+        "settledAt" = ${settledAt},
+        detail = case
+          when ${status} in ('bounced', 'complained') then ${describe(event)}
+          else detail
+        end
+      where "providerId" = ${providerId}
+    `;
   }
 
   // Only the two that mean "stop writing here". A delivery or an open is news

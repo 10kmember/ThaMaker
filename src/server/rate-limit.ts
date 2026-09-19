@@ -2,7 +2,8 @@ import 'server-only';
 import { headers } from 'next/headers';
 import { hashIdentifier } from '@/lib/crypto';
 import { signingSecret } from '@/lib/env';
-import { prisma } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { sql } from '@/server/db/sql';
 
 export type RateLimitRule = {
   /** Logical bucket name, e.g. `nomination:submit`. */
@@ -86,7 +87,7 @@ export async function consumeRateLimit(
   identity: string,
 ): Promise<RateLimitResult> {
   const now = Date.now();
-  const db = useMemoryLimiter ? null : prisma;
+  const db = useMemoryLimiter ? null : sql;
 
   if (!db) {
     const key = `${rule.bucket}:${identity}`;
@@ -104,34 +105,28 @@ export async function consumeRateLimit(
     };
   }
 
-  const existing = await db.rateLimitCounter.findUnique({
-    where: { bucket_identity: { bucket: rule.bucket, identity } },
-  });
+  const windowEndsAt = new Date(now + rule.windowSeconds * 1000);
+  const [row] = await db<{ count: number; windowEndsAt: Date }[]>`
+    insert into "RateLimitCounter" (id, bucket, identity, count, "windowEndsAt")
+    values (${createId()}, ${rule.bucket}, ${identity}, 1, ${windowEndsAt})
+    on conflict (bucket, identity) do update set
+      count = case
+        when "RateLimitCounter"."windowEndsAt" < now() then 1
+        else "RateLimitCounter".count + 1
+      end,
+      "windowEndsAt" = case
+        when "RateLimitCounter"."windowEndsAt" < now() then excluded."windowEndsAt"
+        else "RateLimitCounter"."windowEndsAt"
+      end
+    returning count, "windowEndsAt"
+  `;
 
-  if (!existing || existing.windowEndsAt.getTime() < now) {
-    await db.rateLimitCounter.upsert({
-      where: { bucket_identity: { bucket: rule.bucket, identity } },
-      create: {
-        bucket: rule.bucket,
-        identity,
-        count: 1,
-        windowEndsAt: new Date(now + rule.windowSeconds * 1000),
-      },
-      update: { count: 1, windowEndsAt: new Date(now + rule.windowSeconds * 1000) },
-    });
-    return { allowed: true, remaining: rule.limit - 1, retryAfterSeconds: 0 };
-  }
-
-  const updated = await db.rateLimitCounter.update({
-    where: { bucket_identity: { bucket: rule.bucket, identity } },
-    data: { count: { increment: 1 } },
-  });
-
-  const allowed = updated.count <= rule.limit;
+  if (!row) throw new Error('Rate limit write returned no counter row.');
+  const allowed = row.count <= rule.limit;
   return {
     allowed,
-    remaining: Math.max(0, rule.limit - updated.count),
-    retryAfterSeconds: allowed ? 0 : Math.ceil((existing.windowEndsAt.getTime() - now) / 1000),
+    remaining: Math.max(0, rule.limit - row.count),
+    retryAfterSeconds: allowed ? 0 : Math.ceil((row.windowEndsAt.getTime() - now) / 1000),
   };
 }
 
