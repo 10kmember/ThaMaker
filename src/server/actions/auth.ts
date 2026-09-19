@@ -15,7 +15,8 @@ import {
 import type { Role } from '@/lib/auth/rbac';
 import { fieldErrors } from '@/lib/validation/nomination';
 import { recordAudit } from '@/server/audit';
-import { prisma } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { sql, withTransaction } from '@/server/db/sql';
 import { RATE_LIMITS, enforceRateLimit } from '@/server/rate-limit';
 import { sendWelcome } from '@/server/email/messages';
 
@@ -67,9 +68,21 @@ export async function signIn(_previous: AuthState, formData: FormData): Promise<
     return { status: 'error', message: 'Check your details.', errors: fieldErrors(parsed.error) };
   }
 
-  const db = prisma;
-
-  const user = await db.user.findUnique({ where: { email: parsed.data.email } });
+  const [user] = await sql<
+    {
+      id: string;
+      email: string;
+      name: string;
+      passwordHash: string;
+      role: Role;
+      isActive: boolean;
+    }[]
+  >`
+    select id, email, name, "passwordHash", role, "isActive"
+    from "User"
+    where email = ${parsed.data.email}
+    limit 1
+  `;
 
   // One message for "no such account" and "wrong password": a sign-in form
   // should not tell an attacker which addresses are registered.
@@ -135,9 +148,9 @@ export async function register(_previous: AuthState, formData: FormData): Promis
     };
   }
 
-  const db = prisma;
-
-  const existing = await db.user.findUnique({ where: { email: parsed.data.email } });
+  const [existing] = await sql<{ id: string }[]>`
+    select id from "User" where email = ${parsed.data.email} limit 1
+  `;
   if (existing) {
     // Do not confirm that the address is taken; tell them how to proceed either way.
     return {
@@ -146,14 +159,21 @@ export async function register(_previous: AuthState, formData: FormData): Promis
     };
   }
 
-  const user = await db.user.create({
-    data: {
-      name: parsed.data.name,
-      email: parsed.data.email,
-      passwordHash: await hashPassword(parsed.data.password),
-      role: 'creator',
-      notificationPrefs: { create: {} },
-    },
+  const userId = createId();
+  const passwordHash = await hashPassword(parsed.data.password);
+  const user = await withTransaction(async (tx) => {
+    const [created] = await tx<{ id: string; email: string; name: string; role: Role }[]>`
+      insert into "User" (id, name, email, "passwordHash", role)
+      values (${userId}, ${parsed.data.name}, ${parsed.data.email}, ${passwordHash}, 'creator')
+      returning id, email, name, role
+    `;
+
+    await tx`
+      insert into "NotificationPreference" (id, "userId")
+      values (${createId()}, ${userId})
+    `;
+
+    return created!;
   });
 
   await createSession(user.id);
