@@ -1,5 +1,5 @@
 import 'server-only';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import { env } from '@/lib/env';
 import { getVerificationConfig } from '@/server/settings';
 import { RETENTION_RULES, lastRetentionSweep } from '@/server/services/retention';
@@ -39,10 +39,19 @@ export type SystemHealth = {
   recentFailures: { action: string; summary: string | null; createdAt: string }[];
 };
 
+/**
+ * DateTime columns are `timestamp(3)` without time zone, holding UTC wall
+ * clock. Render the same wall-clock UTC ISO string straight out of Postgres so
+ * the DTOs do not depend on the session time zone. Returns a raw SQL fragment;
+ * only ever called with static, quoted column references.
+ */
+const isoTs = (ref: string) =>
+  sql.unsafe(`to_char(${ref}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`);
+
 async function checkDatabase(): Promise<ServiceCheck> {
   const started = Date.now();
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await sql`select 1`;
     const latencyMs = Date.now() - started;
     return {
       name: 'PostgreSQL',
@@ -64,24 +73,39 @@ async function checkDatabase(): Promise<ServiceCheck> {
 }
 
 export async function getSystemHealth(): Promise<SystemHealth> {
-  const [database, counts, failures] = await Promise.all([
+  const [database, [counts], failures] = await Promise.all([
     checkDatabase(),
-    Promise.all([
-      prisma.creator.count(),
-      prisma.user.count(),
-      prisma.nomination.count(),
-      prisma.candidacy.count(),
-      prisma.honour.count(),
-      prisma.auditLog.count(),
-      prisma.authSession.count(),
-      prisma.verificationRecord.count(),
-    ]),
-    prisma.auditLog.findMany({
-      where: { action: { in: ['claim.rejected', 'verification.case_decided', 'honour.revoked'] } },
-      orderBy: { createdAt: 'desc' },
-      take: 8,
-      select: { action: true, summary: true, createdAt: true },
-    }),
+    sql<
+      [
+        {
+          creators: number;
+          users: number;
+          nominations: number;
+          candidacies: number;
+          honours: number;
+          auditRows: number;
+          sessions: number;
+          records: number;
+        },
+      ]
+    >`
+      select
+        (select count(*)::int from "Creator") as "creators",
+        (select count(*)::int from "User") as "users",
+        (select count(*)::int from "Nomination") as "nominations",
+        (select count(*)::int from "Candidacy") as "candidacies",
+        (select count(*)::int from "Honour") as "honours",
+        (select count(*)::int from "AuditLog") as "auditRows",
+        (select count(*)::int from "AuthSession") as "sessions",
+        (select count(*)::int from "VerificationRecord") as "records"
+    `,
+    sql<{ action: string; summary: string | null; createdAt: string }[]>`
+      select action, summary, ${isoTs('"createdAt"')} as "createdAt"
+      from "AuditLog"
+      where action in ('claim.rejected', 'verification.case_decided', 'honour.revoked')
+      order by "createdAt" desc
+      limit 8
+    `,
   ]);
 
   const email: ServiceCheck = env.RESEND_API_KEY
@@ -151,15 +175,25 @@ export async function getSystemHealth(): Promise<SystemHealth> {
         detail: 'No AUTH_SECRET. Verification records cannot be signed or checked.',
       };
 
-  const [creators, users, nominations, candidacies, honours, auditRows, sessions, records] = counts;
+  const { creators, users, nominations, candidacies, honours, auditRows, sessions, records } =
+    counts;
 
-  const pendingVerification = await prisma.verificationCase.count({
-    where: { status: { in: ['open', 'awaiting_information'] } },
-  });
+  const [pendingVerificationRows, unverifiedNominationRows] = await Promise.all([
+    sql<[{ n: number }]>`
+      select count(*)::int as n
+      from "VerificationCase"
+      where status in ('open', 'awaiting_information')
+    `,
+    sql<[{ n: number }]>`
+      select count(*)::int as n
+      from "Nomination"
+      where status = 'pending_verification'
+        and "createdAt" < ${new Date(Date.now() - 86_400_000)}
+    `,
+  ]);
 
-  const unverifiedNominations = await prisma.nomination.count({
-    where: { status: 'pending_verification', createdAt: { lt: new Date(Date.now() - 86_400_000) } },
-  });
+  const pendingVerification = pendingVerificationRows[0]?.n ?? 0;
+  const unverifiedNominations = unverifiedNominationRows[0]?.n ?? 0;
 
   return {
     checkedAt: new Date().toISOString(),
@@ -206,7 +240,7 @@ export async function getSystemHealth(): Promise<SystemHealth> {
     recentFailures: failures.map((entry) => ({
       action: entry.action,
       summary: entry.summary,
-      createdAt: entry.createdAt.toISOString(),
+      createdAt: entry.createdAt,
     })),
   };
 }

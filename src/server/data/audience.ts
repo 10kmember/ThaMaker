@@ -1,5 +1,5 @@
 import 'server-only';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import { dayOf, SURFACES, type SurfaceKey } from '@/domain/measurement';
 import { EMAIL_LIST_ORDER, type EmailListKey } from '@/domain/email-lists';
 import { featureLive } from '@/server/features';
@@ -86,6 +86,10 @@ const DAY = 86_400_000;
 export async function getAudienceReport(window: AudienceWindow): Promise<AudienceReport> {
   const from = dayOf(new Date(Date.now() - (window - 1) * DAY));
   const previousFrom = dayOf(new Date(from.getTime() - window * DAY));
+  // PageCount.day and SearchCount.day are @db.Date columns; compare them
+  // against the ISO day string so no time-of-day or time zone leaks in.
+  const fromDay = from.toISOString().slice(0, 10);
+  const previousFromDay = previousFrom.toISOString().slice(0, 10);
 
   const [
     counts,
@@ -105,33 +109,69 @@ export async function getAudienceReport(window: AudienceWindow): Promise<Audienc
     claimsAwaiting,
     eventsLive,
   ] = await Promise.all([
-    prisma.pageCount.findMany({
-      where: { day: { gte: from } },
-      select: { path: true, day: true, surface: true, count: true },
-    }),
-    prisma.pageCount.groupBy({
-      by: ['surface'],
-      where: { day: { gte: previousFrom, lt: from } },
-      _sum: { count: true },
-    }),
-    prisma.searchCount.findMany({
-      where: { day: { gte: from } },
-      select: { term: true, scope: true, count: true, results: true },
-    }),
-    prisma.nomination.count({ where: { status: 'counted' } }),
-    prisma.nominator.count({ where: { nominations: { some: { status: 'counted' } } } }),
-    prisma.creator.count({ where: { candidacies: { some: {} } } }),
-    prisma.candidacy.count({ where: { status: { notIn: ['withdrawn', 'ineligible'] } } }),
-    prisma.honour.count({ where: { kind: 'finalist', state: 'active' } }),
-    prisma.honour.count({ where: { kind: 'winner', state: 'active' } }),
-    prisma.emailSubscription.groupBy({ by: ['type', 'status'], _count: { _all: true } }),
-    prisma.verificationRecord.aggregate({ _sum: { viewCount: true } }),
-    prisma.verificationRecord.count(),
-    prisma.creator.count({ where: { userId: { not: null } } }),
-    prisma.creator.count({ where: { userId: null } }),
-    prisma.creatorClaim.count({
-      where: { status: { in: ['submitted', 'awaiting_information', 'escalated'] } },
-    }),
+    sql<{ path: string; day: string; surface: string; count: number }[]>`
+      select path, to_char(day, 'YYYY-MM-DD') as day, surface, count
+      from "PageCount"
+      where day >= ${fromDay}
+    `,
+    sql<{ surface: string; views: number }[]>`
+      select surface, coalesce(sum(count), 0)::int as views
+      from "PageCount"
+      where day >= ${previousFromDay} and day < ${fromDay}
+      group by surface
+    `,
+    sql<{ term: string; scope: string; count: number; results: number | null }[]>`
+      select term, scope, count, results
+      from "SearchCount"
+      where day >= ${fromDay}
+    `,
+    sql<[{ n: number }]>`
+      select count(*)::int as n from "Nomination" where status = 'counted'
+    `,
+    sql<[{ n: number }]>`
+      select count(*)::int as n
+      from "Nominator"
+      where exists (
+        select 1 from "Nomination" n
+        where n."nominatorId" = "Nominator".id and n.status = 'counted'
+      )
+    `,
+    sql<[{ n: number }]>`
+      select count(*)::int as n
+      from "Creator"
+      where exists (select 1 from "Candidacy" c where c."creatorId" = "Creator".id)
+    `,
+    sql<[{ n: number }]>`
+      select count(*)::int as n from "Candidacy" where status not in ('withdrawn', 'ineligible')
+    `,
+    sql<[{ n: number }]>`
+      select count(*)::int as n from "Honour" where kind = 'finalist' and state = 'active'
+    `,
+    sql<[{ n: number }]>`
+      select count(*)::int as n from "Honour" where kind = 'winner' and state = 'active'
+    `,
+    sql<{ type: string; status: string; n: number }[]>`
+      select type, status, count(*)::int as n
+      from "EmailSubscription"
+      group by type, status
+    `,
+    sql<[{ lookups: number }]>`
+      select coalesce(sum("viewCount"), 0)::int as lookups from "VerificationRecord"
+    `,
+    sql<[{ n: number }]>`
+      select count(*)::int as n from "VerificationRecord"
+    `,
+    sql<[{ n: number }]>`
+      select count(*)::int as n from "Creator" where "userId" is not null
+    `,
+    sql<[{ n: number }]>`
+      select count(*)::int as n from "Creator" where "userId" is null
+    `,
+    sql<[{ n: number }]>`
+      select count(*)::int as n
+      from "CreatorClaim"
+      where status in ('submitted', 'awaiting_information', 'escalated')
+    `,
     featureLive('event_ticketing'),
   ]);
 
@@ -150,18 +190,17 @@ export async function getAudienceReport(window: AudienceWindow): Promise<Audienc
     surface.pages.add(row.path);
     bySurface.set(row.surface, surface);
 
-    const day = row.day.toISOString().slice(0, 10);
-    if (byDay.has(day)) byDay.set(day, (byDay.get(day) ?? 0) + row.count);
+    if (byDay.has(row.day)) byDay.set(row.day, (byDay.get(row.day) ?? 0) + row.count);
 
     byPage.set(row.path, (byPage.get(row.path) ?? 0) + row.count);
   }
 
   const previousBySurface = new Map(
-    previousCounts.map((row) => [row.surface, row._sum.count ?? 0] as const),
+    previousCounts.map((row) => [row.surface, row.views] as const),
   );
 
   const totalViews = counts.reduce((sum, row) => sum + row.count, 0);
-  const previousViews = previousCounts.reduce((sum, row) => sum + (row._sum.count ?? 0), 0);
+  const previousViews = previousCounts.reduce((sum, row) => sum + row.views, 0);
 
   // Searches are summed across days, then split into those that found
   // something and those that did not.
@@ -186,19 +225,21 @@ export async function getAudienceReport(window: AudienceWindow): Promise<Audienc
 
   const searches = [...searchTotals.values()].sort((a, b) => b.searches - a.searches);
 
-  const eventRows = await prisma.palmaEvent.findMany({
-    select: {
-      name: true,
-      status: true,
-      capacity: true,
-      _count: { select: { ticketTypes: true } },
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 20,
-  });
+  const eventRows = await sql<
+    { name: string; status: string; capacity: number | null; ticketTypes: number }[]
+  >`
+    select
+      e.name,
+      e.status,
+      e.capacity,
+      (select count(*)::int from "TicketType" t where t."eventId" = e.id) as "ticketTypes"
+    from "PalmaEvent" e
+    order by e."createdAt" desc
+    limit 20
+  `;
 
   const listCount = (type: string, status: string) =>
-    subscriptions.find((row) => row.type === type && row.status === status)?._count._all ?? 0;
+    subscriptions.find((row) => row.type === type && row.status === status)?.n ?? 0;
 
   return {
     window,
@@ -227,26 +268,26 @@ export async function getAudienceReport(window: AudienceWindow): Promise<Audienc
     funnel: [
       {
         label: 'Nominations counted',
-        value: nominations,
+        value: nominations[0]?.n ?? 0,
         note: 'Verified by a one-time code. The audience discovering.',
       },
       {
         label: 'Unique nominators',
-        value: nominators,
+        value: nominators[0]?.n ?? 0,
         note: 'People, not nominations. The honest measure of reach.',
       },
       {
         label: 'Creators identified',
-        value: creatorsIdentified,
+        value: creatorsIdentified[0]?.n ?? 0,
         note: 'Named by at least one nomination.',
       },
       {
         label: 'Candidacies standing',
-        value: candidacies,
+        value: candidacies[0]?.n ?? 0,
         note: 'Survived eligibility and editorial screening. PALMA evaluating.',
       },
-      { label: 'Finalists', value: finalists, note: 'Selected by the panel from the field.' },
-      { label: 'Winners', value: winners, note: 'Conferred. Judges deciding.' },
+      { label: 'Finalists', value: finalists[0]?.n ?? 0, note: 'Selected by the panel from the field.' },
+      { label: 'Winners', value: winners[0]?.n ?? 0, note: 'Conferred. Judges deciding.' },
     ],
     subscribers: EMAIL_LIST_ORDER.map((key) => ({
       key,
@@ -261,17 +302,17 @@ export async function getAudienceReport(window: AudienceWindow): Promise<Audienc
         name: row.name,
         status: row.status,
         capacity: row.capacity,
-        ticketTypes: row._count.ticketTypes,
+        ticketTypes: row.ticketTypes,
       })),
     },
     verification: {
-      lookups: verificationAgg._sum.viewCount ?? 0,
-      records: verificationRecords,
+      lookups: verificationAgg[0]?.lookups ?? 0,
+      records: verificationRecords[0]?.n ?? 0,
     },
     creators: {
-      claimed: claimedCreators,
-      unclaimed: unclaimedCreators,
-      claimsAwaiting,
+      claimed: claimedCreators[0]?.n ?? 0,
+      unclaimed: unclaimedCreators[0]?.n ?? 0,
+      claimsAwaiting: claimsAwaiting[0]?.n ?? 0,
     },
   };
 }

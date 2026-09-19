@@ -1,5 +1,5 @@
 import 'server-only';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import type { Role } from '@/lib/auth/rbac';
 
 /**
@@ -28,49 +28,87 @@ export type AccountSummary = {
   isJudge: boolean;
 };
 
+/**
+ * DateTime columns are `timestamp(3)` without time zone, holding UTC wall
+ * clock. Render the same wall-clock UTC ISO string straight out of Postgres so
+ * the DTOs do not depend on the session time zone. Returns a raw SQL fragment;
+ * only ever called with static, quoted column references.
+ */
+const isoTs = (ref: string) =>
+  sql.unsafe(`to_char(${ref}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`);
+
+/**
+ * A substring filter escapes LIKE metacharacters before matching; ILIKE with
+ * the default backslash escape behaves the same way.
+ */
+const likePattern = (value: string) => `%${value.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
+
 export async function listAccounts(filter?: {
   query?: string;
   role?: Role;
   state?: 'active' | 'suspended';
 }): Promise<AccountSummary[]> {
-  const rows = await prisma.user.findMany({
-    where: {
-      ...(filter?.query
-        ? {
-            OR: [
-              { email: { contains: filter.query, mode: 'insensitive' as const } },
-              { name: { contains: filter.query, mode: 'insensitive' as const } },
-            ],
-          }
-        : {}),
-      ...(filter?.role ? { role: filter.role } : {}),
-      ...(filter?.state === 'active' ? { isActive: true } : {}),
-      ...(filter?.state === 'suspended' ? { isActive: false } : {}),
-    },
-    include: {
-      creator: { select: { slug: true, displayName: true } },
-      judge: { select: { id: true } },
-      sessions: {
-        where: { revokedAt: null, expiresAt: { gt: new Date() } },
-        select: { id: true },
-      },
-    },
-    orderBy: [{ role: 'asc' }, { createdAt: 'desc' }],
-    take: 200,
-  });
+  const rows = await sql<
+    {
+      id: string;
+      email: string;
+      name: string;
+      role: Role;
+      isActive: boolean;
+      emailVerified: boolean;
+      createdAt: string;
+      lastLoginAt: string | null;
+      activeSessions: number;
+      creatorSlug: string | null;
+      creatorName: string | null;
+      isJudge: boolean;
+    }[]
+  >`
+    select
+      u.id,
+      u.email,
+      u.name,
+      u.role,
+      u."isActive",
+      (u."emailVerifiedAt" is not null) as "emailVerified",
+      ${isoTs('u."createdAt"')} as "createdAt",
+      ${isoTs('u."lastLoginAt"')} as "lastLoginAt",
+      (select count(*)::int from "AuthSession" s
+        where s."userId" = u.id
+          and s."revokedAt" is null
+          and s."expiresAt" > ${new Date()}) as "activeSessions",
+      c.slug as "creatorSlug",
+      c."displayName" as "creatorName",
+      (j.id is not null) as "isJudge"
+    from "User" u
+    left join "Creator" c on c."userId" = u.id
+    left join "Judge" j on j."userId" = u.id
+    where true
+      ${filter?.query
+        ? sql`and (u.email ilike ${likePattern(filter.query)} or u.name ilike ${likePattern(filter.query)})`
+        : sql``}
+      ${filter?.role ? sql`and u.role = ${filter.role}` : sql``}
+      ${filter?.state === 'active' ? sql`and u."isActive"` : sql``}
+      ${filter?.state === 'suspended' ? sql`and not u."isActive"` : sql``}
+    order by u.role asc, u."createdAt" desc
+    limit 200
+  `;
 
   return rows.map((row) => ({
     id: row.id,
     email: row.email,
     name: row.name,
-    role: row.role as Role,
+    role: row.role,
     isActive: row.isActive,
-    emailVerified: Boolean(row.emailVerifiedAt),
-    createdAt: row.createdAt.toISOString(),
-    lastLoginAt: row.lastLoginAt?.toISOString() ?? null,
-    activeSessions: row.sessions.length,
-    creator: row.creator,
-    isJudge: Boolean(row.judge),
+    emailVerified: row.emailVerified,
+    createdAt: row.createdAt,
+    lastLoginAt: row.lastLoginAt,
+    activeSessions: row.activeSessions,
+    creator:
+      row.creatorSlug !== null && row.creatorName !== null
+        ? { slug: row.creatorSlug, displayName: row.creatorName }
+        : null,
+    isJudge: row.isJudge,
   }));
 }
 
@@ -89,26 +127,47 @@ export type PendingAction = {
 export async function listConsequentialActions(
   scope: 'pending' | 'all' = 'pending',
 ): Promise<PendingAction[]> {
-  const rows = await prisma.consequentialAction.findMany({
-    where: scope === 'pending' ? { executedAt: null, cancelledAt: null } : undefined,
-    include: {
-      requestedBy: { select: { email: true } },
-      approvedBy: { select: { email: true } },
-    },
-    orderBy: { createdAt: 'desc' },
-    take: 60,
-  });
+  const rows = await sql<
+    {
+      id: string;
+      kind: string;
+      subject: string;
+      reason: string;
+      requestedBy: string;
+      requestedAt: string;
+      approvedBy: string | null;
+      executedAt: string | null;
+      cancelledAt: string | null;
+    }[]
+  >`
+    select
+      a.id,
+      a.kind,
+      a.subject,
+      a.reason,
+      rb.email as "requestedBy",
+      ${isoTs('a."createdAt"')} as "requestedAt",
+      ab.email as "approvedBy",
+      ${isoTs('a."executedAt"')} as "executedAt",
+      ${isoTs('a."cancelledAt"')} as "cancelledAt"
+    from "ConsequentialAction" a
+    join "User" rb on rb.id = a."requestedById"
+    left join "User" ab on ab.id = a."approvedById"
+    ${scope === 'pending' ? sql`where a."executedAt" is null and a."cancelledAt" is null` : sql``}
+    order by a."createdAt" desc
+    limit 60
+  `;
 
   return rows.map((row) => ({
     id: row.id,
     kind: row.kind,
     subject: row.subject,
     reason: row.reason,
-    requestedBy: row.requestedBy.email,
-    requestedAt: row.createdAt.toISOString(),
-    approvedBy: row.approvedBy?.email ?? null,
-    executedAt: row.executedAt?.toISOString() ?? null,
-    cancelledAt: row.cancelledAt?.toISOString() ?? null,
+    requestedBy: row.requestedBy,
+    requestedAt: row.requestedAt,
+    approvedBy: row.approvedBy,
+    executedAt: row.executedAt,
+    cancelledAt: row.cancelledAt,
   }));
 }
 
@@ -123,11 +182,30 @@ export type EnforcementRecord = {
 };
 
 export async function listEnforcement(): Promise<EnforcementRecord[]> {
-  const rows = await prisma.moderationAction.findMany({
-    include: { actor: { select: { email: true } } },
-    orderBy: { createdAt: 'desc' },
-    take: 60,
-  });
+  const rows = await sql<
+    {
+      id: string;
+      kind: string;
+      entityType: string;
+      entityId: string;
+      rationale: string;
+      actor: string;
+      createdAt: string;
+    }[]
+  >`
+    select
+      m.id,
+      m.kind,
+      m."entityType",
+      m."entityId",
+      m.rationale,
+      u.email as actor,
+      ${isoTs('m."createdAt"')} as "createdAt"
+    from "ModerationAction" m
+    join "User" u on u.id = m."actorId"
+    order by m."createdAt" desc
+    limit 60
+  `;
 
   return rows.map((row) => ({
     id: row.id,
@@ -135,8 +213,8 @@ export async function listEnforcement(): Promise<EnforcementRecord[]> {
     entityType: row.entityType,
     entityId: row.entityId,
     rationale: row.rationale,
-    actor: row.actor.email,
-    createdAt: row.createdAt.toISOString(),
+    actor: row.actor,
+    createdAt: row.createdAt,
   }));
 }
 
@@ -161,56 +239,54 @@ export async function searchEverything(query: string): Promise<SearchHit[]> {
   const term = query.trim();
   if (term.length < 2) return [];
 
-  const contains = { contains: term, mode: 'insensitive' as const };
+  const contains = likePattern(term);
 
   const [creators, accounts, claims, cases, achievements, audit] = await Promise.all([
-    prisma.creator.findMany({
-      where: { OR: [{ displayName: contains }, { slug: contains }] },
-      select: { slug: true, displayName: true, countryCode: true, userId: true },
-      take: 10,
-    }),
-    prisma.user.findMany({
-      where: { OR: [{ email: contains }, { name: contains }] },
-      select: { id: true, email: true, name: true, role: true },
-      take: 10,
-    }),
-    prisma.creatorClaim.findMany({
-      where: {
-        OR: [
-          { reference: contains },
-          { creator: { displayName: contains } },
-          { user: { email: contains } },
-        ],
-      },
-      select: {
-        id: true,
-        reference: true,
-        status: true,
-        creator: { select: { displayName: true } },
-      },
-      take: 10,
-    }),
-    prisma.verificationCase.findMany({
-      where: { OR: [{ reference: contains }, { creator: { displayName: contains } }] },
-      select: {
-        id: true,
-        reference: true,
-        status: true,
-        creator: { select: { displayName: true, slug: true } },
-      },
-      take: 10,
-    }),
-    prisma.achievement.findMany({
-      where: { OR: [{ code: contains }, { creatorName: contains }] },
-      select: { code: true, creatorName: true, categoryName: true, year: true, kind: true },
-      take: 10,
-    }),
-    prisma.auditLog.findMany({
-      where: { OR: [{ summary: contains }, { actorLabel: contains }, { entityId: term }] },
-      select: { id: true, action: true, summary: true, createdAt: true },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-    }),
+    sql<{ slug: string; displayName: string; countryCode: string; userId: string | null }[]>`
+      select slug, "displayName", "countryCode", "userId"
+      from "Creator"
+      where "displayName" ilike ${contains} or slug ilike ${contains}
+      limit 10
+    `,
+    sql<{ id: string; email: string; name: string; role: string }[]>`
+      select id, email, name, role
+      from "User"
+      where email ilike ${contains} or name ilike ${contains}
+      limit 10
+    `,
+    sql<{ id: string; reference: string; status: string; creatorName: string }[]>`
+      select cl.id, cl.reference, cl.status, c."displayName" as "creatorName"
+      from "CreatorClaim" cl
+      join "Creator" c on c.id = cl."creatorId"
+      join "User" u on u.id = cl."userId"
+      where cl.reference ilike ${contains}
+        or c."displayName" ilike ${contains}
+        or u.email ilike ${contains}
+      limit 10
+    `,
+    sql<{ id: string; reference: string; status: string; creatorName: string; creatorSlug: string }[]>`
+      select vc.id, vc.reference, vc.status,
+        c."displayName" as "creatorName", c.slug as "creatorSlug"
+      from "VerificationCase" vc
+      join "Creator" c on c.id = vc."creatorId"
+      where vc.reference ilike ${contains} or c."displayName" ilike ${contains}
+      limit 10
+    `,
+    sql<{ code: string; creatorName: string; categoryName: string; year: number; kind: string }[]>`
+      select code, "creatorName", "categoryName", year, kind
+      from "Achievement"
+      where code ilike ${contains} or "creatorName" ilike ${contains}
+      limit 10
+    `,
+    sql<{ id: string; action: string; summary: string | null; createdAt: string }[]>`
+      select id, action, summary, ${isoTs('"createdAt"')} as "createdAt"
+      from "AuditLog"
+      where summary ilike ${contains}
+        or "actorLabel" ilike ${contains}
+        or "entityId" = ${term}
+      order by "createdAt" desc
+      limit 10
+    `,
   ]);
 
   return [
@@ -229,14 +305,14 @@ export async function searchEverything(query: string): Promise<SearchHit[]> {
     ...claims.map<SearchHit>((claim) => ({
       kind: 'Claim',
       title: claim.reference,
-      detail: `${claim.creator.displayName} · ${claim.status.replace('_', ' ')}`,
+      detail: `${claim.creatorName} · ${claim.status.replace('_', ' ')}`,
       href: `/portal/claims/${claim.id}`,
     })),
     ...cases.map<SearchHit>((entry) => ({
       kind: 'Verification case',
       title: entry.reference,
-      detail: `${entry.creator.displayName} · ${entry.status.replace('_', ' ')}`,
-      href: `/portal/creators/${entry.creator.slug}`,
+      detail: `${entry.creatorName} · ${entry.status.replace('_', ' ')}`,
+      href: `/portal/creators/${entry.creatorSlug}`,
     })),
     ...achievements.map<SearchHit>((achievement) => ({
       kind: 'Honour',
@@ -247,7 +323,7 @@ export async function searchEverything(query: string): Promise<SearchHit[]> {
     ...audit.map<SearchHit>((entry) => ({
       kind: 'Audit',
       title: entry.action.replace(/[._]/g, ' '),
-      detail: entry.summary ?? entry.createdAt.toISOString().slice(0, 10),
+      detail: entry.summary ?? entry.createdAt.slice(0, 10),
       href: '/admin/audit',
     })),
   ];
@@ -265,19 +341,29 @@ export type ActivityEntry = {
 
 /** The live feed of what PALMA's staff have actually done. */
 export async function recentActivity(limit = 40): Promise<ActivityEntry[]> {
-  const rows = await prisma.auditLog.findMany({
-    orderBy: { createdAt: 'desc' },
-    take: limit,
-    select: {
-      id: true,
-      action: true,
-      summary: true,
-      actorLabel: true,
-      entityType: true,
-      entityId: true,
-      createdAt: true,
-    },
-  });
+  const rows = await sql<
+    {
+      id: string;
+      action: string;
+      summary: string | null;
+      actorLabel: string | null;
+      entityType: string;
+      entityId: string;
+      createdAt: string;
+    }[]
+  >`
+    select
+      id,
+      action,
+      summary,
+      "actorLabel",
+      "entityType",
+      "entityId",
+      ${isoTs('"createdAt"')} as "createdAt"
+    from "AuditLog"
+    order by "createdAt" desc
+    limit ${limit}
+  `;
 
   return rows.map((row) => ({
     id: row.id,
@@ -286,6 +372,6 @@ export async function recentActivity(limit = 40): Promise<ActivityEntry[]> {
     actor: row.actorLabel,
     entityType: row.entityType,
     entityId: row.entityId,
-    createdAt: row.createdAt.toISOString(),
+    createdAt: row.createdAt,
   }));
 }
