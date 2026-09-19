@@ -13,12 +13,15 @@ Sitemap: https://palmaawards.com/sitemap.xml
 
 # ── What PALMA is ────────────────────────────────────────────────────────────
 
-Type: Awards institution and permanent public record
+Type: Awards institution and permanent public record for the adult creator industry
 Not: content platform, social network, marketplace, agency, adult-content host
 
-# PALMA points at work. It does not publish it. There is no upload path for
-# creator media, no feed, no follower count, and no transaction between a
-# creator and an audience anywhere in the system.
+# PALMA honours adult content creators, and only adult content creators.
+# "The creator industry" anywhere on this site means the adult creator
+# industry — never the mainstream one. PALMA points at work. It does not
+# publish it. There is no upload path for creator media, no feed, no follower
+# count, and no transaction between a creator and an audience anywhere in the
+# system.
 
 # ── THE PALMA ────────────────────────────────────────────────────────────────
 
@@ -31,9 +34,14 @@ Highest-honour-repeatable: no
 Highest-honour-nominable: no
 Highest-honour-conferred: July
 Highest-honour-page: https://palmaawards.com/the-palma
+Category-honours-per-season: twelve Creator PALMAs
+Highest-honour-rank: the thirteenth honour of the season, above the twelve Creator PALMAs
 
-# THE PALMA goes to one creator a year whose overall body of work has made the
-# most significant contribution to adult creator culture during their career.
+# Each season confers twelve Creator PALMAs, one per category. THE PALMA is
+# the thirteenth honour of the season — the most prestigious the institution
+# confers, and the only one named after the institution itself. It goes to
+# one creator a year whose overall body of work has made the most significant
+# contribution to adult creator culture during their career.
 # The panel weighs eight published considerations — creative influence,
 # longevity, originality, cultural impact, influence on other creators,
 # audience and community significance, career achievement, and contribution to

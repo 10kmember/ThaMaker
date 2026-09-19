@@ -30,13 +30,15 @@ export async function GET() {
 
   const body = `# PALMA, The Creator Honours
 
-> PALMA is a UK creator-industry awards institution and the permanent public
-> record of achievement in that industry. It recognises work; it does not host
-> it. The ceremony is one expression of the record, not the point of it.
+> PALMA is a UK awards institution for the adult creator industry and the
+> permanent public record of achievement in it. It recognises work; it does
+> not host it. The ceremony is one expression of the record, not the point of
+> it.
 
-PALMA is not a content platform, a social network, a subscription service or a
-marketplace. It hosts no creator work and brokers no services. Its public pages
-are suitable for every audience.
+PALMA honours adult content creators, and only adult content creators. It is
+not a content platform, a social network, a subscription service or a
+marketplace, and it is not itself an adult site: it hosts no creator work and
+brokers no services. Its public pages are suitable for every audience.
 
 Operated by ${ENTITY.name} (${ENTITY.jurisdiction}). Company number:
 ${ENTITY.companyNumber ?? 'not yet registered'}.
@@ -62,10 +64,12 @@ ${ENTITY.companyNumber ?? 'not yet registered'}.
 
 ## THE PALMA
 
-The institution's highest honour. Not "The PALMA Creator Legacy Award", not a
-lifetime achievement award, **THE PALMA**, conferred on one creator each year
-whose overall body of work has made the most significant contribution to adult
-creator culture during their career.
+The institution's highest honour, and the thirteenth honour of the season:
+twelve Creator PALMAs are conferred by category, and then THE PALMA above them
+all. Not "The PALMA Creator Legacy Award", not a lifetime achievement award,
+**THE PALMA**, conferred on one creator each year whose overall body of work
+has made the most significant contribution to adult creator culture during
+their career.
 
 - One a year. Never shared, no runner-up, and no creator receives it twice.
 - Not nominated in a category: the panel draws from the whole record and is not
@@ -121,7 +125,7 @@ ${seasons.map((entry) => `- [${entry.title}](${siteUrl}/awards/${entry.year}), $
 - [Partners](${siteUrl}/about/sponsors), who funds PALMA and what sponsorship cannot buy
 - [Press](${siteUrl}/press), boilerplate, marks, and the correct wording for an honour
 - [Contact](${siteUrl}/contact), every desk, with the timescale each is answered in
-- [Journal](${siteUrl}/journal). Writing on the creator industry
+- [Journal](${siteUrl}/journal). Writing on the adult creator industry
 
 ## Legal register
 

@@ -70,9 +70,9 @@ export default async function PressPage() {
               <blockquote className="border-olive/40 mt-6 border-l-2 pl-6">
                 <p className="font-display text-xl leading-snug">
                   PALMA, The Creator Honours is a United Kingdom awards institution and permanent
-                  public record of achievement in the creator industry. Nominations are free and
-                  open to the public; honours are conferred by an independent panel judging against
-                  published criteria, in which audience size is explicitly not a criterion. Every
+                  public record of achievement in the adult creator industry. Nominations are free
+                  and open to the public; honours are conferred by an independent panel judging
+                  against published criteria, in which audience size is explicitly not a criterion. Every
                   honour is entered into the PALMA Roll of Honour with a verification record that
                   anyone can check.
                 </p>

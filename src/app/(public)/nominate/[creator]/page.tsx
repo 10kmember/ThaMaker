@@ -165,8 +165,8 @@ export default async function ReferralNominatePage({ params }: Params) {
                 <div className="border-stone-deep flex flex-col gap-4 border p-6">
                   <Wordmark size="sm" href={null} />
                   <p className="text-taupe-deep text-sm leading-relaxed">
-                    PALMA is the permanent record of achievement in the creator industry. Every
-                    honour is judged by an independent panel and can be verified by anyone.
+                    PALMA is the permanent record of achievement in the adult creator industry.
+                    Every honour is judged by an independent panel and can be verified by anyone.
                   </p>
                   <Button asChild size="sm" variant="outline" className="self-start">
                     <Link href="/about">About PALMA</Link>

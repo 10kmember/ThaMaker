@@ -57,8 +57,8 @@ export function SiteFooter() {
           <div className="flex max-w-72 shrink-0 flex-col gap-5">
             <Wordmark size="md" descriptor />
             <p className="text-ivory/55 text-sm leading-relaxed">
-              PALMA is the permanent record of achievement in the creator industry. The ceremony is
-              one expression of it.
+              PALMA is the permanent record of achievement in the adult creator industry. The
+              ceremony is one expression of it.
             </p>
             <PalmMark className="text-ivory/25 h-10" />
           </div>

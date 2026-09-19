@@ -13,7 +13,7 @@ export const revalidate = 3600;
 export const metadata = buildMetadata({
   title: 'About',
   description:
-    'PALMA is the permanent record of achievement in the creator industry. How the institution works, who judges, and what it refuses to be.',
+    'PALMA is the permanent record of achievement in the adult creator industry. How the institution works, who judges, and what it refuses to be.',
   path: '/about',
 });
 
@@ -63,9 +63,9 @@ export default async function AboutPage() {
           <div className="mt-16 grid gap-16 lg:grid-cols-12">
             <Reveal className="palma-prose lg:col-span-7">
               <p>
-                PALMA exists because the creator industry has been poorly served by recognition. The
-                awards it has tended to be offered measure audience, which is a measure of
-                distribution, not of work, and expire the moment the post scrolls past.
+                PALMA exists because the adult creator industry has been poorly served by
+                recognition. The awards it has tended to be offered measure audience, which is a
+                measure of distribution, not of work, and expire the moment the post scrolls past.
               </p>
               <p>
                 PALMA is built the other way round. The archive came before the ceremony. Every

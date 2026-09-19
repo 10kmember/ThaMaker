@@ -1,6 +1,6 @@
 # PALMA — The Creator Honours
 
-PALMA is a UK creator-industry awards institution. It recognises achievement and
+PALMA is a UK awards institution for the adult creator industry. It recognises achievement and
 keeps the permanent record of it: nominations, judging, honours, and a public
 archive — the **PALMA Roll of Honour (PaROH)** — that is designed to still be
 citable a decade from now.

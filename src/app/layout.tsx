@@ -43,7 +43,13 @@ export const metadata: Metadata = {
   description:
     'PALMA, The Creator Honours. Recognising the people shaping creator culture, and keeping the permanent record of who they are.',
   applicationName: SITE_NAME,
-  keywords: ['PALMA', 'Palma Awards', 'creator awards', 'The Creator Honours', 'creator industry'],
+  keywords: [
+    'PALMA',
+    'Palma Awards',
+    'adult creator awards',
+    'The Creator Honours',
+    'adult creator industry',
+  ],
   authors: [{ name: SITE_NAME }],
   creator: SITE_NAME,
   publisher: ENTITY.name,

@@ -34,7 +34,7 @@ export default async function JournalPage({ searchParams }: Props) {
       <Masthead
         eyebrow={'The PALMA Journal'}
         title="Journal"
-        standfirst="Writing on the creator industry, the people in it, and the standards PALMA holds them to."
+        standfirst="Writing on the adult creator industry, the people in it, and the standards PALMA holds them to."
         meta={['Interviews', 'Essays', 'Category explainers', 'Announcements']}
         size="compact"
       />
