@@ -1,5 +1,5 @@
 import 'server-only';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 
 /**
  * The Dossier.
@@ -34,29 +34,14 @@ export type Dossier = {
   archived: number;
 };
 
-function shape(row: {
-  id: string;
-  kind: string;
-  subject: string;
-  body: string;
-  href: string | null;
-  isImportant: boolean;
-  readAt: Date | null;
-  archivedAt: Date | null;
-  createdAt: Date;
-}): DossierEntry {
-  return {
-    id: row.id,
-    kind: row.kind,
-    subject: row.subject,
-    body: row.body,
-    href: row.href,
-    isImportant: row.isImportant,
-    readAt: row.readAt?.toISOString() ?? null,
-    archivedAt: row.archivedAt?.toISOString() ?? null,
-    createdAt: row.createdAt.toISOString(),
-  };
-}
+/**
+ * DateTime columns are `timestamp(3)` without time zone, holding UTC wall
+ * clock. Render the same wall-clock UTC ISO string straight out of Postgres so
+ * the DTOs do not depend on the session time zone. Returns a raw SQL fragment;
+ * only ever called with static, quoted column references.
+ */
+const isoTs = (ref: string) =>
+  sql.unsafe(`to_char(${ref}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`);
 
 export async function getDossier(
   userId: string,
@@ -64,24 +49,42 @@ export async function getDossier(
 ): Promise<Dossier> {
   const archived = options.archived ?? false;
 
-  const [rows, unread, unreadImportant, archivedCount] = await Promise.all([
-    prisma.notification.findMany({
-      where: { userId, archivedAt: archived ? { not: null } : null },
-      orderBy: { createdAt: 'desc' },
-      take: options.take ?? 100,
-    }),
-    prisma.notification.count({ where: { userId, readAt: null, archivedAt: null } }),
-    prisma.notification.count({
-      where: { userId, readAt: null, archivedAt: null, isImportant: true },
-    }),
-    prisma.notification.count({ where: { userId, archivedAt: { not: null } } }),
+  const [rows, [unread], [unreadImportant], [archivedCount]] = await Promise.all([
+    sql<DossierEntry[]>`
+      select
+        id, kind, subject, body, href, "isImportant",
+        ${isoTs('"readAt"')} as "readAt",
+        ${isoTs('"archivedAt"')} as "archivedAt",
+        ${isoTs('"createdAt"')} as "createdAt"
+      from "Notification"
+      where "userId" = ${userId}
+        and ${archived ? sql`"archivedAt" is not null` : sql`"archivedAt" is null`}
+      order by "createdAt" desc
+      limit ${options.take ?? 100}
+    `,
+    sql<[{ count: number }]>`
+      select count(*)::int as count
+      from "Notification"
+      where "userId" = ${userId} and "readAt" is null and "archivedAt" is null
+    `,
+    sql<[{ count: number }]>`
+      select count(*)::int as count
+      from "Notification"
+      where "userId" = ${userId} and "readAt" is null and "archivedAt" is null
+        and "isImportant" = true
+    `,
+    sql<[{ count: number }]>`
+      select count(*)::int as count
+      from "Notification"
+      where "userId" = ${userId} and "archivedAt" is not null
+    `,
   ]);
 
   return {
-    entries: rows.map(shape),
-    unread,
-    unreadImportant,
-    archived: archivedCount,
+    entries: rows,
+    unread: unread.count,
+    unreadImportant: unreadImportant.count,
+    archived: archivedCount.count,
   };
 }
 
@@ -95,11 +98,18 @@ export async function getDossier(
 export async function getDossierBadge(
   userId: string,
 ): Promise<{ unread: number; important: number }> {
-  const [unread, important] = await Promise.all([
-    prisma.notification.count({ where: { userId, readAt: null, archivedAt: null } }),
-    prisma.notification.count({
-      where: { userId, readAt: null, archivedAt: null, isImportant: true },
-    }),
+  const [[unread], [important]] = await Promise.all([
+    sql<[{ count: number }]>`
+      select count(*)::int as count
+      from "Notification"
+      where "userId" = ${userId} and "readAt" is null and "archivedAt" is null
+    `,
+    sql<[{ count: number }]>`
+      select count(*)::int as count
+      from "Notification"
+      where "userId" = ${userId} and "readAt" is null and "archivedAt" is null
+        and "isImportant" = true
+    `,
   ]);
-  return { unread, important };
+  return { unread: unread.count, important: important.count };
 }

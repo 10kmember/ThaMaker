@@ -1,7 +1,7 @@
 import 'server-only';
-import { prisma } from '@/server/db';
-import { prepareEligibility, caseIsClear, type EligibilityCheck } from '@/domain/case-file';
-import { honourCategoryName } from '@/domain/honours';
+import { sql } from '@/server/db/sql';
+import { prepareEligibility, caseIsClear, type CaseFacts, type EligibilityCheck } from '@/domain/case-file';
+import { honourCategoryName, type HonourKind } from '@/domain/honours';
 
 /**
  * The judging room's read layer.
@@ -12,6 +12,15 @@ import { honourCategoryName } from '@/domain/honours';
  * selected, not mapped, and not returned, so it cannot reach a judge's screen
  * by accident.
  */
+
+/**
+ * DateTime columns are `timestamp(3)` without time zone, holding UTC wall
+ * clock. Render the same wall-clock UTC ISO string straight out of Postgres so
+ * the DTOs do not depend on the session time zone. Returns a raw SQL fragment;
+ * only ever called with static, quoted column references.
+ */
+const isoTs = (ref: string) =>
+  sql.unsafe(`to_char(${ref}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`);
 
 export type AssignmentSummary = {
   id: string;
@@ -67,75 +76,162 @@ function days(from: Date, to: Date): number {
   return Math.ceil((to.getTime() - from.getTime()) / 86_400_000);
 }
 
+type SeasonRow = {
+  id: string;
+  year: number;
+  title: string;
+  stage: string;
+  finalistsAt: string | null;
+  ceremonyAt: string | null;
+};
+
+const SEASON_COLUMNS = sql`
+  id, year, title, stage,
+  ${isoTs('"finalistsAt"')} as "finalistsAt",
+  ${isoTs('"ceremonyAt"')} as "ceremonyAt"
+`;
+
 export async function getJudgeOverview(
   judgeId: string,
   userId: string,
 ): Promise<JudgeOverview | null> {
-  const judge = await prisma.judge.findUnique({
-    where: { id: judgeId },
-    include: { memberships: { include: { awardYear: true } } },
-  });
+  const [judge] = await sql<[{ displayName: string }]>`
+    select "displayName" from "Judge" where id = ${judgeId} limit 1
+  `;
 
   if (!judge) return null;
+
+  const memberships = await sql<{ isChair: boolean; season: SeasonRow }[]>`
+    select
+      m."isChair",
+      json_build_object(
+        'id', ay.id,
+        'year', ay.year,
+        'title', ay.title,
+        'stage', ay.stage,
+        'finalistsAt', ${isoTs('ay."finalistsAt"')},
+        'ceremonyAt', ${isoTs('ay."ceremonyAt"')}
+      ) as season
+    from "JudgePanelMembership" m
+    join "AwardYear" ay on ay.id = m."awardYearId"
+    where m."judgeId" = ${judgeId}
+  `;
 
   // The season the judge is shown is the current one — unless they have no work
   // in it yet, in which case showing an empty page would be unhelpful and the
   // most recent season they actually judged is shown instead.
-  const currentSeason = await prisma.awardYear.findFirst({ where: { isCurrent: true } });
+  const [currentSeason] = await sql<SeasonRow[]>`
+    select ${SEASON_COLUMNS}
+    from "AwardYear"
+    where "isCurrent" = true
+    limit 1
+  `;
 
   const hasWorkInCurrent = currentSeason
-    ? (await prisma.judgingAssignment.count({
-        where: { judgeId, candidacy: { awardYearId: currentSeason.id } },
-      })) > 0
+    ? (
+          await sql<[{ count: number }]>`
+            select count(*)::int as count
+            from "JudgingAssignment" ja
+            join "Candidacy" c on c.id = ja."candidacyId"
+            where ja."judgeId" = ${judgeId}
+              and c."awardYearId" = ${currentSeason.id}
+          `
+        )[0].count > 0
     : false;
 
-  const latestAssignment = hasWorkInCurrent
-    ? null
-    : await prisma.judgingAssignment.findFirst({
-        where: { judgeId },
-        include: { candidacy: { include: { awardYear: true } } },
-        orderBy: { assignedAt: 'desc' },
-      });
+  const [latestSeason] = hasWorkInCurrent
+    ? []
+    : await sql<SeasonRow[]>`
+        select
+          ay.id, ay.year, ay.title, ay.stage,
+          ${isoTs('ay."finalistsAt"')} as "finalistsAt",
+          ${isoTs('ay."ceremonyAt"')} as "ceremonyAt"
+        from "JudgingAssignment" ja
+        join "Candidacy" c on c.id = ja."candidacyId"
+        join "AwardYear" ay on ay.id = c."awardYearId"
+        where ja."judgeId" = ${judgeId}
+        order by ja."assignedAt" desc
+        limit 1
+      `;
 
   const current = hasWorkInCurrent
     ? currentSeason
-    : (latestAssignment?.candidacy.awardYear ??
+    : (latestSeason ??
       currentSeason ??
-      judge.memberships
-        .map((membership) => membership.awardYear)
-        .sort((a, b) => b.year - a.year)[0] ??
+      memberships.map((membership) => membership.season).sort((a, b) => b.year - a.year)[0] ??
       null);
 
-  const assignments = await prisma.judgingAssignment.findMany({
-    where: {
-      judgeId,
-      ...(current ? { candidacy: { awardYearId: current.id } } : {}),
-    },
-    include: {
-      candidacy: { include: { creator: true, awardYear: true } },
-      category: true,
-    },
-    orderBy: { assignedAt: 'asc' },
-  });
+  type AssignmentRow = {
+    id: string;
+    status: AssignmentSummary['status'];
+    candidacyId: string;
+    categoryId: string;
+    assignedAt: string;
+    completedAt: string | null;
+    reference: string;
+    creatorName: string;
+    creatorSlug: string;
+    categoryName: string;
+    categorySlug: string;
+    year: number;
+  };
 
-  const notifications = await prisma.notification.findMany({
-    where: { userId },
-    orderBy: { createdAt: 'desc' },
-    take: 6,
-  });
+  const assignments = await sql<AssignmentRow[]>`
+    select
+      ja.id,
+      ja.status,
+      ja."candidacyId",
+      ja."categoryId",
+      ${isoTs('ja."assignedAt"')} as "assignedAt",
+      ${isoTs('ja."completedAt"')} as "completedAt",
+      c.reference,
+      cr."displayName" as "creatorName",
+      cr.slug as "creatorSlug",
+      cat.name as "categoryName",
+      cat.slug as "categorySlug",
+      ay.year
+    from "JudgingAssignment" ja
+    join "Candidacy" c on c.id = ja."candidacyId"
+    join "Creator" cr on cr.id = c."creatorId"
+    join "Category" cat on cat.id = ja."categoryId"
+    join "AwardYear" ay on ay.id = c."awardYearId"
+    where ja."judgeId" = ${judgeId}
+    ${current ? sql`and c."awardYearId" = ${current.id}` : sql``}
+    order by ja."assignedAt" asc
+  `;
 
-  const map = (assignment: (typeof assignments)[number]): AssignmentSummary => ({
+  const notifications = await sql<
+    {
+      id: string;
+      subject: string;
+      body: string;
+      href: string | null;
+      createdAt: string;
+      readAt: string | null;
+    }[]
+  >`
+    select
+      id, subject, body, href,
+      ${isoTs('"createdAt"')} as "createdAt",
+      ${isoTs('"readAt"')} as "readAt"
+    from "Notification"
+    where "userId" = ${userId}
+    order by "createdAt" desc
+    limit 6
+  `;
+
+  const map = (assignment: AssignmentRow): AssignmentSummary => ({
     id: assignment.id,
     status: assignment.status,
     candidacyId: assignment.candidacyId,
-    reference: assignment.candidacy.reference,
-    creatorName: assignment.candidacy.creator.displayName,
-    creatorSlug: assignment.candidacy.creator.slug,
-    categoryName: assignment.category.name,
-    categorySlug: assignment.category.slug,
-    year: assignment.candidacy.awardYear.year,
-    assignedAt: assignment.assignedAt.toISOString(),
-    completedAt: assignment.completedAt?.toISOString() ?? null,
+    reference: assignment.reference,
+    creatorName: assignment.creatorName,
+    creatorSlug: assignment.creatorSlug,
+    categoryName: assignment.categoryName,
+    categorySlug: assignment.categorySlug,
+    year: assignment.year,
+    assignedAt: assignment.assignedAt,
+    completedAt: assignment.completedAt,
   });
 
   const toReview = assignments.filter((a) => a.status === 'assigned').map(map);
@@ -149,8 +245,8 @@ export async function getJudgeOverview(
 
     const existing = byCategory.get(assignment.categoryId) ?? {
       categoryId: assignment.categoryId,
-      categoryName: assignment.category.name,
-      categorySlug: assignment.category.slug,
+      categoryName: assignment.categoryName,
+      categorySlug: assignment.categorySlug,
       assigned: 0,
       completed: 0,
       nextAssignmentId: null,
@@ -167,13 +263,13 @@ export async function getJudgeOverview(
 
   return {
     judgeName: judge.displayName,
-    isChair: judge.memberships.some((membership) => membership.isChair),
+    isChair: memberships.some((membership) => membership.isChair),
     season: {
       year: current?.year ?? new Date().getUTCFullYear(),
       title: current?.title ?? 'PALMA',
       stage: current?.stage ?? 'announced',
-      closesAt: closesAt?.toISOString() ?? null,
-      daysRemaining: closesAt ? Math.max(0, days(new Date(), closesAt)) : null,
+      closesAt,
+      daysRemaining: closesAt ? Math.max(0, days(new Date(), new Date(closesAt))) : null,
     },
     counts: {
       assigned: toReview.length + inProgress.length + completed.length,
@@ -188,14 +284,7 @@ export async function getJudgeOverview(
     inProgress,
     completed,
     recused,
-    notifications: notifications.map((notification) => ({
-      id: notification.id,
-      subject: notification.subject,
-      body: notification.body,
-      href: notification.href,
-      createdAt: notification.createdAt.toISOString(),
-      readAt: notification.readAt?.toISOString() ?? null,
-    })),
+    notifications,
   };
 }
 
@@ -247,124 +336,197 @@ export async function getJudgingCase(
   assignmentId: string,
   judgeId: string,
 ): Promise<JudgingCase | null> {
-  const assignment = await prisma.judgingAssignment.findFirst({
-    where: { id: assignmentId, judgeId },
-    include: {
-      category: true,
-      score: { select: { id: true } },
-      candidacy: {
-        include: {
-          awardYear: true,
-          evidence: { orderBy: { createdAt: 'asc' } },
-          creator: {
-            include: {
-              verification: true,
-              links: { orderBy: { position: 'asc' } },
-              achievements: { select: { code: true, year: true, categoryName: true } },
-              honours: {
-                where: { state: 'active' },
-                include: { awardYear: true, category: true },
-                orderBy: { createdAt: 'desc' },
-              },
-            },
-          },
-          // A handful of nomination reasons, oldest first, with no count and
-          // no nominator attached: judges see the argument, not the crowd.
-          nominations: {
-            where: { status: 'counted' },
-            select: { reason: true },
-            orderBy: { countedAt: 'asc' },
-            take: 5,
-          },
-        },
-      },
-    },
-  });
+  const [assignment] = await sql<
+    {
+      assignmentId: string;
+      assignmentStatus: string;
+      candidacyId: string;
+      reference: string;
+      candidacyStatus: string;
+      firstNominatedAt: string | null;
+      candidacyCreatedAt: string;
+      integrityFlag: boolean;
+      reviewedAt: string | null;
+      reviewNote: string | null;
+      year: number;
+      seasonTitle: string;
+      nominationsOpenAt: string | null;
+      nominationsCloseAt: string | null;
+      categoryName: string;
+      categorySlug: string;
+      categoryCriteria: string;
+      categoryEligibility: string;
+      creatorName: string;
+      creatorSlug: string;
+      pronouns: string | null;
+      countryCode: string;
+      city: string | null;
+      headline: string | null;
+      biography: string | null;
+      verificationStatus: string | null;
+      verifiedAt: string | null;
+      alreadyScored: boolean;
+      conflictDeclared: boolean;
+    }[]
+  >`
+    select
+      ja.id as "assignmentId",
+      ja.status as "assignmentStatus",
+      c.id as "candidacyId",
+      c.reference,
+      c.status as "candidacyStatus",
+      ${isoTs('c."firstNominatedAt"')} as "firstNominatedAt",
+      ${isoTs('c."createdAt"')} as "candidacyCreatedAt",
+      c."integrityFlag",
+      ${isoTs('c."reviewedAt"')} as "reviewedAt",
+      c."reviewNote",
+      ay.year,
+      ay.title as "seasonTitle",
+      ${isoTs('ay."nominationsOpenAt"')} as "nominationsOpenAt",
+      ${isoTs('ay."nominationsCloseAt"')} as "nominationsCloseAt",
+      cat.name as "categoryName",
+      cat.slug as "categorySlug",
+      cat."judgingCriteria" as "categoryCriteria",
+      cat.eligibility as "categoryEligibility",
+      cr."displayName" as "creatorName",
+      cr.slug as "creatorSlug",
+      cr.pronouns,
+      cr."countryCode",
+      cr.city,
+      cr.headline,
+      cr.biography,
+      cv.status as "verificationStatus",
+      ${isoTs('cv."verifiedAt"')} as "verifiedAt",
+      exists(
+        select 1 from "JudgingScore" s where s."assignmentId" = ja.id
+      ) as "alreadyScored",
+      exists(
+        select 1 from "JudgeConflict" jc
+        where jc."judgeId" = ${judgeId}
+          and jc."candidacyId" = c.id
+          and jc.status <> 'dismissed'
+      ) as "conflictDeclared"
+    from "JudgingAssignment" ja
+    join "Candidacy" c on c.id = ja."candidacyId"
+    join "AwardYear" ay on ay.id = c."awardYearId"
+    join "Category" cat on cat.id = ja."categoryId"
+    join "Creator" cr on cr.id = c."creatorId"
+    left join "CreatorVerification" cv on cv."creatorId" = cr.id
+    where ja.id = ${assignmentId}
+      and ja."judgeId" = ${judgeId}
+    limit 1
+  `;
 
   if (!assignment) return null;
 
-  const { candidacy } = assignment;
-  const { creator } = candidacy;
+  const [evidence, links, achievements, honours, nominations] = await Promise.all([
+    sql<{ id: string; kind: string; label: string; url: string | null; note: string | null }[]>`
+      select id, kind, label, url, note
+      from "CandidacyEvidence"
+      where "candidacyId" = ${assignment.candidacyId}
+      order by "createdAt" asc
+    `,
+    sql<{ label: string; url: string }[]>`
+      select label, url
+      from "CreatorLink"
+      where "creatorId" = (select "creatorId" from "Candidacy" where id = ${assignment.candidacyId})
+      order by position asc
+    `,
+    sql<{ code: string; year: number; categoryName: string }[]>`
+      select code, year, "categoryName"
+      from "Achievement"
+      where "creatorId" = (select "creatorId" from "Candidacy" where id = ${assignment.candidacyId})
+    `,
+    sql<{ year: number; kind: HonourKind; categoryName: string | null }[]>`
+      select ay.year, h.kind, cat.name as "categoryName"
+      from "Honour" h
+      join "AwardYear" ay on ay.id = h."awardYearId"
+      left join "Category" cat on cat.id = h."categoryId"
+      where h."creatorId" = (select "creatorId" from "Candidacy" where id = ${assignment.candidacyId})
+        and h.state = 'active'
+      order by h."createdAt" desc
+    `,
+    // A handful of nomination reasons, oldest first, with no count and
+    // no nominator attached: judges see the argument, not the crowd.
+    sql<{ reason: string }[]>`
+      select reason
+      from "Nomination"
+      where "candidacyId" = ${assignment.candidacyId}
+        and status = 'counted'
+      order by "countedAt" asc
+      limit 5
+    `,
+  ]);
 
-  const openedAt = candidacy.awardYear.nominationsOpenAt;
-  const closedAt = candidacy.awardYear.nominationsCloseAt;
-  const nominatedAt = candidacy.firstNominatedAt ?? candidacy.createdAt;
+  const openedAt = assignment.nominationsOpenAt;
+  const closedAt = assignment.nominationsCloseAt;
+  const nominatedAt = assignment.firstNominatedAt ?? assignment.candidacyCreatedAt;
   const withinSubmissionWindow =
     (!openedAt || nominatedAt >= openedAt) && (!closedAt || nominatedAt <= closedAt);
 
   const eligibility = prepareEligibility({
-    verificationStatus: creator.verification?.status ?? 'unverified',
-    verifiedAt: creator.verification?.verifiedAt?.toISOString() ?? null,
-    candidacyStatus: candidacy.status,
+    verificationStatus: (assignment.verificationStatus ??
+      'unverified') as CaseFacts['verificationStatus'],
+    verifiedAt: assignment.verifiedAt,
+    candidacyStatus: assignment.candidacyStatus as CaseFacts['candidacyStatus'],
     withinSubmissionWindow,
-    evidenceCount: candidacy.evidence.length,
-    hasNominationReason: candidacy.nominations.length > 0,
-    integrityFlag: candidacy.integrityFlag,
-    reviewedAt: candidacy.reviewedAt?.toISOString() ?? null,
-  });
-
-  const conflict = await prisma.judgeConflict.findFirst({
-    where: { judgeId, candidacyId: candidacy.id, status: { not: 'dismissed' } },
-    select: { id: true },
+    evidenceCount: evidence.length,
+    hasNominationReason: nominations.length > 0,
+    integrityFlag: assignment.integrityFlag,
+    reviewedAt: assignment.reviewedAt,
   });
 
   return {
-    assignmentId: assignment.id,
-    status: assignment.status,
-    candidacyId: candidacy.id,
-    reference: candidacy.reference,
-    year: candidacy.awardYear.year,
-    seasonTitle: candidacy.awardYear.title,
+    assignmentId: assignment.assignmentId,
+    status: assignment.assignmentStatus,
+    candidacyId: assignment.candidacyId,
+    reference: assignment.reference,
+    year: assignment.year,
+    seasonTitle: assignment.seasonTitle,
 
     category: {
-      name: assignment.category.name,
-      slug: assignment.category.slug,
-      criteria: assignment.category.judgingCriteria,
-      eligibility: assignment.category.eligibility,
+      name: assignment.categoryName,
+      slug: assignment.categorySlug,
+      criteria: assignment.categoryCriteria,
+      eligibility: assignment.categoryEligibility,
     },
 
     candidate: {
-      name: creator.displayName,
-      slug: creator.slug,
-      pronouns: creator.pronouns,
-      country: creator.countryCode,
-      city: creator.city,
-      headline: creator.headline,
-      biography: creator.biography,
-      isVerified: creator.verification?.status === 'verified',
-      verifiedAt: creator.verification?.verifiedAt?.toISOString() ?? null,
-      links: creator.links.map((link) => ({ label: link.label, url: link.url })),
-      palmaRecord: creator.honours.map((honour) => ({
-        year: honour.awardYear.year,
+      name: assignment.creatorName,
+      slug: assignment.creatorSlug,
+      pronouns: assignment.pronouns,
+      country: assignment.countryCode,
+      city: assignment.city,
+      headline: assignment.headline,
+      biography: assignment.biography,
+      isVerified: assignment.verificationStatus === 'verified',
+      verifiedAt: assignment.verifiedAt,
+      links,
+      palmaRecord: honours.map((honour) => ({
+        year: honour.year,
         kind: honour.kind,
-        categoryName: honourCategoryName(honour.kind, honour.category?.name ?? null),
+        categoryName: honourCategoryName(honour.kind, honour.categoryName),
         code:
-          creator.achievements.find(
+          achievements.find(
             (achievement) =>
-              achievement.year === honour.awardYear.year &&
+              achievement.year === honour.year &&
               achievement.categoryName ===
-                honourCategoryName(honour.kind, honour.category?.name ?? null),
+                honourCategoryName(honour.kind, honour.categoryName),
           )?.code ?? null,
       })),
     },
 
     eligibility,
     isClear: caseIsClear(eligibility),
-    screenedAt: candidacy.reviewedAt?.toISOString() ?? null,
-    screeningNote: candidacy.reviewNote,
+    screenedAt: assignment.reviewedAt,
+    screeningNote: assignment.reviewNote,
 
-    audienceVoices: candidacy.nominations.map((entry) => entry.reason),
+    audienceVoices: nominations.map((entry) => entry.reason),
 
-    evidence: candidacy.evidence.map((item) => ({
-      id: item.id,
-      kind: item.kind,
-      label: item.label,
-      url: item.url,
-      note: item.note,
-    })),
+    evidence,
 
-    alreadyScored: Boolean(assignment.score),
-    conflictDeclared: Boolean(conflict) || assignment.status === 'recused',
+    alreadyScored: assignment.alreadyScored,
+    conflictDeclared: assignment.conflictDeclared || assignment.assignmentStatus === 'recused',
   };
 }
 
@@ -378,10 +540,21 @@ export type JudgeHistorySeason = {
 
 /** The judge's institutional record. Not a trophy cabinet — a service record. */
 export async function getJudgeHistory(judgeId: string): Promise<JudgeHistorySeason[]> {
-  const assignments = await prisma.judgingAssignment.findMany({
-    where: { judgeId, status: { in: ['assigned', 'in_progress', 'completed'] } },
-    include: { candidacy: { include: { awardYear: true } }, category: true },
-  });
+  const assignments = await sql<
+    { status: string; year: number; title: string; categoryName: string }[]
+  >`
+    select
+      ja.status,
+      ay.year,
+      ay.title,
+      cat.name as "categoryName"
+    from "JudgingAssignment" ja
+    join "Candidacy" c on c.id = ja."candidacyId"
+    join "AwardYear" ay on ay.id = c."awardYearId"
+    join "Category" cat on cat.id = ja."categoryId"
+    where ja."judgeId" = ${judgeId}
+      and ja.status in ('assigned', 'in_progress', 'completed')
+  `;
 
   const seasons = new Map<
     number,
@@ -389,7 +562,7 @@ export async function getJudgeHistory(judgeId: string): Promise<JudgeHistorySeas
   >();
 
   for (const assignment of assignments) {
-    const { year, title } = assignment.candidacy.awardYear;
+    const { year, title } = assignment;
     const season = seasons.get(year) ?? {
       year,
       title,
@@ -402,8 +575,8 @@ export async function getJudgeHistory(judgeId: string): Promise<JudgeHistorySeas
     season.assigned += 1;
     if (assignment.status === 'completed') season.completed += 1;
 
-    const [assigned, completed] = season.byCategory.get(assignment.category.name) ?? [0, 0];
-    season.byCategory.set(assignment.category.name, [
+    const [assigned, completed] = season.byCategory.get(assignment.categoryName) ?? [0, 0];
+    season.byCategory.set(assignment.categoryName, [
       assigned + 1,
       completed + (assignment.status === 'completed' ? 1 : 0),
     ]);
@@ -449,21 +622,58 @@ export async function getJudgeAccount(
   userId: string,
   currentSessionId: string | null,
 ): Promise<JudgeAccount | null> {
-  const judge = await prisma.judge.findUnique({
-    where: { id: judgeId },
-    include: {
-      user: true,
-      memberships: { include: { awardYear: true } },
-    },
-  });
+  const [judge] = await sql<
+    {
+      displayName: string;
+      title: string | null;
+      organisation: string | null;
+      biography: string | null;
+      countryCode: string | null;
+      createdAt: string;
+      email: string;
+      emailVerifiedAt: Date | null;
+      lastLoginAt: string | null;
+    }[]
+  >`
+    select
+      j."displayName",
+      j.title,
+      j.organisation,
+      j.biography,
+      j."countryCode",
+      ${isoTs('j."createdAt"')} as "createdAt",
+      u.email,
+      u."emailVerifiedAt",
+      ${isoTs('u."lastLoginAt"')} as "lastLoginAt"
+    from "Judge" j
+    join "User" u on u.id = j."userId"
+    where j.id = ${judgeId}
+    limit 1
+  `;
 
   if (!judge) return null;
 
-  const sessions = await prisma.authSession.findMany({
-    where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
-    orderBy: { createdAt: 'desc' },
-    take: 10,
-  });
+  const [memberships, sessions] = await Promise.all([
+    sql<{ year: number; isChair: boolean }[]>`
+      select ay.year, m."isChair"
+      from "JudgePanelMembership" m
+      join "AwardYear" ay on ay.id = m."awardYearId"
+      where m."judgeId" = ${judgeId}
+    `,
+    sql<{ id: string; userAgent: string | null; createdAt: string; expiresAt: string }[]>`
+      select
+        id,
+        "userAgent",
+        ${isoTs('"createdAt"')} as "createdAt",
+        ${isoTs('"expiresAt"')} as "expiresAt"
+      from "AuthSession"
+      where "userId" = ${userId}
+        and "revokedAt" is null
+        and "expiresAt" > ${new Date()}
+      order by "createdAt" desc
+      limit 10
+    `,
+  ]);
 
   return {
     displayName: judge.displayName,
@@ -471,18 +681,18 @@ export async function getJudgeAccount(
     organisation: judge.organisation,
     biography: judge.biography,
     countryCode: judge.countryCode,
-    email: judge.user.email,
-    emailVerified: Boolean(judge.user.emailVerifiedAt),
-    lastLoginAt: judge.user.lastLoginAt?.toISOString() ?? null,
-    seatedSince: judge.createdAt.toISOString(),
-    seasons: judge.memberships
-      .map((membership) => ({ year: membership.awardYear.year, isChair: membership.isChair }))
+    email: judge.email,
+    emailVerified: Boolean(judge.emailVerifiedAt),
+    lastLoginAt: judge.lastLoginAt,
+    seatedSince: judge.createdAt,
+    seasons: memberships
+      .map((membership) => ({ year: membership.year, isChair: membership.isChair }))
       .sort((a, b) => b.year - a.year),
     sessions: sessions.map((session) => ({
       id: session.id,
       userAgent: session.userAgent,
-      createdAt: session.createdAt.toISOString(),
-      expiresAt: session.expiresAt.toISOString(),
+      createdAt: session.createdAt,
+      expiresAt: session.expiresAt,
       isCurrent: session.id === currentSessionId,
     })),
   };

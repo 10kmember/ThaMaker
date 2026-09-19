@@ -1,5 +1,5 @@
 import 'server-only';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import { disclosureFor, productCategory } from '@/domain/product-library';
 
 /**
@@ -40,26 +40,6 @@ export type DeskEntry = PublicEntry & {
   updatedAt: string;
 };
 
-const SELECT = {
-  id: true,
-  slug: true,
-  name: true,
-  brand: true,
-  category: true,
-  verdict: true,
-  bestFor: true,
-  strengths: true,
-  limitations: true,
-  review: true,
-  testedBy: true,
-  externalUrl: true,
-  isPublished: true,
-  publishedAt: true,
-  updatedAt: true,
-  sponsorId: true,
-  sponsor: { select: { name: true } },
-} as const;
-
 type Row = {
   id: string;
   slug: string;
@@ -74,11 +54,20 @@ type Row = {
   testedBy: string | null;
   externalUrl: string | null;
   isPublished: boolean;
-  publishedAt: Date | null;
-  updatedAt: Date;
+  publishedAt: string | null;
+  updatedAt: string;
   sponsorId: string | null;
-  sponsor: { name: string } | null;
+  sponsorName: string | null;
 };
+
+/**
+ * DateTime columns are `timestamp(3)` without time zone, holding UTC wall
+ * clock. Render the same wall-clock UTC ISO string straight out of Postgres so
+ * the DTOs do not depend on the session time zone. Returns a raw SQL fragment;
+ * only ever called with static, quoted column references.
+ */
+const isoTs = (ref: string) =>
+  sql.unsafe(`to_char(${ref}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`);
 
 function shape(row: Row): DeskEntry {
   return {
@@ -97,42 +86,78 @@ function shape(row: Row): DeskEntry {
     externalUrl: row.externalUrl,
     // Always composed, never read from the database, so an edit to the stored
     // text cannot soften what a reader is told.
-    disclosure: disclosureFor(row.sponsor?.name ?? null),
-    publishedAt: row.publishedAt?.toISOString() ?? null,
+    disclosure: disclosureFor(row.sponsorName),
+    publishedAt: row.publishedAt,
     isPublished: row.isPublished,
     sponsorId: row.sponsorId,
-    sponsorName: row.sponsor?.name ?? null,
-    updatedAt: row.updatedAt.toISOString(),
+    sponsorName: row.sponsorName,
+    updatedAt: row.updatedAt,
   };
 }
 
+const FROM = sql`
+  from "ProductEntry" p
+  left join "Sponsor" s on s.id = p."sponsorId"
+`;
+
+const selectColumns = sql`
+  select
+    p.id,
+    p.slug,
+    p.name,
+    p.brand,
+    p.category,
+    p.verdict,
+    p."bestFor",
+    p.strengths,
+    p.limitations,
+    p.review,
+    p."testedBy",
+    p."externalUrl",
+    p."isPublished",
+    ${isoTs('p."publishedAt"')} as "publishedAt",
+    ${isoTs('p."updatedAt"')} as "updatedAt",
+    p."sponsorId",
+    s.name as "sponsorName"
+  ${FROM}
+`;
+
 /** What the public sees. Published entries only, best verdict first. */
 export async function listPublishedProducts(category?: string): Promise<PublicEntry[]> {
-  const rows = await prisma.productEntry.findMany({
-    where: { isPublished: true, ...(category ? { category } : {}) },
-    select: SELECT,
-    orderBy: [{ verdict: 'desc' }, { name: 'asc' }],
-    take: 200,
-  });
+  const rows = await sql<Row[]>`
+    ${selectColumns}
+    where p."isPublished" = true
+    ${category ? sql`and p.category = ${category}` : sql``}
+    order by p.verdict desc, p.name asc
+    limit 200
+  `;
   return rows.map(shape);
 }
 
 export async function getProduct(slug: string): Promise<PublicEntry | null> {
-  const row = await prisma.productEntry.findUnique({ where: { slug }, select: SELECT });
+  const [row] = await sql<Row[]>`
+    ${selectColumns}
+    where p.slug = ${slug}
+    limit 1
+  `;
   return row && row.isPublished ? shape(row) : null;
 }
 
 /** Everything, drafts included, for the desk. */
 export async function listDeskProducts(): Promise<DeskEntry[]> {
-  const rows = await prisma.productEntry.findMany({
-    select: SELECT,
-    orderBy: [{ isPublished: 'asc' }, { updatedAt: 'desc' }],
-    take: 300,
-  });
+  const rows = await sql<Row[]>`
+    ${selectColumns}
+    order by p."isPublished" asc, p."updatedAt" desc
+    limit 300
+  `;
   return rows.map(shape);
 }
 
 export async function getDeskProduct(id: string): Promise<DeskEntry | null> {
-  const row = await prisma.productEntry.findUnique({ where: { id }, select: SELECT });
+  const [row] = await sql<Row[]>`
+    ${selectColumns}
+    where p.id = ${id}
+    limit 1
+  `;
   return row ? shape(row) : null;
 }

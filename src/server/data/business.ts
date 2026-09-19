@@ -1,5 +1,5 @@
 import 'server-only';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import { FEATURE_LIST } from '@/domain/features';
 import { featureStates } from '@/server/features';
 
@@ -38,26 +38,51 @@ export type BusinessOverview = {
 export async function getBusinessOverview(): Promise<BusinessOverview> {
   const soon = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000);
 
-  const [states, sponsorCounts, signed, expiring, packages, availablePackages, season, lists] =
-    await Promise.all([
-      featureStates(),
-      prisma.sponsor.groupBy({ by: ['status'], _count: { _all: true } }),
-      prisma.sponsor.count({ where: { agreementStatus: 'signed' } }),
-      prisma.sponsor.count({
-        where: { status: 'active', endsAt: { not: null, lte: soon } },
-      }),
-      prisma.sponsorshipPackage.count(),
-      prisma.sponsorshipPackage.count({ where: { isAvailable: true } }),
-      prisma.awardYear.findFirst({ where: { isCurrent: true }, select: { id: true, title: true } }),
-      prisma.emailSubscription.groupBy({
-        by: ['type'],
-        where: { status: 'confirmed' },
-        _count: { _all: true },
-      }),
-    ]);
+  const [
+    states,
+    sponsorCounts,
+    [signed],
+    [expiring],
+    [packages],
+    [availablePackages],
+    [season],
+    lists,
+  ] = await Promise.all([
+    featureStates(),
+    sql<{ status: string; count: number }[]>`
+      select status, count(*)::int as count
+      from "Sponsor"
+      group by status
+    `,
+    sql<[{ count: number }]>`
+      select count(*)::int as count
+      from "Sponsor"
+      where "agreementStatus" = 'signed'
+    `,
+    sql<[{ count: number }]>`
+      select count(*)::int as count
+      from "Sponsor"
+      where status = 'active' and "endsAt" is not null and "endsAt" <= ${soon}
+    `,
+    sql<[{ count: number }]>`
+      select count(*)::int as count from "SponsorshipPackage"
+    `,
+    sql<[{ count: number }]>`
+      select count(*)::int as count from "SponsorshipPackage" where "isAvailable" = true
+    `,
+    sql<{ id: string; title: string }[]>`
+      select id, title from "AwardYear" where "isCurrent" = true limit 1
+    `,
+    sql<{ type: string; count: number }[]>`
+      select type, count(*)::int as count
+      from "EmailSubscription"
+      where status = 'confirmed'
+      group by type
+    `,
+  ]);
 
   const sponsorCount = (status: string) =>
-    sponsorCounts.find((row) => row.status === status)?._count._all ?? 0;
+    sponsorCounts.find((row) => row.status === status)?.count ?? 0;
 
   const features = FEATURE_LIST.map((entry) => ({
     key: entry.key,
@@ -71,23 +96,26 @@ export async function getBusinessOverview(): Promise<BusinessOverview> {
   // Inventory is derived, never hard-coded into a page component: what is for
   // sale is a function of what exists and what is switched on.
   const categories = season
-    ? await prisma.category.findMany({
-        where: { awardYearId: season.id },
-        select: {
-          id: true,
-          name: true,
-          sponsorships: {
-            where: { isApproved: true },
-            select: { sponsor: { select: { name: true } } },
-          },
-        },
-        orderBy: { name: 'asc' },
-      })
+    ? await sql<{ id: string; name: string; sponsorName: string | null }[]>`
+        select
+          c.id,
+          c.name,
+          (
+            select s.name
+            from "Sponsorship" sp
+            join "Sponsor" s on s.id = sp."sponsorId"
+            where sp."categoryId" = c.id and sp."isApproved" = true
+            limit 1
+          ) as "sponsorName"
+        from "Category" c
+        where c."awardYearId" = ${season.id}
+        order by c.name asc
+      `
     : [];
 
   const inventory: BusinessOverview['inventory'] = [
     ...categories.map((category) => {
-      const taken = category.sponsorships[0]?.sponsor.name;
+      const taken = category.sponsorName ?? undefined;
       return {
         kind: 'Category sponsorship',
         label: category.name,
@@ -113,7 +141,7 @@ export async function getBusinessOverview(): Promise<BusinessOverview> {
     {
       kind: 'Newsletter',
       label: 'Partner offer',
-      detail: `${lists.find((row) => row.type === 'partner_offers')?._count._all ?? 0} subscribers`,
+      detail: `${lists.find((row) => row.type === 'partner_offers')?.count ?? 0} subscribers`,
       state: (features.find((f) => f.key === 'partner_offers')?.live ? 'available' : 'off') as
         'available' | 'off',
     },
@@ -123,14 +151,14 @@ export async function getBusinessOverview(): Promise<BusinessOverview> {
     features,
     liveCount: features.filter((entry) => entry.live).length,
     sponsors: {
-      total: sponsorCounts.reduce((sum, row) => sum + row._count._all, 0),
+      total: sponsorCounts.reduce((sum, row) => sum + row.count, 0),
       prospects: sponsorCount('prospect'),
       active: sponsorCount('active'),
-      signed,
-      expiringSoon: expiring,
+      signed: signed.count,
+      expiringSoon: expiring.count,
     },
-    packages: { total: packages, available: availablePackages },
+    packages: { total: packages.count, available: availablePackages.count },
     inventory,
-    subscribers: lists.map((row) => ({ key: row.type, confirmed: row._count._all })),
+    subscribers: lists.map((row) => ({ key: row.type, confirmed: row.count })),
   };
 }

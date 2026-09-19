@@ -1,5 +1,5 @@
 import 'server-only';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import { TEMPLATE_LIST, type TemplateMeta } from '@/server/email/register';
 import { MAILBOX_LIST, type Mailbox } from '@/server/email/addresses';
 import { env } from '@/lib/env';
@@ -86,7 +86,16 @@ export type CommunicationsOverview = {
   activeSponsors: { id: string; name: string }[];
 };
 
-function shape(row: {
+/**
+ * DateTime columns are `timestamp(3)` without time zone, holding UTC wall
+ * clock. Render the same wall-clock UTC ISO string straight out of Postgres so
+ * the DTOs do not depend on the session time zone. Returns a raw SQL fragment;
+ * only ever called with static, quoted column references.
+ */
+const isoTs = (ref: string) =>
+  sql.unsafe(`to_char(${ref}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`);
+
+type DeliveryRecord = {
   id: string;
   template: string;
   from: string;
@@ -94,9 +103,17 @@ function shape(row: {
   subject: string;
   status: string;
   detail: string | null;
-  createdAt: Date;
-  sentAt: Date | null;
-}): DeliveryRow {
+  createdAt: string;
+  sentAt: string | null;
+};
+
+const DELIVERY_COLUMNS = sql`
+  id, template, "from", "to", subject, status, detail,
+  ${isoTs('"createdAt"')} as "createdAt",
+  ${isoTs('"sentAt"')} as "sentAt"
+`;
+
+function shape(row: DeliveryRecord): DeliveryRow {
   return {
     id: row.id,
     template: row.template,
@@ -106,8 +123,8 @@ function shape(row: {
     subject: row.subject,
     status: row.status,
     detail: row.detail,
-    createdAt: row.createdAt.toISOString(),
-    sentAt: row.sentAt?.toISOString() ?? null,
+    createdAt: row.createdAt,
+    sentAt: row.sentAt,
   };
 }
 
@@ -123,35 +140,59 @@ export async function getCommunicationsOverview(): Promise<CommunicationsOvervie
     suppressedRows,
     activeSponsors,
   ] = await Promise.all([
-    prisma.emailDelivery.groupBy({ by: ['status'], _count: { _all: true } }),
+    sql<{ status: string; count: number }[]>`
+      select status, count(*)::int as count
+      from "EmailDelivery"
+      group by status
+    `,
     // Bounces sit with failures: both mean somebody was not told.
-    prisma.emailDelivery.findMany({
-      where: { status: { in: ['failed', 'bounced'] } },
-      orderBy: { createdAt: 'desc' },
-      take: 25,
-    }),
-    prisma.emailDelivery.findMany({ orderBy: { createdAt: 'desc' }, take: 60 }),
-    prisma.emailDelivery.groupBy({
-      by: ['template', 'status'],
-      _count: { _all: true },
-    }),
-    prisma.emailDelivery.groupBy({
-      by: ['template'],
-      where: { status: { in: ['sent', 'delivered'] } },
-      _max: { sentAt: true },
-    }),
-    prisma.emailSubscription.groupBy({ by: ['type', 'status'], _count: { _all: true } }),
-    prisma.dispatch.groupBy({ by: ['type'], _max: { sentAt: true } }),
-    prisma.suppressedAddress.findMany({
-      where: { clearedAt: null },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    }),
-    prisma.sponsor.findMany({
-      where: { status: 'active' },
-      select: { id: true, name: true },
-      orderBy: { name: 'asc' },
-    }),
+    sql<DeliveryRecord[]>`
+      select ${DELIVERY_COLUMNS}
+      from "EmailDelivery"
+      where status in ('failed', 'bounced')
+      order by "createdAt" desc
+      limit 25
+    `,
+    sql<DeliveryRecord[]>`
+      select ${DELIVERY_COLUMNS}
+      from "EmailDelivery"
+      order by "createdAt" desc
+      limit 60
+    `,
+    sql<{ template: string; status: string; count: number }[]>`
+      select template, status, count(*)::int as count
+      from "EmailDelivery"
+      group by template, status
+    `,
+    sql<{ template: string; lastSentAt: string | null }[]>`
+      select template, ${isoTs('max("sentAt")')} as "lastSentAt"
+      from "EmailDelivery"
+      where status in ('sent', 'delivered')
+      group by template
+    `,
+    sql<{ type: string; status: string; count: number }[]>`
+      select type, status, count(*)::int as count
+      from "EmailSubscription"
+      group by type, status
+    `,
+    sql<{ type: string; lastSentAt: string | null }[]>`
+      select type, ${isoTs('max("sentAt")')} as "lastSentAt"
+      from "Dispatch"
+      group by type
+    `,
+    sql<SuppressedRow[]>`
+      select id, email, reason, detail, ${isoTs('"createdAt"')} as "createdAt"
+      from "SuppressedAddress"
+      where "clearedAt" is null
+      order by "createdAt" desc
+      limit 50
+    `,
+    sql<{ id: string; name: string }[]>`
+      select id, name
+      from "Sponsor"
+      where status = 'active'
+      order by name asc
+    `,
   ]);
 
   // A list whose feature is switched off is not open, and the composer must
@@ -164,14 +205,14 @@ export async function getCommunicationsOverview(): Promise<CommunicationsOvervie
   );
   const listAvailability: Record<string, boolean> = Object.fromEntries(availability);
 
-  const count = (rows: { status: string; _count: { _all: number } }[], status: string) =>
-    rows.find((row) => row.status === status)?._count._all ?? 0;
+  const count = (rows: { status: string; count: number }[], status: string) =>
+    rows.find((row) => row.status === status)?.count ?? 0;
 
   const templateCount = (key: string, status: string) =>
-    byTemplate.find((row) => row.template === key && row.status === status)?._count._all ?? 0;
+    byTemplate.find((row) => row.template === key && row.status === status)?.count ?? 0;
 
   const listCount = (type: string, status: string) =>
-    listCounts.find((row) => row.type === type && row.status === status)?._count._all ?? 0;
+    listCounts.find((row) => row.type === type && row.status === status)?.count ?? 0;
 
   return {
     provider: {
@@ -181,13 +222,7 @@ export async function getCommunicationsOverview(): Promise<CommunicationsOvervie
       sandboxFrom: env.EMAIL_SANDBOX_FROM ?? null,
       webhookConfigured: Boolean(env.RESEND_WEBHOOK_SECRET),
     },
-    suppressed: suppressedRows.map((row) => ({
-      id: row.id,
-      email: row.email,
-      reason: row.reason,
-      detail: row.detail,
-      createdAt: row.createdAt.toISOString(),
-    })),
+    suppressed: suppressedRows,
     mailboxes: MAILBOX_LIST,
     totals: {
       sent: count(byStatus, 'sent'),
@@ -206,8 +241,7 @@ export async function getCommunicationsOverview(): Promise<CommunicationsOvervie
       failed: templateCount(meta.key, 'failed') + templateCount(meta.key, 'bounced'),
       suppressed: templateCount(meta.key, 'suppressed'),
       lastSentAt:
-        lastPerTemplate.find((row) => row.template === meta.key)?._max.sentAt?.toISOString() ??
-        null,
+        lastPerTemplate.find((row) => row.template === meta.key)?.lastSentAt ?? null,
     })),
     listAvailability,
     listsForSending: EMAIL_LIST_ORDER.map((key) => ({
@@ -221,7 +255,7 @@ export async function getCommunicationsOverview(): Promise<CommunicationsOvervie
       confirmed: listCount(key, 'confirmed'),
       pending: listCount(key, 'pending'),
       unsubscribed: listCount(key, 'unsubscribed'),
-      lastIssueAt: lastIssue.find((row) => row.type === key)?._max.sentAt?.toISOString() ?? null,
+      lastIssueAt: lastIssue.find((row) => row.type === key)?.lastSentAt ?? null,
     })),
   };
 }

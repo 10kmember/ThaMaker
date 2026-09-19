@@ -1,6 +1,6 @@
 import 'server-only';
 import { cache } from 'react';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import { attributionFor, attributionIsVisible, type Placement } from '@/domain/sponsorship';
 import { featureLive } from '@/server/features';
 
@@ -26,24 +26,56 @@ export type Attribution = {
   articleId: string | null;
 };
 
+type SponsorshipRow = {
+  placement: string;
+  attribution: string | null;
+  startsAt: string | null;
+  endsAt: string | null;
+  categoryId: string | null;
+  eventId: string | null;
+  articleId: string | null;
+  sponsorName: string;
+  sponsorSlug: string;
+  sponsorLogoUrl: string | null;
+  sponsorWebsiteUrl: string | null;
+  sponsorStatus: string;
+};
+
+/**
+ * DateTime columns are `timestamp(3)` without time zone, holding UTC wall
+ * clock. Render the same wall-clock UTC ISO string straight out of Postgres so
+ * the visibility window is compared on the same terms the rest of the site
+ * uses. Returns a raw SQL fragment; only ever called with static, quoted
+ * column references.
+ */
+const isoTs = (ref: string) =>
+  sql.unsafe(`to_char(${ref}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`);
+
 const loadVisible = cache(async (awardYearId: string): Promise<Attribution[]> => {
   try {
     const [rows, sponsorshipLive, partnerLive, editorialLive, eventLive] = await Promise.all([
-      prisma.sponsorship.findMany({
-        where: { awardYearId, isApproved: true, sponsor: { status: 'active', isActive: true } },
-        select: {
-          placement: true,
-          attribution: true,
-          startsAt: true,
-          endsAt: true,
-          categoryId: true,
-          eventId: true,
-          articleId: true,
-          sponsor: {
-            select: { name: true, slug: true, logoUrl: true, websiteUrl: true, status: true },
-          },
-        },
-      }),
+      sql<SponsorshipRow[]>`
+        select
+          sp.placement,
+          sp.attribution,
+          ${isoTs('sp."startsAt"')} as "startsAt",
+          ${isoTs('sp."endsAt"')} as "endsAt",
+          sp."categoryId",
+          sp."eventId",
+          sp."articleId",
+          s.name as "sponsorName",
+          s.slug as "sponsorSlug",
+          s."logoUrl" as "sponsorLogoUrl",
+          s."websiteUrl" as "sponsorWebsiteUrl",
+          s.status as "sponsorStatus"
+        from "Sponsorship" sp
+        join "Sponsor" s
+          on s.id = sp."sponsorId"
+          and s.status = 'active'
+          and s."isActive" = true
+        where sp."awardYearId" = ${awardYearId}
+          and sp."isApproved" = true
+      `,
       featureLive('category_sponsorship', awardYearId),
       featureLive('partner_programme', awardYearId),
       featureLive('sponsored_editorial'),
@@ -64,22 +96,22 @@ const loadVisible = cache(async (awardYearId: string): Promise<Attribution[]> =>
         attributionIsVisible({
           featureLive: gate[row.placement as Placement],
           isApproved: true,
-          sponsorIsActive: row.sponsor.status === 'active',
-          startsAt: row.startsAt?.toISOString() ?? null,
-          endsAt: row.endsAt?.toISOString() ?? null,
+          sponsorIsActive: row.sponsorStatus === 'active',
+          startsAt: row.startsAt,
+          endsAt: row.endsAt,
         }),
       )
       .map((row) => ({
         placement: row.placement as Placement,
         line: attributionFor({
           placement: row.placement as Placement,
-          sponsorName: row.sponsor.name,
+          sponsorName: row.sponsorName,
           override: row.attribution,
         }),
-        sponsorName: row.sponsor.name,
-        sponsorSlug: row.sponsor.slug,
-        logoUrl: row.sponsor.logoUrl,
-        websiteUrl: row.sponsor.websiteUrl,
+        sponsorName: row.sponsorName,
+        sponsorSlug: row.sponsorSlug,
+        logoUrl: row.sponsorLogoUrl,
+        websiteUrl: row.sponsorWebsiteUrl,
         categoryId: row.categoryId,
         eventId: row.eventId,
         articleId: row.articleId,

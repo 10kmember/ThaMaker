@@ -1,5 +1,5 @@
 import 'server-only';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import { byUrgency, momentumFor, type CategoryMomentum } from '@/domain/momentum';
 
 /**
@@ -13,6 +13,15 @@ import { byUrgency, momentumFor, type CategoryMomentum } from '@/domain/momentum
  * Period filtering is applied at the query, not in JavaScript over a fetched
  * array, so a wider window costs the database more and the process nothing.
  */
+
+/**
+ * DateTime columns are `timestamp(3)` without time zone, holding UTC wall
+ * clock. Render the same wall-clock UTC ISO string straight out of Postgres so
+ * the DTOs do not depend on the session time zone. Returns a raw SQL fragment;
+ * only ever called with static, quoted column references.
+ */
+const isoTs = (ref: string) =>
+  sql.unsafe(`to_char(${ref}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`);
 
 export const PERIODS = ['7d', '30d', '90d', 'season', 'all'] as const;
 export type Period = (typeof PERIODS)[number];
@@ -35,7 +44,12 @@ export async function periodStart(period: Period): Promise<Date | null> {
   if (days) return new Date(Date.now() - days * 86_400_000);
 
   if (period === 'season') {
-    const season = await prisma.awardYear.findFirst({ where: { isCurrent: true } });
+    const [season] = await sql<{ nominationsOpenAt: Date | null; createdAt: Date }[]>`
+      select "nominationsOpenAt", "createdAt"
+      from "AwardYear"
+      where "isCurrent" = true
+      limit 1
+    `;
     return season?.nominationsOpenAt ?? season?.createdAt ?? null;
   }
 
@@ -95,78 +109,122 @@ export type CommandCentre = {
 
 export async function getCommandCentre(period: Period): Promise<CommandCentre> {
   const since = await periodStart(period);
-  const window = since ? { gte: since } : undefined;
+  const window = since ? sql`and "createdAt" >= ${since}` : sql``;
 
-  const season = await prisma.awardYear.findFirst({ where: { isCurrent: true } });
+  const [season] = await sql<{ id: string; title: string; year: number; stage: string }[]>`
+    select id, title, year, stage
+    from "AwardYear"
+    where "isCurrent" = true
+    limit 1
+  `;
 
-  const [
-    creatorsTotal,
-    creatorsAdded,
-    creatorsClaimed,
-    creatorsVerified,
-    creatorsPending,
-    creatorsSuspended,
-    creatorsUnpublished,
-    accounts,
-    newAccounts,
-    activeSessions,
-    nominationActivity,
-    claimActivity,
-    auditEvents,
-    openClaims,
-    escalations,
-    verificationQueue,
-    reports,
-    openConflicts,
-    unassignedJudging,
-  ] = await Promise.all([
-    prisma.creator.count(),
-    prisma.creator.count({ where: window ? { createdAt: window } : {} }),
-    prisma.creator.count({ where: { userId: { not: null } } }),
-    prisma.creatorVerification.count({ where: { status: 'verified' } }),
-    prisma.creatorVerification.count({ where: { status: 'pending' } }),
-    prisma.creator.count({ where: { isSuspended: true } }),
-    prisma.creator.count({ where: { isPublished: false } }),
-    prisma.user.count(),
-    prisma.user.count({ where: window ? { createdAt: window } : {} }),
-    prisma.authSession.count({ where: { revokedAt: null, expiresAt: { gt: new Date() } } }),
-    prisma.nomination.count({ where: window ? { createdAt: window } : {} }),
-    prisma.creatorClaim.count({ where: window ? { createdAt: window } : {} }),
-    prisma.auditLog.count({ where: window ? { createdAt: window } : {} }),
-    prisma.creatorClaim.count({ where: { status: { in: ['submitted', 'awaiting_information'] } } }),
-    prisma.creatorClaim.count({ where: { status: 'escalated' } }),
-    prisma.verificationCase.count({ where: { status: { in: ['open', 'awaiting_information'] } } }),
-    prisma.report.count({ where: { status: { in: ['open', 'investigating'] } } }),
-    prisma.judgeConflict.count({ where: { status: 'declared' } }),
-    prisma.judgingAssignment.count({ where: { status: { in: ['assigned', 'in_progress'] } } }),
+  const [[counts]] = await Promise.all([
+    sql<
+      [
+        {
+          creatorsTotal: number;
+          creatorsAdded: number;
+          creatorsClaimed: number;
+          creatorsVerified: number;
+          creatorsPending: number;
+          creatorsSuspended: number;
+          creatorsUnpublished: number;
+          accounts: number;
+          newAccounts: number;
+          activeSessions: number;
+          nominationActivity: number;
+          claimActivity: number;
+          auditEvents: number;
+          openClaims: number;
+          escalations: number;
+          verificationQueue: number;
+          reports: number;
+          openConflicts: number;
+          unassignedJudging: number;
+        },
+      ]
+    >`
+      select
+        (select count(*)::int from "Creator") as "creatorsTotal",
+        (select count(*)::int from "Creator" where true ${window}) as "creatorsAdded",
+        (select count(*)::int from "Creator" where "userId" is not null) as "creatorsClaimed",
+        (select count(*)::int from "CreatorVerification"
+          where status = 'verified') as "creatorsVerified",
+        (select count(*)::int from "CreatorVerification"
+          where status = 'pending') as "creatorsPending",
+        (select count(*)::int from "Creator"
+          where "isSuspended" = true) as "creatorsSuspended",
+        (select count(*)::int from "Creator"
+          where "isPublished" = false) as "creatorsUnpublished",
+        (select count(*)::int from "User") as "accounts",
+        (select count(*)::int from "User" where true ${window}) as "newAccounts",
+        (select count(*)::int from "AuthSession"
+          where "revokedAt" is null and "expiresAt" > ${new Date()}) as "activeSessions",
+        (select count(*)::int from "Nomination" where true ${window}) as "nominationActivity",
+        (select count(*)::int from "CreatorClaim" where true ${window}) as "claimActivity",
+        (select count(*)::int from "AuditLog" where true ${window}) as "auditEvents",
+        (select count(*)::int from "CreatorClaim"
+          where status in ('submitted', 'awaiting_information')) as "openClaims",
+        (select count(*)::int from "CreatorClaim"
+          where status = 'escalated') as "escalations",
+        (select count(*)::int from "VerificationCase"
+          where status in ('open', 'awaiting_information')) as "verificationQueue",
+        (select count(*)::int from "Report"
+          where status in ('open', 'investigating')) as "reports",
+        (select count(*)::int from "JudgeConflict"
+          where status = 'declared') as "openConflicts",
+        (select count(*)::int from "JudgingAssignment"
+          where status in ('assigned', 'in_progress')) as "unassignedJudging"
+    `,
   ]);
 
   let awards: AwardStats | null = null;
 
   if (season) {
-    const [categories, nominations, eligible, finalists, winners, scored] = await Promise.all([
-      prisma.category.count({ where: { awardYearId: season.id } }),
-      prisma.nomination.count({
-        where: { candidacy: { awardYearId: season.id }, status: 'counted' },
-      }),
-      prisma.candidacy.count({ where: { awardYearId: season.id, status: 'eligible' } }),
-      prisma.honour.count({ where: { awardYearId: season.id, kind: 'finalist', state: 'active' } }),
-      prisma.honour.count({ where: { awardYearId: season.id, kind: 'winner', state: 'active' } }),
-      prisma.candidacy.count({
-        where: { awardYearId: season.id, scores: { some: {} }, honours: { none: {} } },
-      }),
+    const [[awardCounts]] = await Promise.all([
+      sql<
+        [
+          {
+            categories: number;
+            nominations: number;
+            eligible: number;
+            finalists: number;
+            winners: number;
+            scored: number;
+          },
+        ]
+      >`
+        select
+          (select count(*)::int from "Category"
+            where "awardYearId" = ${season.id}) as "categories",
+          (select count(*)::int from "Nomination" n
+            join "Candidacy" c on c.id = n."candidacyId"
+            where c."awardYearId" = ${season.id} and n.status = 'counted') as "nominations",
+          (select count(*)::int from "Candidacy"
+            where "awardYearId" = ${season.id} and status = 'eligible') as "eligible",
+          (select count(*)::int from "Honour"
+            where "awardYearId" = ${season.id}
+              and kind = 'finalist' and state = 'active') as "finalists",
+          (select count(*)::int from "Honour"
+            where "awardYearId" = ${season.id}
+              and kind = 'winner' and state = 'active') as "winners",
+          (select count(*)::int from "Candidacy" c
+            where c."awardYearId" = ${season.id}
+              and exists (select 1 from "JudgingScore" s where s."candidacyId" = c.id)
+              and not exists (select 1 from "Honour" h where h."candidacyId" = c.id)) as "scored"
+      `,
     ]);
 
     awards = {
       seasonTitle: season.title,
       seasonYear: season.year,
       stage: season.stage,
-      categories,
-      nominations,
-      eligible,
-      finalists,
-      winners,
-      awaitingFinalisation: scored,
+      categories: awardCounts.categories,
+      nominations: awardCounts.nominations,
+      eligible: awardCounts.eligible,
+      finalists: awardCounts.finalists,
+      winners: awardCounts.winners,
+      awaitingFinalisation: awardCounts.scored,
     };
   }
 
@@ -174,31 +232,31 @@ export async function getCommandCentre(period: Period): Promise<CommandCentre> {
     period,
     since: since?.toISOString() ?? null,
     creators: {
-      total: creatorsTotal,
-      added: creatorsAdded,
-      claimed: creatorsClaimed,
-      unclaimed: creatorsTotal - creatorsClaimed,
-      verified: creatorsVerified,
-      verificationPending: creatorsPending,
-      suspended: creatorsSuspended,
-      unpublished: creatorsUnpublished,
+      total: counts.creatorsTotal,
+      added: counts.creatorsAdded,
+      claimed: counts.creatorsClaimed,
+      unclaimed: counts.creatorsTotal - counts.creatorsClaimed,
+      verified: counts.creatorsVerified,
+      verificationPending: counts.creatorsPending,
+      suspended: counts.creatorsSuspended,
+      unpublished: counts.creatorsUnpublished,
     },
     awards,
     operations: {
-      openClaims,
-      escalations,
-      verificationQueue,
-      reports,
-      openConflicts,
-      unassignedJudging,
+      openClaims: counts.openClaims,
+      escalations: counts.escalations,
+      verificationQueue: counts.verificationQueue,
+      reports: counts.reports,
+      openConflicts: counts.openConflicts,
+      unassignedJudging: counts.unassignedJudging,
     },
     platform: {
-      accounts,
-      newAccounts,
-      activeSessions,
-      nominationActivity,
-      claimActivity,
-      auditEvents,
+      accounts: counts.accounts,
+      newAccounts: counts.newAccounts,
+      activeSessions: counts.activeSessions,
+      nominationActivity: counts.nominationActivity,
+      claimActivity: counts.claimActivity,
+      auditEvents: counts.auditEvents,
       emailsQueued: 0,
     },
   };
@@ -221,28 +279,48 @@ export type SeasonComparison = {
 };
 
 export async function compareSeasons(): Promise<SeasonComparison[]> {
-  const seasons = await prisma.awardYear.findMany({ orderBy: { year: 'asc' } });
+  const seasons = await sql<{ id: string; year: number; title: string; stage: string }[]>`
+    select id, year, title, stage
+    from "AwardYear"
+    order by year asc
+  `;
   const out: SeasonComparison[] = [];
   const seen = new Set<string>();
 
   for (const season of seasons) {
-    const [nominations, candidacies, categories, finalists, winners, creatorRows] =
-      await Promise.all([
-        prisma.nomination.count({
-          where: { candidacy: { awardYearId: season.id }, status: 'counted' },
-        }),
-        prisma.candidacy.count({ where: { awardYearId: season.id } }),
-        prisma.category.count({ where: { awardYearId: season.id } }),
-        prisma.honour.count({
-          where: { awardYearId: season.id, kind: 'finalist', state: 'active' },
-        }),
-        prisma.honour.count({ where: { awardYearId: season.id, kind: 'winner', state: 'active' } }),
-        prisma.candidacy.findMany({
-          where: { awardYearId: season.id },
-          select: { creatorId: true },
-          distinct: ['creatorId'],
-        }),
-      ]);
+    const [[counts], creatorRows] = await Promise.all([
+      sql<
+        [
+          {
+            nominations: number;
+            candidacies: number;
+            categories: number;
+            finalists: number;
+            winners: number;
+          },
+        ]
+      >`
+        select
+          (select count(*)::int from "Nomination" n
+            join "Candidacy" c on c.id = n."candidacyId"
+            where c."awardYearId" = ${season.id} and n.status = 'counted') as "nominations",
+          (select count(*)::int from "Candidacy"
+            where "awardYearId" = ${season.id}) as "candidacies",
+          (select count(*)::int from "Category"
+            where "awardYearId" = ${season.id}) as "categories",
+          (select count(*)::int from "Honour"
+            where "awardYearId" = ${season.id}
+              and kind = 'finalist' and state = 'active') as "finalists",
+          (select count(*)::int from "Honour"
+            where "awardYearId" = ${season.id}
+              and kind = 'winner' and state = 'active') as "winners"
+      `,
+      sql<{ creatorId: string }[]>`
+        select distinct "creatorId"
+        from "Candidacy"
+        where "awardYearId" = ${season.id}
+      `,
+    ]);
 
     // Returning means PALMA has considered this creator in an earlier season.
     let returning = 0;
@@ -255,11 +333,11 @@ export async function compareSeasons(): Promise<SeasonComparison[]> {
       year: season.year,
       title: season.title,
       stage: season.stage,
-      nominations,
-      candidacies,
-      categories,
-      finalists,
-      winners,
+      nominations: counts.nominations,
+      candidacies: counts.candidacies,
+      categories: counts.categories,
+      finalists: counts.finalists,
+      winners: counts.winners,
       creators: creatorRows.length,
       returningCreators: returning,
       newCreators: creatorRows.length - returning,
@@ -281,23 +359,29 @@ export type NominationAnalytics = {
 
 export async function getNominationAnalytics(period: Period): Promise<NominationAnalytics> {
   const since = await periodStart(period);
-  const where = since ? { createdAt: { gte: since } } : {};
 
-  const [rows, categories, candidacies, flagged] = await Promise.all([
-    prisma.nomination.findMany({
-      where,
-      select: { createdAt: true, source: true, status: true },
-      orderBy: { createdAt: 'asc' },
-      take: 20_000,
-    }),
-    prisma.category.findMany({
-      select: {
-        name: true,
-        candidacies: { select: { nominationCount: true } },
-      },
-    }),
-    prisma.candidacy.count(),
-    prisma.candidacy.count({ where: { integrityFlag: true } }),
+  const [rows, categories, [candidacies], [flagged]] = await Promise.all([
+    sql<{ createdAt: Date; source: string; status: string }[]>`
+      select "createdAt", source, status
+      from "Nomination"
+      ${since ? sql`where "createdAt" >= ${since}` : sql``}
+      order by "createdAt" asc
+      limit 20000
+    `,
+    sql<{ label: string; value: number }[]>`
+      select
+        c.name as label,
+        coalesce(sum(ca."nominationCount"), 0)::int as value
+      from "Category" c
+      left join "Candidacy" ca on ca."categoryId" = c.id
+      group by c.id, c.name
+    `,
+    sql<[{ count: number }]>`
+      select count(*)::int as count from "Candidacy"
+    `,
+    sql<[{ count: number }]>`
+      select count(*)::int as count from "Candidacy" where "integrityFlag" = true
+    `,
   ]);
 
   // Bucket by day, oldest first, with empty days preserved so a quiet week
@@ -312,7 +396,7 @@ export async function getNominationAnalytics(period: Period): Promise<Nomination
   }
 
   for (const row of rows) {
-    const day = row.createdAt.toISOString().slice(0, 10);
+    const day = new Date(row.createdAt).toISOString().slice(0, 10);
     const bucket = buckets.get(day);
     if (!bucket) continue;
     if (row.source === 'referral') bucket.referral += 1;
@@ -338,18 +422,14 @@ export async function getNominationAnalytics(period: Period): Promise<Nomination
       { label: 'Rejected', value: rejected },
     ],
     byCategory: categories
-      .map((category) => ({
-        label: category.name,
-        value: category.candidacies.reduce((sum, entry) => sum + entry.nominationCount, 0),
-      }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 10),
     funnel: [
       { label: 'Nominations submitted', value: rows.length },
       { label: 'Verified and counted', value: counted },
-      { label: 'Candidacies formed', value: candidacies },
+      { label: 'Candidacies formed', value: candidacies.count },
     ],
-    integrityFlagged: flagged,
+    integrityFlagged: flagged.count,
     duplicatesRefused: rejected,
   };
 }
@@ -362,14 +442,29 @@ export type CreatorAnalytics = {
 };
 
 export async function getCreatorAnalytics(): Promise<CreatorAnalytics> {
-  const creators = await prisma.creator.findMany({
-    select: {
-      countryCode: true,
-      userId: true,
-      verification: { select: { status: true } },
-      honours: { where: { state: 'active' }, select: { kind: true } },
-    },
-  });
+  const [creators, honours] = await Promise.all([
+    sql<{ id: string; countryCode: string; userId: string | null; verificationStatus: string | null }[]>`
+      select
+        c.id,
+        c."countryCode",
+        c."userId",
+        cv.status as "verificationStatus"
+      from "Creator" c
+      left join "CreatorVerification" cv on cv."creatorId" = c.id
+    `,
+    sql<{ creatorId: string; kind: string }[]>`
+      select "creatorId", kind
+      from "Honour"
+      where state = 'active'
+    `,
+  ]);
+
+  const honoursByCreator = new Map<string, string[]>();
+  for (const honour of honours) {
+    const held = honoursByCreator.get(honour.creatorId) ?? [];
+    held.push(honour.kind);
+    honoursByCreator.set(honour.creatorId, held);
+  }
 
   const countries = new Map<string, number>();
   for (const creator of creators) {
@@ -378,12 +473,12 @@ export async function getCreatorAnalytics(): Promise<CreatorAnalytics> {
 
   const statuses = new Map<string, number>();
   for (const creator of creators) {
-    const status = creator.verification?.status ?? 'unverified';
+    const status = creator.verificationStatus ?? 'unverified';
     statuses.set(status, (statuses.get(status) ?? 0) + 1);
   }
 
   const claimedCount = creators.filter((creator) => creator.userId).length;
-
+  const heldKinds = (creatorId: string) => honoursByCreator.get(creatorId) ?? [];
   return {
     claimed: [
       { label: 'Claimed', value: claimedCount },
@@ -399,19 +494,19 @@ export async function getCreatorAnalytics(): Promise<CreatorAnalytics> {
     honoursHeld: [
       {
         label: 'Holds a winner',
-        value: creators.filter((c) => c.honours.some((h) => h.kind === 'winner')).length,
+        value: creators.filter((c) => heldKinds(c.id).some((kind) => kind === 'winner')).length,
       },
       {
         label: 'Finalist only',
         value: creators.filter(
           (c) =>
-            c.honours.some((h) => h.kind === 'finalist') &&
-            !c.honours.some((h) => h.kind === 'winner'),
+            heldKinds(c.id).some((kind) => kind === 'finalist') &&
+            !heldKinds(c.id).some((kind) => kind === 'winner'),
         ).length,
       },
       {
         label: 'No honour yet',
-        value: creators.filter((c) => c.honours.length === 0).length,
+        value: creators.filter((c) => heldKinds(c.id).length === 0).length,
       },
     ],
   };
@@ -426,16 +521,29 @@ export type AwardsAnalytics = {
 };
 
 export async function getAwardsAnalytics(): Promise<AwardsAnalytics> {
-  const [categories, winners, candidacies, finalists] = await Promise.all([
-    prisma.category.findMany({
-      select: { name: true, candidacies: { select: { id: true } } },
-    }),
-    prisma.honour.findMany({
-      where: { kind: 'winner', state: 'active' },
-      select: { creatorId: true, category: { select: { name: true } } },
-    }),
-    prisma.candidacy.count(),
-    prisma.honour.count({ where: { kind: 'finalist', state: 'active' } }),
+  const [categories, winners, [candidacies], [finalists]] = await Promise.all([
+    sql<{ label: string; value: number }[]>`
+      select
+        c.name as label,
+        count(ca.id)::int as value
+      from "Category" c
+      left join "Candidacy" ca on ca."categoryId" = c.id
+      group by c.id, c.name
+    `,
+    sql<{ creatorId: string; categoryName: string | null }[]>`
+      select h."creatorId", cat.name as "categoryName"
+      from "Honour" h
+      left join "Category" cat on cat.id = h."categoryId"
+      where h.kind = 'winner' and h.state = 'active'
+    `,
+    sql<[{ count: number }]>`
+      select count(*)::int as count from "Candidacy"
+    `,
+    sql<[{ count: number }]>`
+      select count(*)::int as count
+      from "Honour"
+      where kind = 'finalist' and state = 'active'
+    `,
   ]);
 
   const winsPerCreator = new Map<string, number>();
@@ -448,19 +556,18 @@ export async function getAwardsAnalytics(): Promise<AwardsAnalytics> {
     // Winners only, so every row has a category. THE PALMA is not counted
     // here and should not be: it is not won in a category, and adding it to a
     // per-category breakdown would invent a thirteenth column.
-    const name = winner.category?.name;
+    const name = winner.categoryName;
     if (!name) continue;
     byCategory.set(name, (byCategory.get(name) ?? 0) + 1);
   }
 
   return {
     participation: categories
-      .map((category) => ({ label: category.name, value: category.candidacies.length }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 10),
     conversion: [
-      { label: 'Candidacies', value: candidacies },
-      { label: 'Finalists', value: finalists },
+      { label: 'Candidacies', value: candidacies.count },
+      { label: 'Finalists', value: finalists.count },
       { label: 'Winners', value: winners.length },
     ],
     repeatWinners: [...winsPerCreator.values()].filter((count) => count > 1).length,
@@ -482,31 +589,38 @@ export type OperationalAnalytics = {
 
 export async function getOperationalAnalytics(): Promise<OperationalAnalytics> {
   const [claims, cases, audit, moderation] = await Promise.all([
-    prisma.creatorClaim.findMany({
-      select: {
-        status: true,
-        createdAt: true,
-        decidedAt: true,
-        decidedBy: { select: { email: true } },
-      },
-    }),
-    prisma.verificationCase.findMany({
-      select: { status: true, openedAt: true, decidedAt: true },
-    }),
-    prisma.auditLog.findMany({
-      where: { actorLabel: { not: null } },
-      select: { actorLabel: true },
-      take: 5_000,
-      orderBy: { createdAt: 'desc' },
-    }),
-    prisma.moderationAction.groupBy({ by: ['kind'], _count: { _all: true } }),
+    sql<{ status: string; createdAt: Date; decidedAt: Date | null; decidedByEmail: string | null }[]>`
+      select
+        cl.status,
+        cl."createdAt",
+        cl."decidedAt",
+        u.email as "decidedByEmail"
+      from "CreatorClaim" cl
+      left join "User" u on u.id = cl."decidedById"
+    `,
+    sql<{ status: string; openedAt: Date; decidedAt: Date | null }[]>`
+      select status, "openedAt", "decidedAt"
+      from "VerificationCase"
+    `,
+    sql<{ actorLabel: string | null }[]>`
+      select "actorLabel"
+      from "AuditLog"
+      where "actorLabel" is not null
+      order by "createdAt" desc
+      limit 5000
+    `,
+    sql<{ kind: string; count: number }[]>`
+      select kind, count(*)::int as count
+      from "ModerationAction"
+      group by kind
+    `,
   ]);
 
   const hours = (rows: { from: Date; to: Date | null }[]) => {
     const settled = rows.filter((row) => row.to);
     if (settled.length === 0) return null;
     const total = settled.reduce(
-      (sum, row) => sum + ((row.to as Date).getTime() - row.from.getTime()),
+      (sum, row) => sum + (new Date(row.to as Date).getTime() - new Date(row.from).getTime()),
       0,
     );
     return Math.round((total / settled.length / 3_600_000) * 10) / 10;
@@ -543,7 +657,7 @@ export async function getOperationalAnalytics(): Promise<OperationalAnalytics> {
       .slice(0, 8),
     enforcement: moderation.map((row) => ({
       label: row.kind.replace(/_/g, ' '),
-      value: row._count._all,
+      value: row.count,
     })),
   };
 }
@@ -570,10 +684,12 @@ export type MomentumReport = {
 };
 
 export async function getCategoryMomentum(period: Period): Promise<MomentumReport> {
-  const season = await prisma.awardYear.findFirst({
-    where: { isCurrent: true },
-    select: { id: true, year: true },
-  });
+  const [season] = await sql<{ id: string; year: number }[]>`
+    select id, year
+    from "AwardYear"
+    where "isCurrent" = true
+    limit 1
+  `;
 
   if (!season) return { window: null, seasonYear: null, rows: [] };
 
@@ -586,42 +702,52 @@ export async function getCategoryMomentum(period: Period): Promise<MomentumRepor
   const from = since ?? new Date(Date.now() - days * 86_400_000);
   const comparedFrom = new Date(from.getTime() - days * 86_400_000);
 
-  const categories = await prisma.category.findMany({
-    where: { awardYearId: season.id },
-    select: {
-      id: true,
-      name: true,
-      slug: true,
-      position: true,
-      candidacies: {
-        select: {
-          id: true,
-          nominationCount: true,
-        },
-      },
-    },
-    orderBy: { position: 'asc' },
-  });
+  const categories = await sql<
+    { id: string; name: string; slug: string; position: number; candidacyId: string | null; nominationCount: number | null }[]
+  >`
+    select
+      c.id,
+      c.name,
+      c.slug,
+      c.position,
+      ca.id as "candidacyId",
+      ca."nominationCount"
+    from "Category" c
+    left join "Candidacy" ca on ca."categoryId" = c.id
+    where c."awardYearId" = ${season.id}
+    order by c.position asc
+  `;
 
+  const byCategoryId = new Map<
+    string,
+    { id: string; name: string; slug: string; spread: number[] }
+  >();
   const candidacyToCategory = new Map<string, string>();
-  for (const category of categories) {
-    for (const candidacy of category.candidacies) {
-      candidacyToCategory.set(candidacy.id, category.id);
+
+  for (const row of categories) {
+    const category =
+      byCategoryId.get(row.id) ?? { id: row.id, name: row.name, slug: row.slug, spread: [] };
+    if (row.candidacyId) {
+      candidacyToCategory.set(row.candidacyId, row.id);
+      category.spread.push(row.nominationCount ?? 0);
     }
+    byCategoryId.set(row.id, category);
   }
 
   // One pass over the two windows rather than a query per category. Only
   // counted nominations are read: a nomination awaiting its verification code
   // is not yet a signal about anything, and a rejected one never was.
-  const nominations = await prisma.nomination.findMany({
-    where: {
-      status: 'counted',
-      candidacyId: { in: [...candidacyToCategory.keys()] },
-      createdAt: { gte: comparedFrom },
-    },
-    select: { candidacyId: true, nominatorId: true, createdAt: true },
-    take: 50_000,
-  });
+  const nominations =
+    candidacyToCategory.size === 0
+      ? []
+      : await sql<{ candidacyId: string; nominatorId: string; createdAt: Date }[]>`
+          select "candidacyId", "nominatorId", "createdAt"
+          from "Nomination"
+          where status = 'counted'
+            and "candidacyId" in ${sql([...candidacyToCategory.keys()])}
+            and "createdAt" >= ${comparedFrom}
+          limit 50000
+        `;
 
   const current = new Map<string, number>();
   const previous = new Map<string, number>();
@@ -631,7 +757,7 @@ export async function getCategoryMomentum(period: Period): Promise<MomentumRepor
     const categoryId = candidacyToCategory.get(row.candidacyId);
     if (!categoryId) continue;
 
-    if (row.createdAt >= from) {
+    if (new Date(row.createdAt) >= from) {
       current.set(categoryId, (current.get(categoryId) ?? 0) + 1);
       const seen = nominators.get(categoryId) ?? new Set<string>();
       seen.add(row.nominatorId);
@@ -641,7 +767,7 @@ export async function getCategoryMomentum(period: Period): Promise<MomentumRepor
     }
   }
 
-  const rows = categories.map((category) =>
+  const rows = [...byCategoryId.values()].map((category) =>
     momentumFor({
       categoryId: category.id,
       name: category.name,
@@ -652,7 +778,7 @@ export async function getCategoryMomentum(period: Period): Promise<MomentumRepor
       // Concentration is read from the season's standing totals, not the
       // window: whether one creator holds a category is a fact about the
       // category, not about the last thirty days of it.
-      spread: category.candidacies.map((candidacy) => candidacy.nominationCount),
+      spread: category.spread,
     }),
   );
 
