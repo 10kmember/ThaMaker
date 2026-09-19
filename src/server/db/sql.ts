@@ -13,21 +13,29 @@ function postgresConnection(url: string): { url: string; ssl?: 'require' } {
   return { url: parsed.toString(), ssl: sslmode === 'require' ? 'require' : undefined };
 }
 
+function poolMax(): number {
+  const configured = Number(process.env.PG_POOL_MAX ?? '');
+  if (Number.isInteger(configured) && configured > 0) return configured;
+
+  // Static generation fans out across dozens of pages. One connection behind
+  // Supabase's latency turns that fan-out into a 60s export timeout; runtime
+  // serverless isolates stay small, builds get room to work.
+  return process.env.NEXT_PHASE === 'phase-production-build' ? 8 : 2;
+}
+
 function createSql(): postgres.Sql {
-  const raw = databaseUrl();
-  const pooled = /[?&]pgbouncer=true\b/.test(raw);
-  const connection = postgresConnection(raw);
+  const connection = postgresConnection(databaseUrl());
 
   return postgres(connection.url, {
     /**
-     * Serverless functions are short-lived and Supabase's transaction pooler is
-     * the real pool. Keep one upstream connection per isolate and let pgbouncer
-     * do the sharing. `prepare` must be off through pgbouncer transaction mode.
+     * Serverless functions are short-lived and Supabase is already pooling.
+     * Keep runtime pools modest, but do not serialize a production build
+     * through one socket. `prepare` stays off for transaction pooling.
      */
-    max: 1,
-    prepare: !pooled,
+    max: poolMax(),
     idle_timeout: 20,
-    connect_timeout: 20,
+    connect_timeout: 10,
+    prepare: false,
     ssl: connection.ssl,
   });
 }
