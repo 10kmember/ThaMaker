@@ -458,16 +458,16 @@ export const seasonSeeds: SeasonSeed[] = [
   {
     year: 2027,
     title: 'PALMA 2027',
-    stage: 'nominations_open',
+    stage: 'announced',
     tagline: 'Recognising the people shaping creator culture.',
     summary:
-      'The third PALMA season. Nominations are open across all twelve Creator PALMAs, judged by an independent panel and announced in four stages. THE PALMA is conferred at the ceremony.',
+      'The third PALMA season. Nominations open 1 April 2027 across all twelve Creator PALMAs, judged by an independent panel and announced in four stages. THE PALMA is conferred at the ceremony in July.',
     isCurrent: true,
-    nominationsOpenAt: '2026-09-01T09:00:00.000Z',
-    nominationsCloseAt: '2027-01-31T23:00:00.000Z',
-    shortlistAt: '2027-03-10T09:00:00.000Z',
-    finalistsAt: '2027-05-12T09:00:00.000Z',
-    ceremonyAt: '2027-09-23T18:00:00.000Z',
+    nominationsOpenAt: '2027-04-01T09:00:00.000Z',
+    nominationsCloseAt: '2027-04-30T23:00:00.000Z',
+    shortlistAt: '2027-05-06T09:00:00.000Z',
+    finalistsAt: '2027-06-01T09:00:00.000Z',
+    ceremonyAt: '2027-07-01T18:00:00.000Z',
     // The full slate for the first time.
     categorySlugs: categorySeeds.map((category) => category.slug),
     results: {},
