@@ -13,7 +13,8 @@ import {
   type EmailListKey,
 } from '@/domain/email-lists';
 import { recordAudit } from '@/server/audit';
-import { prisma } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { sql } from '@/server/db/sql';
 import { featureLive } from '@/server/features';
 import { RATE_LIMITS, enforceRateLimit } from '@/server/rate-limit';
 import { sendListConfirm, sendListWelcome } from '@/server/email/lists';
@@ -42,6 +43,8 @@ const subscribeSchema = z.object({
 
 const SAME_ANSWER =
   'Check your inbox. If this address can join, a confirmation is on its way. Nothing is sent until you open it.';
+
+type SubscriptionStatus = 'pending' | 'confirmed' | 'unsubscribed';
 
 /** A list PALMA is not running yet is not a list anybody can join. */
 async function listIsOffered(type: EmailListKey): Promise<boolean> {
@@ -78,10 +81,12 @@ export async function subscribeToList(
   }
 
   const email = parsed.data.email;
-  const existing = await prisma.emailSubscription.findUnique({
-    where: { email_type: { email, type } },
-    select: { id: true, status: true },
-  });
+  const [existing] = await sql<{ id: string; status: SubscriptionStatus }[]>`
+    select id, status
+    from "EmailSubscription"
+    where email = ${email} and type = ${type}
+    limit 1
+  `;
 
   // Already confirmed: the same answer, and no second email. Re-confirming an
   // existing subscriber is a way to mail somebody who did not ask twice.
@@ -93,28 +98,23 @@ export async function subscribeToList(
   const now = new Date();
 
   if (existing) {
-    await prisma.emailSubscription.update({
-      where: { id: existing.id },
-      data: {
-        tokenHash: sha256(token),
-        status: 'pending',
-        source: parsed.data.source,
-        unsubscribedAt: null,
-        consentVersion: CONSENT_VERSION,
-        consentAt: now,
-      },
-    });
+    await sql`
+      update "EmailSubscription"
+      set
+        "tokenHash" = ${sha256(token)},
+        status = 'pending',
+        source = ${parsed.data.source},
+        "unsubscribedAt" = null,
+        "consentVersion" = ${CONSENT_VERSION},
+        "consentAt" = ${now},
+        "updatedAt" = now()
+      where id = ${existing.id}
+    `;
   } else {
-    await prisma.emailSubscription.create({
-      data: {
-        email,
-        type,
-        tokenHash: sha256(token),
-        source: parsed.data.source,
-        consentVersion: CONSENT_VERSION,
-        consentAt: now,
-      },
-    });
+    await sql`
+      insert into "EmailSubscription" (id, email, type, "tokenHash", source, "consentVersion", "consentAt")
+      values (${createId()}, ${email}, ${type}, ${sha256(token)}, ${parsed.data.source}, ${CONSENT_VERSION}, ${now})
+    `;
   }
 
   await sendListConfirm({
@@ -140,18 +140,23 @@ export async function confirmSubscription(
 ): Promise<{ ok: boolean; email?: string; list?: EmailListKey }> {
   if (!isEmailListKey(type)) return { ok: false };
 
-  const subscription = await prisma.emailSubscription.findUnique({
-    where: { tokenHash: sha256(token) },
-    select: { id: true, email: true, status: true, type: true },
-  });
+  const [subscription] = await sql<
+    { id: string; email: string; status: SubscriptionStatus; type: string }[]
+  >`
+    select id, email, status, type
+    from "EmailSubscription"
+    where "tokenHash" = ${sha256(token)}
+    limit 1
+  `;
 
   if (!subscription || subscription.type !== type) return { ok: false };
 
   if (subscription.status !== 'confirmed') {
-    await prisma.emailSubscription.update({
-      where: { id: subscription.id },
-      data: { status: 'confirmed', confirmedAt: new Date(), unsubscribedAt: null },
-    });
+    await sql`
+      update "EmailSubscription"
+      set status = 'confirmed', "confirmedAt" = ${new Date()}, "unsubscribedAt" = null, "updatedAt" = now()
+      where id = ${subscription.id}
+    `;
 
     // They opened it, so the address works whatever it did before.
     await clearSuppression(subscription.email);
@@ -189,18 +194,23 @@ export async function leaveList(
   const id = readUnsubscribeToken(signingSecret(), token);
   if (!id) return { ok: false };
 
-  const subscription = await prisma.emailSubscription.findUnique({
-    where: { id },
-    select: { id: true, email: true, status: true, type: true },
-  });
+  const [subscription] = await sql<
+    { id: string; email: string; status: SubscriptionStatus; type: string }[]
+  >`
+    select id, email, status, type
+    from "EmailSubscription"
+    where id = ${id}
+    limit 1
+  `;
 
   if (!subscription || subscription.type !== type) return { ok: false };
 
   if (subscription.status !== 'unsubscribed') {
-    await prisma.emailSubscription.update({
-      where: { id: subscription.id },
-      data: { status: 'unsubscribed', unsubscribedAt: new Date() },
-    });
+    await sql`
+      update "EmailSubscription"
+      set status = 'unsubscribed', "unsubscribedAt" = ${new Date()}, "updatedAt" = now()
+      where id = ${subscription.id}
+    `;
 
     await recordAudit({
       action: 'subscription.unsubscribed',
@@ -239,10 +249,12 @@ export async function saveEmailPreferences(
     const wanted = formData.get(key) === 'on';
     if (wanted && !(await listIsOffered(key))) continue;
 
-    const existing = await prisma.emailSubscription.findUnique({
-      where: { email_type: { email, type: key } },
-      select: { id: true, status: true },
-    });
+    const [existing] = await sql<{ id: string; status: SubscriptionStatus }[]>`
+      select id, status
+      from "EmailSubscription"
+      where email = ${email} and type = ${key}
+      limit 1
+    `;
 
     const currently = existing?.status === 'confirmed';
     if (currently === wanted) continue;
@@ -251,10 +263,11 @@ export async function saveEmailPreferences(
 
     if (!wanted) {
       if (existing) {
-        await prisma.emailSubscription.update({
-          where: { id: existing.id },
-          data: { status: 'unsubscribed', unsubscribedAt: now },
-        });
+        await sql`
+          update "EmailSubscription"
+          set status = 'unsubscribed', "unsubscribedAt" = ${now}, "updatedAt" = now()
+          where id = ${existing.id}
+        `;
       }
       continue;
     }
@@ -268,21 +281,30 @@ export async function saveEmailPreferences(
     };
 
     if (existing) {
-      await prisma.emailSubscription.update({
-        where: { id: existing.id },
-        data: { status: 'confirmed', confirmedAt: now, unsubscribedAt: null, ...consent },
-      });
+      await sql`
+        update "EmailSubscription"
+        set
+          status = 'confirmed',
+          "confirmedAt" = ${now},
+          "unsubscribedAt" = null,
+          "consentVersion" = ${consent.consentVersion},
+          "consentAt" = ${consent.consentAt},
+          source = ${consent.source},
+          "userId" = ${consent.userId},
+          "updatedAt" = now()
+        where id = ${existing.id}
+      `;
     } else {
-      await prisma.emailSubscription.create({
-        data: {
-          email,
-          type: key,
-          tokenHash: sha256(token),
-          status: 'confirmed',
-          confirmedAt: now,
-          ...consent,
-        },
-      });
+      await sql`
+        insert into "EmailSubscription" (
+          id, email, type, "tokenHash", status, "confirmedAt",
+          "consentVersion", "consentAt", source, "userId"
+        )
+        values (
+          ${createId()}, ${email}, ${key}, ${sha256(token)}, 'confirmed', ${now},
+          ${consent.consentVersion}, ${consent.consentAt}, ${consent.source}, ${consent.userId}
+        )
+      `;
     }
   }
 
@@ -312,10 +334,11 @@ export async function leaveEverything(): Promise<void> {
   const session = await getSession();
   if (!session) return;
 
-  await prisma.emailSubscription.updateMany({
-    where: { email: session.user.email, status: { not: 'unsubscribed' } },
-    data: { status: 'unsubscribed', unsubscribedAt: new Date() },
-  });
+  await sql`
+    update "EmailSubscription"
+    set status = 'unsubscribed', "unsubscribedAt" = ${new Date()}, "updatedAt" = now()
+    where email = ${session.user.email} and status <> 'unsubscribed'
+  `;
 
   await recordAudit({
     action: 'subscription.unsubscribed',

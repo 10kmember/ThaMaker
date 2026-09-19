@@ -5,10 +5,12 @@ import { revalidatePath } from 'next/cache';
 import { randomToken, sha256, verifyPassword } from '@/lib/crypto';
 import { siteUrl } from '@/lib/env';
 import { assertSameOrigin, destroySession, getSession } from '@/lib/auth/session';
+import type { Role } from '@/lib/auth/rbac';
 import { changeEmailSchema, closeAccountSchema } from '@/lib/validation/account';
 import { fieldErrors } from '@/lib/validation/nomination';
 import { recordAudit } from '@/server/audit';
-import { prisma } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { sql, withTransaction } from '@/server/db/sql';
 import { enforceRateLimit, RATE_LIMITS } from '@/server/rate-limit';
 import {
   sendAccountClosed,
@@ -68,10 +70,12 @@ export async function requestEmailChange(
     return { status: 'error', message: 'Check the details.', errors: fieldErrors(parsed.error) };
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, email: true, role: true, passwordHash: true },
-  });
+  const [user] = await sql<{ id: string; email: string; role: Role; passwordHash: string }[]>`
+    select id, email, role, "passwordHash"
+    from "User"
+    where id = ${session.user.id}
+    limit 1
+  `;
   if (!user) return { status: 'error', message: 'Sign in again.' };
 
   // The session proves possession of a browser. The password proves it is the
@@ -86,21 +90,24 @@ export async function requestEmailChange(
 
   const token = randomToken(32);
 
-  await prisma.$transaction(async (tx) => {
+  await withTransaction(async (tx) => {
     // One live request at a time, so an older email stops working.
-    await tx.emailChangeRequest.updateMany({
-      where: { userId: user.id, confirmedAt: null, cancelledAt: null },
-      data: { cancelledAt: new Date() },
-    });
+    await tx`
+      update "EmailChangeRequest"
+      set "cancelledAt" = ${new Date()}
+      where "userId" = ${user.id} and "confirmedAt" is null and "cancelledAt" is null
+    `;
 
-    await tx.emailChangeRequest.create({
-      data: {
-        userId: user.id,
-        newEmail: parsed.data.newEmail,
-        tokenHash: sha256(token),
-        expiresAt: new Date(Date.now() + EMAIL_CHANGE_TTL_MS),
-      },
-    });
+    await tx`
+      insert into "EmailChangeRequest" (id, "userId", "newEmail", "tokenHash", "expiresAt")
+      values (
+        ${createId()},
+        ${user.id},
+        ${parsed.data.newEmail},
+        ${sha256(token)},
+        ${new Date(Date.now() + EMAIL_CHANGE_TTL_MS)}
+      )
+    `;
   });
 
   // The new address is asked to confirm; the old one is told it was asked.
@@ -136,10 +143,32 @@ export async function requestEmailChange(
 export async function confirmEmailChange(
   token: string,
 ): Promise<{ ok: boolean; email?: string; reason?: string }> {
-  const request = await prisma.emailChangeRequest.findUnique({
-    where: { tokenHash: sha256(token) },
-    include: { user: { select: { id: true, email: true, role: true } } },
-  });
+  const [request] = await sql<
+    {
+      id: string;
+      newEmail: string;
+      confirmedAt: Date | null;
+      cancelledAt: Date | null;
+      expiresAt: Date;
+      userId: string;
+      userEmail: string;
+      userRole: Role;
+    }[]
+  >`
+    select
+      r.id,
+      r."newEmail",
+      r."confirmedAt",
+      r."cancelledAt",
+      r."expiresAt",
+      u.id as "userId",
+      u.email as "userEmail",
+      u.role as "userRole"
+    from "EmailChangeRequest" r
+    join "User" u on u.id = r."userId"
+    where r."tokenHash" = ${sha256(token)}
+    limit 1
+  `;
 
   const usable =
     request && !request.confirmedAt && !request.cancelledAt && request.expiresAt > new Date();
@@ -147,26 +176,27 @@ export async function confirmEmailChange(
   if (!usable) return { ok: false, reason: 'expired' };
 
   // Somebody may have registered the address in the meantime.
-  const taken = await prisma.user.findUnique({
-    where: { email: request.newEmail },
-    select: { id: true },
-  });
-  if (taken && taken.id !== request.user.id) {
+  const [taken] = await sql<{ id: string }[]>`
+    select id from "User" where email = ${request.newEmail} limit 1
+  `;
+  if (taken && taken.id !== request.userId) {
     return { ok: false, reason: 'taken' };
   }
 
-  const previous = request.user.email;
+  const previous = request.userEmail;
 
-  await prisma.$transaction(async (tx) => {
-    await tx.emailChangeRequest.update({
-      where: { id: request.id },
-      data: { confirmedAt: new Date() },
-    });
-    await tx.user.update({
-      where: { id: request.user.id },
-      // The new address has just proved itself; the old one's proof is gone.
-      data: { email: request.newEmail, emailVerifiedAt: new Date() },
-    });
+  await withTransaction(async (tx) => {
+    await tx`
+      update "EmailChangeRequest"
+      set "confirmedAt" = ${new Date()}
+      where id = ${request.id}
+    `;
+    // The new address has just proved itself; the old one's proof is gone.
+    await tx`
+      update "User"
+      set email = ${request.newEmail}, "emailVerifiedAt" = ${new Date()}, "updatedAt" = now()
+      where id = ${request.userId}
+    `;
   });
 
   // Confirming from the new address is proof it works.
@@ -175,8 +205,8 @@ export async function confirmEmailChange(
   await recordAudit({
     action: 'user.email_changed',
     entityType: 'User',
-    entityId: request.user.id,
-    actor: { id: request.user.id, role: request.user.role, label: request.newEmail },
+    entityId: request.userId,
+    actor: { id: request.userId, role: request.userRole, label: request.newEmail },
     summary: `Address changed from ${previous}`,
     before: { email: previous },
     after: { email: request.newEmail },
@@ -209,16 +239,28 @@ export async function closeAccount(
     return { status: 'error', message: 'Check the details.', errors: fieldErrors(parsed.error) };
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: {
-      id: true,
-      email: true,
-      role: true,
-      passwordHash: true,
-      creator: { select: { id: true, displayName: true } },
-    },
-  });
+  const [user] = await sql<
+    {
+      id: string;
+      email: string;
+      role: Role;
+      passwordHash: string;
+      creatorId: string | null;
+      creatorDisplayName: string | null;
+    }[]
+  >`
+    select
+      u.id,
+      u.email,
+      u.role,
+      u."passwordHash",
+      c.id as "creatorId",
+      c."displayName" as "creatorDisplayName"
+    from "User" u
+    left join "Creator" c on c."userId" = u.id
+    where u.id = ${session.user.id}
+    limit 1
+  `;
   if (!user) return { status: 'error', message: 'Sign in again.' };
 
   if (!(await verifyPassword(parsed.data.password, user.passwordHash))) {
@@ -238,30 +280,34 @@ export async function closeAccount(
     };
   }
 
-  const heldRecord = Boolean(user.creator);
+  const heldRecord = Boolean(user.creatorId);
 
   // Sent before the account goes, because afterwards there is no Dossier to
   // write to and no address on file to write from.
   await sendAccountClosed({ to: user.email, userId: user.id, heldRecord });
 
-  await prisma.$transaction(async (tx) => {
-    if (user.creator) {
+  await withTransaction(async (tx) => {
+    if (user.creatorId) {
       // The record stays and becomes unclaimed — exactly the state it was in
       // before anybody claimed it, and claimable again by the right person.
-      await tx.creator.update({
-        where: { id: user.creator.id },
-        data: { userId: null, isClaimed: false, referralEnabled: false },
-      });
+      await tx`
+        update "Creator"
+        set "userId" = null, "isClaimed" = false, "referralEnabled" = false, "updatedAt" = now()
+        where id = ${user.creatorId}
+      `;
     }
 
-    await tx.authSession.updateMany({
-      where: { userId: user.id, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
+    await tx`
+      update "AuthSession"
+      set "revokedAt" = ${new Date()}
+      where "userId" = ${user.id} and "revokedAt" is null
+    `;
 
     // Cascades take the Dossier, the preferences, the tokens and the sessions.
     // The audit log does not cascade: it records that this account existed.
-    await tx.user.delete({ where: { id: user.id } });
+    await tx`
+      delete from "User" where id = ${user.id}
+    `;
   });
 
   await recordAudit({
@@ -270,7 +316,7 @@ export async function closeAccount(
     entityId: user.id,
     actor: { label: user.email },
     summary: heldRecord
-      ? `Account closed at the holder's request. ${user.creator?.displayName} is unclaimed again.`
+      ? `Account closed at the holder's request. ${user.creatorDisplayName} is unclaimed again.`
       : 'Account closed at the holder’s request.',
   });
 
@@ -284,10 +330,11 @@ export async function revokeOtherSessions(): Promise<void> {
   const session = await getSession();
   if (!session) return;
 
-  await prisma.authSession.updateMany({
-    where: { userId: session.user.id, revokedAt: null, id: { not: session.sessionId } },
-    data: { revokedAt: new Date() },
-  });
+  await sql`
+    update "AuthSession"
+    set "revokedAt" = ${new Date()}
+    where "userId" = ${session.user.id} and "revokedAt" is null and id <> ${session.sessionId}
+  `;
 
   await recordAudit({
     action: 'user.sessions_revoked',

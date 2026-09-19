@@ -11,9 +11,9 @@ import {
 } from '@/lib/validation/account';
 import { fieldErrors } from '@/lib/validation/nomination';
 import { siteUrl } from '@/lib/env';
-import type { Prisma } from '@prisma/client';
 import { recordAudit } from '@/server/audit';
-import { prisma } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { sql, withTransaction, type TransactionSql } from '@/server/db/sql';
 import { RATE_LIMITS, enforceRateLimit } from '@/server/rate-limit';
 import { sendPasswordChanged, sendPasswordReset } from '@/server/email/messages';
 import { clearSuppression } from '@/server/email/suppression';
@@ -59,24 +59,23 @@ const SAME_ANSWER =
  * than three copies of a transaction agreeing to behave the same way.
  */
 export async function issuePasswordSetToken(
-  tx: Prisma.TransactionClient,
+  tx: TransactionSql,
   userId: string,
   ttlMs: number,
 ): Promise<string> {
   const token = randomToken(32);
+  const now = new Date();
 
-  await tx.passwordResetToken.updateMany({
-    where: { userId, usedAt: null, expiresAt: { gt: new Date() } },
-    data: { usedAt: new Date() },
-  });
+  await tx`
+    update "PasswordResetToken"
+    set "usedAt" = ${now}
+    where "userId" = ${userId} and "usedAt" is null and "expiresAt" > ${now}
+  `;
 
-  await tx.passwordResetToken.create({
-    data: {
-      userId,
-      tokenHash: sha256(token),
-      expiresAt: new Date(Date.now() + ttlMs),
-    },
-  });
+  await tx`
+    insert into "PasswordResetToken" (id, "userId", "tokenHash", "expiresAt")
+    values (${createId()}, ${userId}, ${sha256(token)}, ${new Date(Date.now() + ttlMs)})
+  `;
 
   return token;
 }
@@ -101,19 +100,19 @@ export async function requestPasswordReset(
     return { status: 'error', message: 'Enter a valid email address.' };
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: parsed.data.email },
-    select: { id: true, email: true, role: true, isActive: true },
-  });
+  const [user] = await sql<{ id: string; email: string; role: Role; isActive: boolean }[]>`
+    select id, email, role, "isActive"
+    from "User"
+    where email = ${parsed.data.email}
+    limit 1
+  `;
 
   // A closed account gets the same answer as a missing one, and no email.
   // So does a staff account — see the note above the type. Nothing in the
   // response, the timing, or the audit log may let a caller tell that case
   // apart from "no such address."
-  if (user && user.isActive && canSelfServiceReset(user.role as Role)) {
-    const token = await prisma.$transaction((tx) =>
-      issuePasswordSetToken(tx, user.id, RESET_TTL_MS),
-    );
+  if (user && user.isActive && canSelfServiceReset(user.role)) {
+    const token = await withTransaction((tx) => issuePasswordSetToken(tx, user.id, RESET_TTL_MS));
 
     await sendPasswordReset({
       to: user.email,
@@ -125,7 +124,7 @@ export async function requestPasswordReset(
       action: 'user.password_reset_requested',
       entityType: 'User',
       entityId: user.id,
-      actor: { id: user.id, role: user.role as Role, label: user.email },
+      actor: { id: user.id, role: user.role, label: user.email },
       summary: 'A password reset link was issued.',
     });
   }
@@ -166,12 +165,32 @@ export async function resetPassword(
     };
   }
 
-  const record = await prisma.passwordResetToken.findUnique({
-    where: { tokenHash: sha256(parsed.data.token) },
-    include: { user: { select: { id: true, email: true, role: true, isActive: true } } },
-  });
+  const [record] = await sql<
+    {
+      id: string;
+      usedAt: Date | null;
+      expiresAt: Date;
+      userId: string;
+      userEmail: string;
+      userRole: Role;
+      userIsActive: boolean;
+    }[]
+  >`
+    select
+      t.id,
+      t."usedAt",
+      t."expiresAt",
+      u.id as "userId",
+      u.email as "userEmail",
+      u.role as "userRole",
+      u."isActive" as "userIsActive"
+    from "PasswordResetToken" t
+    join "User" u on u.id = t."userId"
+    where t."tokenHash" = ${sha256(parsed.data.token)}
+    limit 1
+  `;
 
-  const usable = record && !record.usedAt && record.expiresAt > new Date() && record.user.isActive;
+  const usable = record && !record.usedAt && record.expiresAt > new Date() && record.userIsActive;
 
   if (!usable) {
     return {
@@ -182,36 +201,39 @@ export async function resetPassword(
 
   const passwordHash = await hashPassword(parsed.data.password);
 
-  await prisma.$transaction(async (tx) => {
-    await tx.passwordResetToken.update({
-      where: { id: record.id },
-      data: { usedAt: new Date() },
-    });
-    await tx.user.update({
-      where: { id: record.user.id },
-      data: { passwordHash },
-    });
-    await tx.authSession.updateMany({
-      where: { userId: record.user.id, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
+  await withTransaction(async (tx) => {
+    await tx`
+      update "PasswordResetToken"
+      set "usedAt" = ${new Date()}
+      where id = ${record.id}
+    `;
+    await tx`
+      update "User"
+      set "passwordHash" = ${passwordHash}, "updatedAt" = now()
+      where id = ${record.userId}
+    `;
+    await tx`
+      update "AuthSession"
+      set "revokedAt" = ${new Date()}
+      where "userId" = ${record.userId} and "revokedAt" is null
+    `;
   });
 
   // Spending the link is proof the address received it, so an old bounce
   // should not go on blocking mail to somebody who is plainly reading it.
-  await clearSuppression(record.user.email);
+  await clearSuppression(record.userEmail);
 
   await sendPasswordChanged({
-    to: record.user.email,
-    userId: record.user.id,
+    to: record.userEmail,
+    userId: record.userId,
     when: new Date(),
   });
 
   await recordAudit({
     action: 'user.password_reset',
     entityType: 'User',
-    entityId: record.user.id,
-    actor: { id: record.user.id, role: record.user.role, label: record.user.email },
+    entityId: record.userId,
+    actor: { id: record.userId, role: record.userRole, label: record.userEmail },
     summary: 'Password reset from a link. Every session was revoked.',
   });
 
@@ -224,7 +246,7 @@ export async function resetPassword(
   return {
     status: 'success',
     message: 'Your password is set and every other session has been signed out. Sign in below.',
-    signInPath: homeForRole(record.user.role as Role),
+    signInPath: homeForRole(record.userRole),
   };
 }
 
@@ -258,10 +280,12 @@ export async function changePassword(
     };
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { id: true, email: true, role: true, passwordHash: true },
-  });
+  const [user] = await sql<{ id: string; email: string; role: Role; passwordHash: string }[]>`
+    select id, email, role, "passwordHash"
+    from "User"
+    where id = ${session.user.id}
+    limit 1
+  `;
   if (!user) return { status: 'error', message: 'Sign in again.' };
 
   if (!(await verifyPassword(parsed.data.currentPassword, user.passwordHash))) {
@@ -271,14 +295,19 @@ export async function changePassword(
   const passwordHash = await hashPassword(parsed.data.password);
   const now = new Date();
 
-  await prisma.$transaction(async (tx) => {
-    await tx.user.update({ where: { id: user.id }, data: { passwordHash } });
+  await withTransaction(async (tx) => {
+    await tx`
+      update "User"
+      set "passwordHash" = ${passwordHash}, "updatedAt" = now()
+      where id = ${user.id}
+    `;
     // Every session but this one. Changing a password should evict everybody
     // else without also evicting the person doing it.
-    await tx.authSession.updateMany({
-      where: { userId: user.id, revokedAt: null, id: { not: session.sessionId } },
-      data: { revokedAt: now },
-    });
+    await tx`
+      update "AuthSession"
+      set "revokedAt" = ${now}
+      where "userId" = ${user.id} and "revokedAt" is null and id <> ${session.sessionId}
+    `;
   });
 
   await sendPasswordChanged({ to: user.email, userId: user.id, when: now });
