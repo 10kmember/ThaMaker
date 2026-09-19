@@ -9,7 +9,8 @@ import { unsubscribeToken } from '@/lib/gazette-token';
 import { slugify } from '@/lib/utils';
 import { emailList, isEmailListKey, type EmailListKey } from '@/domain/email-lists';
 import { recordAudit } from '@/server/audit';
-import { prisma } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { sql } from '@/server/db/sql';
 import { featureLive } from '@/server/features';
 import { sendDispatchIssue } from '@/server/email/lists';
 
@@ -99,10 +100,9 @@ export async function sendDispatch(
 
   let sponsorName: string | null = null;
   if (sponsorId) {
-    const sponsor = await prisma.sponsor.findUnique({
-      where: { id: sponsorId },
-      select: { name: true, status: true },
-    });
+    const [sponsor] = await sql<{ name: string; status: string }[]>`
+      select name, status from "Sponsor" where id = ${sponsorId} limit 1
+    `;
     if (!sponsor) return { status: 'error', message: 'That sponsor does not exist.' };
     if (sponsor.status !== 'active') {
       return { status: 'error', message: 'That sponsor is not active.' };
@@ -110,36 +110,45 @@ export async function sendDispatch(
     sponsorName = sponsor.name;
   }
 
-  const subscribers = await prisma.emailSubscription.findMany({
-    where: { type, status: 'confirmed' },
-    select: { id: true, email: true },
-  });
+  const subscribers = await sql<{ id: string; email: string }[]>`
+    select id, email
+    from "EmailSubscription"
+    where type = ${type} and status = 'confirmed'
+  `;
 
   if (subscribers.length === 0) {
     return { status: 'error', message: `Nobody has confirmed a ${list.name} subscription yet.` };
   }
 
-  const previous = await prisma.dispatch.findFirst({
-    where: { type },
-    orderBy: { number: 'desc' },
-    select: { number: true },
-  });
+  const [previous] = await sql<{ number: number }[]>`
+    select number
+    from "Dispatch"
+    where type = ${type}
+    order by number desc
+    limit 1
+  `;
   const number = (previous?.number ?? 0) + 1;
 
-  const issue = await prisma.dispatch.create({
-    data: {
-      type,
-      number,
-      slug: `${type}-${number}-${slugify(parsed.data.subject).slice(0, 60)}`,
-      subject: parsed.data.subject,
-      standfirst: parsed.data.standfirst,
-      body: parsed.data.body,
-      linkLabel: parsed.data.linkLabel || null,
-      linkUrl: parsed.data.linkUrl || null,
-      sponsorId,
-      sentById: session.user.id,
-    },
-  });
+  const [issue] = await sql<{ id: string }[]>`
+    insert into "Dispatch" (
+      id, type, number, slug, subject, standfirst, body, "linkLabel", "linkUrl", "sponsorId", "sentById"
+    ) values (
+      ${createId()},
+      ${type},
+      ${number},
+      ${`${type}-${number}-${slugify(parsed.data.subject).slice(0, 60)}`},
+      ${parsed.data.subject},
+      ${parsed.data.standfirst},
+      ${parsed.data.body},
+      ${parsed.data.linkLabel || null},
+      ${parsed.data.linkUrl || null},
+      ${sponsorId},
+      ${session.user.id}
+    )
+    returning id
+  `;
+
+  if (!issue) return { status: 'error', message: 'The dispatch could not be recorded.' };
 
   let sent = 0;
   let failed = 0;
@@ -161,10 +170,11 @@ export async function sendDispatch(
     else failed += 1;
   }
 
-  await prisma.dispatch.update({
-    where: { id: issue.id },
-    data: { sentCount: sent, failedCount: failed },
-  });
+  await sql`
+    update "Dispatch"
+    set "sentCount" = ${sent}, "failedCount" = ${failed}
+    where id = ${issue.id}
+  `;
 
   await recordAudit({
     action: 'dispatch.sent',

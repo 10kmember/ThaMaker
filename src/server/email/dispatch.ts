@@ -1,5 +1,6 @@
 import 'server-only';
-import { prisma } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { sql } from '@/server/db/sql';
 import { sender, replyTo } from './addresses';
 import { sendEmail } from './resend';
 import { TEMPLATES, templateMeta, type TemplateKey } from './register';
@@ -52,33 +53,39 @@ export async function dispatch(input: DispatchInput): Promise<DispatchResult> {
   try {
     const suppression = await suppressedBecause(input.userId ?? null, input.template, input.to);
 
-    const delivery = await prisma.emailDelivery.create({
-      data: {
-        template: meta.key,
-        from,
-        to: input.to,
-        subject: input.subject,
-        status: suppression ? 'suppressed' : 'queued',
-        detail: suppression,
-        userId: input.userId ?? null,
-        creatorId: input.creatorId ?? null,
-      },
-      select: { id: true },
-    });
+    const [delivery] = await sql<{ id: string }[]>`
+      insert into "EmailDelivery" (
+        id, template, "from", "to", subject, status, detail, "userId", "creatorId"
+      ) values (
+        ${createId()},
+        ${meta.key},
+        ${from},
+        ${input.to},
+        ${input.subject},
+        ${suppression ? 'suppressed' : 'queued'},
+        ${suppression},
+        ${input.userId ?? null},
+        ${input.creatorId ?? null}
+      )
+      returning id
+    `;
 
     // The Dossier is written either way — that is the point of it.
     if (meta.dossier && input.userId && input.dossier) {
-      await prisma.notification.create({
-        data: {
-          userId: input.userId,
-          kind: meta.key,
-          subject: input.subject,
-          body: input.dossier.body,
-          href: input.dossier.href ?? null,
-          isImportant: meta.important ?? false,
-          sentAt: suppression ? null : new Date(),
-        },
-      });
+      await sql`
+        insert into "Notification" (
+          id, "userId", kind, subject, body, href, "isImportant", "sentAt"
+        ) values (
+          ${createId()},
+          ${input.userId},
+          ${meta.key},
+          ${input.subject},
+          ${input.dossier.body},
+          ${input.dossier.href ?? null},
+          ${meta.important ?? false},
+          ${suppression ? null : new Date()}
+        )
+      `;
     }
 
     if (suppression) return { status: 'suppressed', detail: suppression };
@@ -93,42 +100,39 @@ export async function dispatch(input: DispatchInput): Promise<DispatchResult> {
       unsubscribeUrl: input.unsubscribeUrl,
     });
 
+    if (!delivery) throw new Error('Email delivery insert returned no row.');
+
     if (!result.ok) {
-      await prisma.emailDelivery.update({
-        where: { id: delivery.id },
-        data: { status: 'failed', detail: result.error },
-      });
+      await sql`
+        update "EmailDelivery"
+        set status = 'failed', detail = ${result.error}
+        where id = ${delivery.id}
+      `;
       return { status: 'failed', detail: result.error };
     }
 
     // No provider configured in this environment: the message was written and
     // logged but nobody received it, and the record must not claim otherwise.
     if (!result.delivered) {
-      await prisma.emailDelivery.update({
-        where: { id: delivery.id },
-        data: {
-          status: 'suppressed',
-          detail: 'No mail provider is configured in this environment.',
-        },
-      });
+      await sql`
+        update "EmailDelivery"
+        set status = 'suppressed', detail = 'No mail provider is configured in this environment.'
+        where id = ${delivery.id}
+      `;
       return { status: 'suppressed', detail: 'No mail provider is configured.' };
     }
 
-    await prisma.emailDelivery.update({
-      where: { id: delivery.id },
-      data: {
-        status: 'sent',
-        providerId: result.id,
-        sentAt: new Date(),
-        // The `from` column records the voice PALMA wrote in. When the real
-        // domain is not yet verified the envelope carried a different sender,
-        // and the record should say so rather than imply the institution's own
-        // address was on it.
-        detail: result.sandboxed
+    await sql`
+      update "EmailDelivery"
+      set
+        status = 'sent',
+        "providerId" = ${result.id},
+        "sentAt" = ${new Date()},
+        detail = ${result.sandboxed
           ? 'Sent through the sandbox sender: the real domain is not yet verified with the provider.'
-          : null,
-      },
-    });
+          : null}
+      where id = ${delivery.id}
+    `;
 
     return { status: 'sent' };
   } catch (error) {
@@ -173,14 +177,35 @@ async function suppressedBecause(
 
   if (!userId) return null;
 
-  const prefs = await prisma.notificationPreference.findUnique({
-    where: { userId },
-    select: { [gate]: true } as Record<string, true>,
-  });
+  const preferenceGate = gate as
+    | 'seasonAnnouncements'
+    | 'nominationUpdates'
+    | 'honourAnnouncements'
+    | 'journalDigest';
+
+  let wanted: boolean | undefined;
+  if (preferenceGate === 'seasonAnnouncements') {
+    const [prefs] = await sql<{ seasonAnnouncements: boolean }[]>`
+      select "seasonAnnouncements" from "NotificationPreference" where "userId" = ${userId} limit 1
+    `;
+    wanted = prefs?.seasonAnnouncements;
+  } else if (preferenceGate === 'nominationUpdates') {
+    const [prefs] = await sql<{ nominationUpdates: boolean }[]>`
+      select "nominationUpdates" from "NotificationPreference" where "userId" = ${userId} limit 1
+    `;
+    wanted = prefs?.nominationUpdates;
+  } else if (preferenceGate === 'honourAnnouncements') {
+    const [prefs] = await sql<{ honourAnnouncements: boolean }[]>`
+      select "honourAnnouncements" from "NotificationPreference" where "userId" = ${userId} limit 1
+    `;
+    wanted = prefs?.honourAnnouncements;
+  } else {
+    const [prefs] = await sql<{ journalDigest: boolean }[]>`
+      select "journalDigest" from "NotificationPreference" where "userId" = ${userId} limit 1
+    `;
+    wanted = prefs?.journalDigest;
+  }
 
   // No row means the defaults, and every default except the Journal is on.
-  if (!prefs) return null;
-
-  const wanted = (prefs as unknown as Record<string, boolean | undefined>)[gate];
   return wanted === false ? `The recipient has switched off ${gate} in their Dossier.` : null;
 }
