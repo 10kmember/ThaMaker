@@ -1,5 +1,6 @@
 import 'server-only';
 import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
 import { prisma } from '@/server/db';
 import type { SeasonStage } from '@/domain/season';
 import { finalistsArePublic, winnersArePublic } from '@/domain/season';
@@ -38,9 +39,22 @@ import type {
 
 const iso = (value: Date | null | undefined) => (value ? value.toISOString() : null);
 
+/**
+ * Public read cache.
+ *
+ * React `cache` dedupes inside one render; `unstable_cache` carries the same
+ * public answer across requests and serverless isolates. These are all
+ * anonymous reads — no session, cookie or request header reaches this module.
+ */
+const publicData = <Args extends unknown[], Result>(
+  key: string,
+  read: (...args: Args) => Promise<Result>,
+  revalidate = 900,
+) => cache(unstable_cache(read, [`palma:${key}`], { revalidate }));
+
 // ── Seasons ──────────────────────────────────────────────────────────────────
 
-export const listSeasons = cache(async (): Promise<SeasonView[]> => {
+export const listSeasons = publicData('seasons', async (): Promise<SeasonView[]> => {
   const rows = await prisma.awardYear.findMany({
     orderBy: { year: 'desc' },
     include: { _count: { select: { categories: true } } },
@@ -75,7 +89,7 @@ export const getCurrentSeason = cache(async (): Promise<SeasonView> => {
 
 // ── Categories ───────────────────────────────────────────────────────────────
 
-export const listCategories = cache(async (year: number): Promise<CategoryView[]> => {
+export const listCategories = publicData('categories', async (year: number): Promise<CategoryView[]> => {
   const rows = await prisma.category.findMany({
     where: { awardYear: { year } },
     orderBy: { position: 'asc' },
@@ -143,7 +157,7 @@ export type CreatorFilter = {
   limit?: number;
 };
 
-export const listCreators = cache(async (filter: CreatorFilter = {}): Promise<CreatorSummary[]> => {
+export const listCreators = publicData('creators', async (filter: CreatorFilter = {}): Promise<CreatorSummary[]> => {
   const rows = await prisma.creator.findMany({
     where: {
       isPublished: true,
@@ -160,8 +174,15 @@ export const listCreators = cache(async (filter: CreatorFilter = {}): Promise<Cr
       ...(filter.honoursOnly ? { honours: { some: { state: 'active' } } } : {}),
     },
     take: filter.limit ?? 60,
-    include: {
-      verification: true,
+    select: {
+      id: true,
+      slug: true,
+      displayName: true,
+      countryCode: true,
+      headline: true,
+      portraitUrl: true,
+      portraitAlt: true,
+      verification: { select: { status: true } },
       honours: { where: { state: 'active' }, select: { kind: true } },
     },
     orderBy: { displayName: 'asc' },
@@ -225,17 +246,36 @@ export const getCreatorAchievement = cache(
   },
 );
 
-export const getCreator = cache(async (slug: string): Promise<CreatorProfile | null> => {
+export const getCreator = publicData('creator', async (slug: string): Promise<CreatorProfile | null> => {
   const row = await prisma.creator.findUnique({
     where: { slug },
-    include: {
-      verification: true,
-      links: { orderBy: { position: 'asc' } },
+    select: {
+      id: true,
+      slug: true,
+      displayName: true,
+      countryCode: true,
+      city: true,
+      pronouns: true,
+      headline: true,
+      biography: true,
+      portraitUrl: true,
+      portraitAlt: true,
+      websiteUrl: true,
+      isPublished: true,
+      userId: true,
+      verification: { select: { status: true } },
+      links: { orderBy: { position: 'asc' }, select: { label: true, url: true } },
       honours: {
-        include: {
-          category: true,
-          awardYear: true,
-          achievement: true,
+        select: {
+          id: true,
+          kind: true,
+          state: true,
+          citation: true,
+          announcedAt: true,
+          position: true,
+          category: { select: { name: true, slug: true } },
+          awardYear: { select: { year: true, stage: true } },
+          achievement: { select: { code: true } },
         },
         orderBy: { createdAt: 'desc' },
       },
@@ -302,14 +342,23 @@ type HonourRow = {
   announcedAt: string | null;
 };
 
-async function honourRows(year?: number, kind?: HonourEntry['kind']): Promise<HonourRow[]> {
+const honourRows = cache(async (year?: number, kind?: HonourEntry['kind']): Promise<HonourRow[]> => {
   const rows = await prisma.honour.findMany({
     where: {
       state: 'active',
       ...(kind ? { kind } : {}),
       awardYear: { ...(year ? { year } : {}) },
     },
-    include: { category: true, awardYear: true, creator: true, achievement: true },
+    select: {
+      kind: true,
+      citation: true,
+      position: true,
+      announcedAt: true,
+      awardYear: { select: { year: true, stage: true } },
+      category: { select: { name: true, slug: true } },
+      creator: { select: { slug: true } },
+      achievement: { select: { code: true } },
+    },
     orderBy: [{ position: 'asc' }],
   });
 
@@ -330,12 +379,12 @@ async function honourRows(year?: number, kind?: HonourEntry['kind']): Promise<Ho
       position: row.position,
       announcedAt: iso(row.announcedAt),
     }));
-}
+});
 
-async function creatorIndex(): Promise<Map<string, CreatorSummary>> {
+const creatorIndex = cache(async (): Promise<Map<string, CreatorSummary>> => {
   const all = await listCreators({ limit: 500 });
   return new Map(all.map((creator) => [creator.slug, creator]));
-}
+});
 
 /**
  * THE PALMA of a season, if it has been conferred.
@@ -345,7 +394,7 @@ async function creatorIndex(): Promise<Map<string, CreatorSummary>> {
  * wants it has to ask for it, which is what stops it being rendered through
  * the same loop as the twelve and coming out looking like the thirteenth.
  */
-export const getThePalma = cache(async (year: number): Promise<PalmaLaureate | null> => {
+export const getThePalma = publicData('the-palma', async (year: number): Promise<PalmaLaureate | null> => {
   const row = (await honourRows(year)).find((entry) => entry.kind === 'the_palma');
   if (!row) return null;
 
@@ -361,7 +410,8 @@ export const getThePalma = cache(async (year: number): Promise<PalmaLaureate | n
   };
 });
 
-export const getCategoryOutcome = cache(
+export const getCategoryOutcome = publicData(
+  'category-outcome',
   async (year: number, categorySlug: string): Promise<CategoryOutcome | null> => {
     const category = await getCategory(year, categorySlug);
     if (!category) return null;
@@ -394,7 +444,7 @@ export const getCategoryOutcome = cache(
   },
 );
 
-export const listSeasonOutcomes = cache(async (year: number): Promise<CategoryOutcome[]> => {
+export const listSeasonOutcomes = publicData('season-outcomes', async (year: number): Promise<CategoryOutcome[]> => {
   const categories = await listCategories(year);
   const outcomes = await Promise.all(
     categories.map((category) => getCategoryOutcome(year, category.slug)),
@@ -404,7 +454,8 @@ export const listSeasonOutcomes = cache(async (year: number): Promise<CategoryOu
 
 export type RollFilter = { year?: number; category?: string; country?: string; query?: string };
 
-export const getRollOfHonour = cache(
+export const getRollOfHonour = publicData(
+  'roll-of-honour',
   async (filter: RollFilter = {}): Promise<RollOfHonourYear[]> => {
     const rows = await honourRows(filter.year, 'winner');
     const index = await creatorIndex();
@@ -459,11 +510,23 @@ export const getRollOfHonour = cache(
 
     const years = [...byYear.values()];
     if (unfiltered) {
-      await Promise.all(
-        years.map(async (entry) => {
-          entry.laureate = await getThePalma(entry.year);
-        }),
+      const laureates = new Map(
+        (await honourRows(filter.year, 'the_palma')).map((row) => [row.year, row]),
       );
+      const index = await creatorIndex();
+      for (const entry of years) {
+        const row = laureates.get(entry.year);
+        const creator = row ? index.get(row.creatorSlug) : undefined;
+        entry.laureate = row && creator
+          ? {
+              year: entry.year,
+              creator,
+              citation: row.citation ?? '',
+              code: row.code,
+              announcedAt: row.announcedAt,
+            }
+          : null;
+      }
     }
 
     return years
@@ -475,7 +538,7 @@ export const getRollOfHonour = cache(
   },
 );
 
-export const listRecentHonours = cache(async (limit = 6) => {
+export const listRecentHonours = publicData('recent-honours', async (limit: number = 6) => {
   const rows = await honourRows();
   const index = await creatorIndex();
   return rows
@@ -498,7 +561,8 @@ export const listRecentHonours = cache(async (limit = 6) => {
 
 // ── Verification ─────────────────────────────────────────────────────────────
 
-export const getAchievementByCode = cache(
+export const getAchievementByCode = publicData(
+  'achievement-by-code',
   async (code: string): Promise<AchievementRecord | null> => {
     const row = await prisma.verificationRecord.findUnique({
       where: { code },
@@ -543,7 +607,8 @@ export const getAchievementByCode = cache(
 
 // ── Journal ──────────────────────────────────────────────────────────────────
 
-export const listArticles = cache(
+export const listArticles = publicData(
+  'articles',
   async (options: { category?: string; limit?: number } = {}): Promise<ArticleSummary[]> => {
     const rows = await prisma.article.findMany({
       where: {

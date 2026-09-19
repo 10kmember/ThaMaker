@@ -1,13 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import { Amatic_SC, Fraunces, Inter } from 'next/font/google';
-import { headers } from 'next/headers';
-import { SiteHeader } from '@/components/palma/SiteHeader';
-import { SiteFooter } from '@/components/palma/SiteFooter';
-import { PageCounter } from '@/components/palma/PageCounter';
-import { Threshold } from '@/components/brand/Threshold';
 import { MotionProvider } from '@/components/motion/MotionProvider';
 import { THEME_BOOTSTRAP } from '@/lib/theme';
-import { JsonLd, organisationJsonLd, SITE_DESCRIPTOR, SITE_NAME } from '@/lib/seo';
+import { organisationJsonLd, SITE_DESCRIPTOR, SITE_NAME, JsonLd } from '@/lib/seo';
 import { siteUrl } from '@/lib/env';
 import './globals.css';
 import { ENTITY } from '@/lib/legal';
@@ -80,21 +75,13 @@ export const viewport: Viewport = {
 };
 
 /**
- * Surfaces that carry their own furniture.
+ * The root stays static.
  *
- * An operator's dashboard has no business wearing the public site's marketing
- * navigation: "Nominate a creator" above a judging room is noise, and the
- * footer's full sitemap under an audit log is worse. These surfaces bring
- * their own shell, so the root layout stands back.
+ * Reading `headers()` here opts every page into dynamic rendering, including
+ * the public record that should be cached at the edge. Public chrome lives in
+ * `(public)/layout.tsx`; the desks and rooms bring their own shells.
  */
-const SELF_CONTAINED = ['/admin', '/portal', '/judge', '/creator'];
-
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const pathname = (await headers()).get('x-palma-pathname') ?? '/';
-  const chrome = !SELF_CONTAINED.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
-  );
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en-GB" className={`${display.variable} ${sans.variable} ${annotation.variable}`}>
       <head>
@@ -103,24 +90,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
       </head>
       <body className="flex min-h-dvh flex-col">
-        <a
-          href="#main"
-          className="palma-label focus:bg-ink focus:text-ivory sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-3"
-        >
-          Skip to content
-        </a>
-        {/* Parts on arrival. Pure CSS, in the markup, gone in 820ms. */}
-        {chrome ? <Threshold /> : null}
-        <MotionProvider>
-          {chrome ? <SiteHeader /> : null}
-          <main id="main" className="flex-1">
-            {children}
-          </main>
-          {chrome ? <SiteFooter /> : null}
-        </MotionProvider>
-        {/* Counts the page. Sets nothing, stores nothing, sends nothing about
-            the reader. See src/domain/measurement.ts. */}
-        {chrome ? <PageCounter /> : null}
+        <MotionProvider>{children}</MotionProvider>
         <JsonLd data={organisationJsonLd()} />
       </body>
     </html>

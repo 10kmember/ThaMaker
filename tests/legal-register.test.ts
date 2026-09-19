@@ -12,7 +12,7 @@ import { LEGAL_NAV } from '@/lib/navigation';
  * a 404 is worse than no link at all.
  */
 
-const appRoot = fileURLToPath(new URL('../src/app', import.meta.url));
+const appRoot = fileURLToPath(new URL('../src/app/(public)', import.meta.url));
 
 describe('the legal register', () => {
   it('has a page for every registered document', () => {
@@ -113,7 +113,7 @@ describe('the parent company', () => {
       '../src/app/layout.tsx',
       '../src/lib/seo.tsx',
       '../src/app/llms.txt/route.ts',
-      '../src/app/legal/page.tsx',
+      '../src/app/(public)/legal/page.tsx',
     ];
     for (const file of surfaces) {
       const body = readFileSync(join(here, file), 'utf8');

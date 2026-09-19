@@ -148,7 +148,10 @@ describe('the verification surfaces handle every kind of honour', () => {
   const read = (file: string) =>
     readFileSync(join(fileURLToPath(new URL('.', import.meta.url)), '..', file), 'utf8');
 
-  const surfaces = ['src/app/verify/[code]/page.tsx', 'src/app/verify/[code]/opengraph-image.tsx'];
+  const surfaces = [
+    'src/app/(public)/verify/[code]/page.tsx',
+    'src/app/(public)/verify/[code]/opengraph-image.tsx',
+  ];
 
   it('never treats "not a winner" as "finalist" without asking about THE PALMA', () => {
     for (const file of surfaces) {
@@ -170,7 +173,7 @@ describe('the verification surfaces handle every kind of honour', () => {
 
   it('does not name THE PALMA twice by printing it as its own category', () => {
     // "Verified PALMA record: Jordan Smith, THE PALMA, THE PALMA, PALMA 2026."
-    const body = read('src/app/verify/[code]/page.tsx');
+    const body = read('src/app/(public)/verify/[code]/page.tsx');
     expect(body).toContain('isThePalma(record.kind)');
   });
 });
