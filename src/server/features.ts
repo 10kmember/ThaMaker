@@ -1,6 +1,6 @@
 import 'server-only';
 import { cache } from 'react';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import {
   FEATURE_LIST,
   feature,
@@ -43,16 +43,10 @@ function toState(row: Row | undefined): FeatureState | null {
 
 const loadSettings = cache(async (): Promise<Row[]> => {
   try {
-    return await prisma.featureSetting.findMany({
-      select: {
-        key: true,
-        awardYearId: true,
-        enabled: true,
-        launchAt: true,
-        endAt: true,
-        config: true,
-      },
-    });
+    return await sql<Row[]>`
+      select key, "awardYearId", enabled, "launchAt", "endAt", config
+      from "FeatureSetting"
+    `;
   } catch {
     // A commercial feature failing closed is correct. A page that cannot read
     // the settings shows the institution, not the shop.
@@ -129,27 +123,32 @@ export async function featureConfig(
 export async function seasonOverrides(
   key: FeatureKey,
 ): Promise<{ awardYearId: string; year: number; title: string; state: FeatureState }[]> {
-  const rows = await prisma.featureSetting.findMany({
-    where: { key, awardYearId: { not: null } },
-    include: { awardYear: { select: { id: true, year: true, title: true } } },
-    orderBy: { awardYear: { year: 'desc' } },
-  });
+  type OverrideRow = Row & { awardYearId: string; year: number; title: string };
+  const rows = await sql<OverrideRow[]>`
+    select
+      f.key,
+      f."awardYearId",
+      f.enabled,
+      f."launchAt",
+      f."endAt",
+      f.config,
+      y.year,
+      y.title
+    from "FeatureSetting" f
+    join "AwardYear" y on y.id = f."awardYearId"
+    where f.key = ${key} and f."awardYearId" is not null
+    order by y.year desc
+  `;
 
-  return rows.flatMap((row) =>
-    row.awardYear
-      ? [
-          {
-            awardYearId: row.awardYear.id,
-            year: row.awardYear.year,
-            title: row.awardYear.title,
-            state: {
-              enabled: row.enabled,
-              launchAt: row.launchAt?.toISOString() ?? null,
-              endAt: row.endAt?.toISOString() ?? null,
-              config: (row.config as Record<string, unknown> | null) ?? null,
-            },
-          },
-        ]
-      : [],
-  );
+  return rows.map((row) => ({
+    awardYearId: row.awardYearId,
+    year: row.year,
+    title: row.title,
+    state: {
+      enabled: row.enabled,
+      launchAt: row.launchAt?.toISOString() ?? null,
+      endAt: row.endAt?.toISOString() ?? null,
+      config: (row.config as Record<string, unknown> | null) ?? null,
+    },
+  }));
 }

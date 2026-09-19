@@ -15,6 +15,8 @@ import {
   sendPasswordReset,
 } from '@/server/email/messages';
 import { requireDb } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { withTransaction } from '@/server/db/sql';
 import { issuePasswordSetToken } from '@/server/actions/password';
 import { INVITE_TTL_MS, RESET_TTL_MS } from '@/domain/password-tokens';
 
@@ -466,36 +468,40 @@ export async function inviteOperator(
     return { status: 'error', message: 'That address already has a PALMA account.' };
   }
 
-  const { user, token } = await db.$transaction(async (tx) => {
+  const { user, token } = await withTransaction(async (tx) => {
     // A password nobody will ever type. `hashPassword` runs on a value that
     // is thrown away immediately, so the stored hash matches no string
     // anyone will ever enter — the account is real from the moment it is
     // created, and unusable until the invite link sets a real one.
     const passwordHash = await hashPassword(randomToken(32));
+    const userId = createId();
 
-    const created = await tx.user.create({
-      data: {
-        name,
-        email,
-        passwordHash,
-        role,
-        notificationPrefs: { create: {} },
-      },
-    });
+    const [created] = await tx<{ id: string; name: string; email: string; role: Role }[]>`
+      insert into "User" (id, name, email, "passwordHash", role)
+      values (${userId}, ${name}, ${email}, ${passwordHash}, ${role})
+      returning id, name, email, role
+    `;
+
+    await tx`
+      insert into "NotificationPreference" (id, "userId")
+      values (${createId()}, ${userId})
+    `;
 
     if (role === 'judge') {
-      await tx.judge.create({
-        data: {
-          userId: created.id,
-          displayName: judgeDisplayName!.trim(),
-          title: judgeTitle?.trim() || null,
-          organisation: judgeOrganisation?.trim() || null,
-        },
-      });
+      await tx`
+        insert into "Judge" (id, "userId", "displayName", title, organisation)
+        values (
+          ${createId()},
+          ${userId},
+          ${judgeDisplayName!.trim()},
+          ${judgeTitle?.trim() || null},
+          ${judgeOrganisation?.trim() || null}
+        )
+      `;
     }
 
-    const setToken = await issuePasswordSetToken(tx, created.id, INVITE_TTL_MS);
-    return { user: created, token: setToken };
+    const setToken = await issuePasswordSetToken(tx, userId, INVITE_TTL_MS);
+    return { user: created!, token: setToken };
   });
 
   const entrance = entranceForRole(role);
@@ -572,7 +578,7 @@ export async function issueOperatorPasswordReset(
     return { status: 'error', message: 'Only a super administrator can do that.' };
   }
 
-  const token = await db.$transaction((tx) => issuePasswordSetToken(tx, user.id, RESET_TTL_MS));
+  const token = await withTransaction((tx) => issuePasswordSetToken(tx, user.id, RESET_TTL_MS));
 
   await sendPasswordReset({ to: user.email, userId: user.id, url: `${siteUrl}/reset/${token}` });
 

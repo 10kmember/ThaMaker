@@ -1,6 +1,6 @@
 import 'server-only';
-import { prisma } from '@/server/db';
 import { env } from '@/lib/env';
+import { sql } from '@/server/db/sql';
 
 /**
  * Settings an administrator throws at runtime.
@@ -35,10 +35,13 @@ export type VerificationConfig = {
 async function readSetting(
   key: string,
 ): Promise<{ value: string; updatedAt: Date; updatedById: string | null } | null> {
-  return prisma.systemSetting.findUnique({
-    where: { key },
-    select: { value: true, updatedAt: true, updatedById: true },
-  });
+  const [row] = await sql<{ value: string; updatedAt: Date; updatedById: string | null }[]>`
+    select value, "updatedAt", "updatedById"
+    from "SystemSetting"
+    where key = ${key}
+    limit 1
+  `;
+  return row ?? null;
 }
 
 /**
@@ -60,10 +63,9 @@ export async function getVerificationConfig(): Promise<VerificationConfig> {
 
   let updatedBy: string | null = null;
   if (row?.updatedById) {
-    const actor = await prisma.user.findUnique({
-      where: { id: row.updatedById },
-      select: { email: true },
-    });
+    const [actor] = await sql<{ email: string }[]>`
+      select email from "User" where id = ${row.updatedById} limit 1
+    `;
     updatedBy = actor?.email ?? null;
   }
 
@@ -79,11 +81,13 @@ export async function getVerificationConfig(): Promise<VerificationConfig> {
 }
 
 export async function setSetting(key: string, value: string, actorId: string): Promise<void> {
-  await prisma.systemSetting.upsert({
-    where: { key },
-    create: { key, value, updatedById: actorId },
-    update: { value, updatedById: actorId },
-  });
+  await sql`
+    insert into "SystemSetting" (key, value, "updatedById")
+    values (${key}, ${value}, ${actorId})
+    on conflict (key) do update set
+      value = excluded.value,
+      "updatedById" = excluded."updatedById"
+  `;
 }
 
 /**
