@@ -8,7 +8,8 @@ import { slugify } from '@/lib/utils';
 import { feature, isFeatureKey } from '@/domain/features';
 import { placement as placementRule, placementTargetIsValid } from '@/domain/sponsorship';
 import { recordAudit } from '@/server/audit';
-import { prisma } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { sql } from '@/server/db/sql';
 
 /**
  * Throwing a switch, and writing down that somebody threw it.
@@ -81,14 +82,18 @@ export async function setFeature(
     };
   }
 
-  // findFirst rather than findUnique on the compound key: awardYearId is
+  // `is not distinct from` rather than `=` on the compound key: awardYearId is
   // nullable, and Postgres treats NULLs as distinct in a unique index — so the
   // constraint does not actually prevent a second global row, and the write
   // below has to be the thing that does.
-  const before = await prisma.featureSetting.findFirst({
-    where: { key: entry.key, awardYearId },
-    select: { id: true, enabled: true, launchAt: true, endAt: true },
-  });
+  const [before] = await sql<
+    { id: string; enabled: boolean; launchAt: Date | null; endAt: Date | null }[]
+  >`
+    select id, enabled, "launchAt", "endAt"
+    from "FeatureSetting"
+    where key = ${entry.key} and "awardYearId" is not distinct from ${awardYearId}
+    limit 1
+  `;
 
   const data = {
     enabled: parsed.data.enabled,
@@ -108,13 +113,38 @@ export async function setFeature(
   }
 
   if (before) {
-    await prisma.featureSetting.update({ where: { id: before.id }, data });
+    await sql`
+      update "FeatureSetting"
+      set
+        enabled = ${data.enabled},
+        "launchAt" = ${data.launchAt},
+        "endAt" = ${data.endAt},
+        "updatedById" = ${data.updatedById}
+      where id = ${before.id}
+    `;
   } else {
-    await prisma.featureSetting.create({ data: { key: entry.key, awardYearId, ...data } });
+    await sql`
+      insert into "FeatureSetting" (
+        id, key, "awardYearId", enabled, "launchAt", "endAt", "updatedById"
+      )
+      values (
+        ${createId()},
+        ${entry.key},
+        ${awardYearId},
+        ${data.enabled},
+        ${data.launchAt},
+        ${data.endAt},
+        ${data.updatedById}
+      )
+    `;
   }
 
   const season = awardYearId
-    ? await prisma.awardYear.findUnique({ where: { id: awardYearId }, select: { title: true } })
+    ? (
+        await sql<{ title: string }[]>`
+          select title from "AwardYear" where id = ${awardYearId} limit 1
+        `
+      )[0]
     : null;
 
   await recordAudit({
@@ -207,25 +237,71 @@ export async function saveSponsor(
   };
 
   const existing = parsed.data.sponsorId
-    ? await prisma.sponsor.findUnique({
-        where: { id: parsed.data.sponsorId },
-        select: { id: true, name: true, status: true, agreementStatus: true },
-      })
+    ? (
+        await sql<{ id: string; name: string; status: string; agreementStatus: string }[]>`
+          select id, name, status, "agreementStatus"
+          from "Sponsor"
+          where id = ${parsed.data.sponsorId}
+          limit 1
+        `
+      )[0]
     : null;
 
   let sponsorId: string;
 
   if (existing) {
-    await prisma.sponsor.update({ where: { id: existing.id }, data });
+    await sql`
+      update "Sponsor"
+      set
+        name = ${data.name},
+        "legalName" = ${data.legalName},
+        "websiteUrl" = ${data.websiteUrl},
+        summary = ${data.summary},
+        status = ${data.status},
+        "agreementStatus" = ${data.agreementStatus},
+        "contactName" = ${data.contactName},
+        "contactEmail" = ${data.contactEmail},
+        "internalNotes" = ${data.internalNotes},
+        "isActive" = ${data.isActive}
+      where id = ${existing.id}
+    `;
     sponsorId = existing.id;
   } else {
     const base = slugify(parsed.data.name);
     let slug = base;
-    for (let attempt = 2; await prisma.sponsor.findUnique({ where: { slug } }); attempt += 1) {
+    for (
+      let attempt = 2;
+      (
+        await sql<{ id: string }[]>`
+          select id from "Sponsor" where slug = ${slug} limit 1
+        `
+      ).length > 0;
+      attempt += 1
+    ) {
       slug = `${base}-${attempt}`;
     }
-    const created = await prisma.sponsor.create({ data: { ...data, slug } });
-    sponsorId = created.id;
+    const [created] = await sql<{ id: string }[]>`
+      insert into "Sponsor" (
+        id, slug, name, "legalName", "websiteUrl", summary, status,
+        "agreementStatus", "contactName", "contactEmail", "internalNotes", "isActive"
+      )
+      values (
+        ${createId()},
+        ${slug},
+        ${data.name},
+        ${data.legalName},
+        ${data.websiteUrl},
+        ${data.summary},
+        ${data.status},
+        ${data.agreementStatus},
+        ${data.contactName},
+        ${data.contactEmail},
+        ${data.internalNotes},
+        ${data.isActive}
+      )
+      returning id
+    `;
+    sponsorId = created!.id;
   }
 
   await recordAudit({
@@ -316,29 +392,67 @@ export async function savePackage(
   };
 
   const existing = parsed.data.packageId
-    ? await prisma.sponsorshipPackage.findUnique({
-        where: { id: parsed.data.packageId },
-        select: { id: true, priceMinor: true, name: true },
-      })
+    ? (
+        await sql<{ id: string; priceMinor: number; name: string }[]>`
+          select id, "priceMinor", name
+          from "SponsorshipPackage"
+          where id = ${parsed.data.packageId}
+          limit 1
+        `
+      )[0]
     : null;
 
   let packageId: string;
 
   if (existing) {
-    await prisma.sponsorshipPackage.update({ where: { id: existing.id }, data });
+    await sql`
+      update "SponsorshipPackage"
+      set
+        name = ${data.name},
+        description = ${data.description},
+        "priceMinor" = ${data.priceMinor},
+        currency = ${data.currency},
+        duration = ${data.duration},
+        benefits = ${data.benefits},
+        "maxQuantity" = ${data.maxQuantity},
+        "isAvailable" = ${data.isAvailable}
+      where id = ${existing.id}
+    `;
     packageId = existing.id;
   } else {
     const base = slugify(parsed.data.name);
     let slug = base;
     for (
       let attempt = 2;
-      await prisma.sponsorshipPackage.findUnique({ where: { slug } });
+      (
+        await sql<{ id: string }[]>`
+          select id from "SponsorshipPackage" where slug = ${slug} limit 1
+        `
+      ).length > 0;
       attempt += 1
     ) {
       slug = `${base}-${attempt}`;
     }
-    const created = await prisma.sponsorshipPackage.create({ data: { ...data, slug } });
-    packageId = created.id;
+    const [created] = await sql<{ id: string }[]>`
+      insert into "SponsorshipPackage" (
+        id, slug, name, description, "priceMinor", currency, duration,
+        benefits, "maxQuantity", "isAvailable"
+      )
+      values (
+        ${createId()},
+        ${slug},
+        ${data.name},
+        ${data.description},
+        ${data.priceMinor},
+        ${data.currency},
+        ${data.duration},
+        ${data.benefits},
+        ${data.maxQuantity},
+        ${data.isAvailable}
+      )
+      returning id
+    `;
+    packageId = created!.id;
   }
 
   await recordAudit({
@@ -418,10 +532,14 @@ export async function assignPlacement(
     };
   }
 
-  const sponsor = await prisma.sponsor.findUnique({
-    where: { id: parsed.data.sponsorId },
-    select: { id: true, name: true, status: true, agreementStatus: true },
-  });
+  const [sponsor] = await sql<
+    { id: string; name: string; status: string; agreementStatus: string }[]
+  >`
+    select id, name, status, "agreementStatus"
+    from "Sponsor"
+    where id = ${parsed.data.sponsorId}
+    limit 1
+  `;
 
   if (!sponsor) return { status: 'error', message: 'That sponsor does not exist.' };
 
@@ -434,36 +552,46 @@ export async function assignPlacement(
     };
   }
 
-  const existing = await prisma.sponsorship.findFirst({
-    where: {
-      sponsorId: sponsor.id,
-      awardYearId: parsed.data.awardYearId,
-      placement: parsed.data.placement,
-      ...target,
-    },
-    select: { id: true },
-  });
+  const [existing] = await sql<{ id: string }[]>`
+    select id
+    from "Sponsorship"
+    where
+      "sponsorId" = ${sponsor.id}
+      and "awardYearId" = ${parsed.data.awardYearId}
+      and placement = ${parsed.data.placement}
+      and "categoryId" is not distinct from ${target.categoryId}
+      and "eventId" is not distinct from ${target.eventId}
+      and "articleId" is not distinct from ${target.articleId}
+    limit 1
+  `;
 
   if (existing) {
     return { status: 'error', message: 'That placement already exists.' };
   }
 
-  const created = await prisma.sponsorship.create({
-    data: {
-      sponsorId: sponsor.id,
-      awardYearId: parsed.data.awardYearId,
-      placement: parsed.data.placement,
-      ...target,
-      attribution: parsed.data.attribution || null,
-      // Proposed, not live. Administration approves.
-      isApproved: false,
-    },
-  });
+  const [created] = await sql<{ id: string }[]>`
+    insert into "Sponsorship" (
+      id, "sponsorId", "awardYearId", placement, "categoryId", "eventId",
+      "articleId", attribution, "isApproved"
+    )
+    values (
+      ${createId()},
+      ${sponsor.id},
+      ${parsed.data.awardYearId},
+      ${parsed.data.placement},
+      ${target.categoryId},
+      ${target.eventId},
+      ${target.articleId},
+      ${parsed.data.attribution || null},
+      ${false}
+    )
+    returning id
+  `;
 
   await recordAudit({
     action: 'commercial.sponsorship_assigned',
     entityType: 'Sponsorship',
-    entityId: created.id,
+    entityId: created!.id,
     actor: { id: session.user.id, role: session.user.role, label: session.user.email },
     summary: `${sponsor.name} proposed as ${placementRule(parsed.data.placement).name.toLowerCase()}`,
     after: { placement: parsed.data.placement, ...target },
@@ -495,31 +623,49 @@ export async function decidePlacement(
   const id = String(formData.get('sponsorshipId') ?? '');
   const decision = String(formData.get('decision') ?? '');
 
-  const sponsorship = await prisma.sponsorship.findUnique({
-    where: { id },
-    include: {
-      sponsor: { select: { name: true } },
-      category: { select: { name: true, slug: true } },
-      awardYear: { select: { id: true, title: true } },
-    },
-  });
+  const [sponsorship] = await sql<
+    {
+      id: string;
+      sponsorName: string;
+      categoryName: string | null;
+      categorySlug: string | null;
+      awardYearTitle: string;
+    }[]
+  >`
+    select
+      s.id,
+      sponsor.name as "sponsorName",
+      category.name as "categoryName",
+      category.slug as "categorySlug",
+      "awardYear".title as "awardYearTitle"
+    from "Sponsorship" s
+    join "Sponsor" sponsor on sponsor.id = s."sponsorId"
+    left join "Category" category on category.id = s."categoryId"
+    join "AwardYear" "awardYear" on "awardYear".id = s."awardYearId"
+    where s.id = ${id}
+    limit 1
+  `;
 
   if (!sponsorship) return { status: 'error', message: 'That placement does not exist.' };
 
+  const placedOn = sponsorship.categoryName ?? sponsorship.awardYearTitle;
+
   if (decision === 'remove') {
-    await prisma.sponsorship.delete({ where: { id } });
+    await sql`
+      delete from "Sponsorship" where id = ${id}
+    `;
 
     await recordAudit({
       action: 'commercial.sponsorship_removed',
       entityType: 'Sponsorship',
       entityId: id,
       actor: { id: session.user.id, role: session.user.role, label: session.user.email },
-      summary: `${sponsorship.sponsor.name} removed from ${sponsorship.category?.name ?? sponsorship.awardYear.title}`,
+      summary: `${sponsorship.sponsorName} removed from ${placedOn}`,
     });
 
     revalidatePath('/portal/sponsorships');
     revalidatePath('/admin/business');
-    if (sponsorship.category) revalidatePath(`/categories/${sponsorship.category.slug}`);
+    if (sponsorship.categorySlug) revalidatePath(`/categories/${sponsorship.categorySlug}`);
 
     return { status: 'success', message: 'Removed. The attribution is gone from every page.' };
   }
@@ -528,24 +674,28 @@ export async function decidePlacement(
     return { status: 'error', message: 'Choose approve or remove.' };
   }
 
-  await prisma.sponsorship.update({
-    where: { id },
-    data: { isApproved: true, approvedById: session.user.id, approvedAt: new Date() },
-  });
+  await sql`
+    update "Sponsorship"
+    set
+      "isApproved" = ${true},
+      "approvedById" = ${session.user.id},
+      "approvedAt" = ${new Date()}
+    where id = ${id}
+  `;
 
   await recordAudit({
     action: 'commercial.sponsorship_assigned',
     entityType: 'Sponsorship',
     entityId: id,
     actor: { id: session.user.id, role: session.user.role, label: session.user.email },
-    summary: `${sponsorship.sponsor.name} approved on ${sponsorship.category?.name ?? sponsorship.awardYear.title}`,
+    summary: `${sponsorship.sponsorName} approved on ${placedOn}`,
     after: { isApproved: true },
   });
 
   revalidatePath('/portal/sponsorships');
   revalidatePath('/admin/business');
   revalidatePath('/categories');
-  if (sponsorship.category) revalidatePath(`/categories/${sponsorship.category.slug}`);
+  if (sponsorship.categorySlug) revalidatePath(`/categories/${sponsorship.categorySlug}`);
 
   return {
     status: 'success',
