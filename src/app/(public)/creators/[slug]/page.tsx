@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Plus } from 'lucide-react';
 import { Container, Section } from '@/components/palma/layout';
 import { EditorialImage } from '@/components/palma/EditorialImage';
 import { VerificationBadge, AchievementBadge } from '@/components/palma/badges';
@@ -15,7 +15,8 @@ import { countryName } from '@/lib/format';
 import { pluralise } from '@/lib/utils';
 import { getCreator, listCreators } from '@/server/data/queries';
 import { achievementSlug } from '@/domain/honours';
-import { fillCreatorSlots } from '@/domain/creator-slots';
+import { fillCreatorSlots, isPlaceholderUrl } from '@/domain/creator-slots';
+import type { HonourEntry } from '@/server/data/types';
 
 export const revalidate = 900;
 
@@ -67,6 +68,44 @@ export default async function CreatorPage({ params }: Params) {
   const wins = active.filter((entry) => entry.kind === 'winner');
   const profileUrl = absoluteUrl(`/creators/${creator.slug}`);
   const { slots, rest } = fillCreatorSlots(creator.links);
+
+  // Repeat honours in one category across seasons collapse into a single
+  // "N-time" row: two years of the same win are one fact about the record,
+  // not two near-identical rows saying it. `active` arrives newest-first, so
+  // every group leads with its most recent conferral. The seasons themselves,
+  // with their codes, stay in the drawers below.
+  const honourGroups: {
+    kind: HonourEntry['kind'];
+    categorySlug: string;
+    categoryName: string;
+    entries: HonourEntry[];
+  }[] = [];
+  for (const entry of active) {
+    const group = honourGroups.find(
+      (candidate) => candidate.kind === entry.kind && candidate.categorySlug === entry.categorySlug,
+    );
+    if (group) group.entries.push(entry);
+    else
+      honourGroups.push({
+        kind: entry.kind,
+        categorySlug: entry.categorySlug,
+        categoryName: entry.categoryName,
+        entries: [entry],
+      });
+  }
+
+  // The per-season record the collapsed rows summarise. Drawers, closed by
+  // default, so a long career does not stretch the page.
+  const honourYears = [...new Set(active.map((entry) => entry.year))].sort((a, b) => b - a);
+
+  // The sidebar names the wins the same way the record does.
+  const winLines = honourGroups
+    .filter((group) => group.kind === 'winner')
+    .map((group) =>
+      group.entries.length > 1
+        ? `${group.entries.length}-time ${group.categoryName}`
+        : `${group.categoryName}, ${group.entries[0]!.year}`,
+    );
 
   return (
     <>
@@ -121,24 +160,35 @@ export default async function CreatorPage({ params }: Params) {
                 <p className="text-taupe-deep max-w-140 leading-relaxed">{creator.biography}</p>
               ) : null}
 
-              {/* The two slots first, always, filled or not, then anything
-                  else the creator added. */}
+              {/* The Channel slot first, always, filled or not, then anything
+                  else the creator added. A seeded placeholder address stays in
+                  the family: it links to PALMA's own holding page rather than
+                  sending a reader to example.com. */}
               <ul className="flex flex-wrap gap-x-4 gap-y-3">
                 {slots.map(({ slot, link }) => (
                   <li key={slot.key} className="flex items-center gap-1">
                     {link ? (
-                      <>
-                        <a
-                          href={link.url}
-                          rel="nofollow noopener noreferrer"
-                          target="_blank"
+                      isPlaceholderUrl(link.url) ? (
+                        <Link
+                          href={`/creators/${creator.slug}/channel`}
                           className="palma-label border-stone-deep text-taupe-deep hover:border-ink hover:text-ink inline-flex items-center gap-2 border-b pb-1 transition-colors"
                         >
                           {slot.label}
-                          <ExternalLink className="size-3.5" aria-hidden="true" />
-                        </a>
-                        <CopyMark value={link.url} label={`Copy the ${slot.label} link`} />
-                      </>
+                        </Link>
+                      ) : (
+                        <>
+                          <a
+                            href={link.url}
+                            rel="nofollow noopener noreferrer"
+                            target="_blank"
+                            className="palma-label border-stone-deep text-taupe-deep hover:border-ink hover:text-ink inline-flex items-center gap-2 border-b pb-1 transition-colors"
+                          >
+                            {slot.label}
+                            <ExternalLink className="size-3.5" aria-hidden="true" />
+                          </a>
+                          <CopyMark value={link.url} label={`Copy the ${slot.label} link`} />
+                        </>
+                      )
                     ) : (
                       <span
                         className="palma-label text-taupe border-stone-deep/60 inline-flex items-center gap-2 border-b border-dashed pb-1"
@@ -253,52 +303,105 @@ export default async function CreatorPage({ params }: Params) {
                   }
                 />
               ) : (
-                <RevealGroup as="ul" className="mt-2">
-                  {active.map((entry) => (
-                    <RevealItem
-                      as="li"
-                      key={entry.id}
-                      className="border-stone-deep flex flex-col gap-4 border-b py-7 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <AchievementBadge
-                        kind={entry.kind}
-                        year={entry.year}
-                        categoryName={entry.categoryName}
-                        revoked={entry.state === 'revoked'}
-                      />
-                      <div className="flex shrink-0 items-center gap-3 pl-7.5 sm:pl-0">
-                        {/* This honour on its own, for citing one specifically.
-                            The link a creator hands out is /c/{slug}, which is
-                            one address for the person rather than one per
-                            honour, and it sits above the list. */}
-                        <Link
-                          href={`/creators/${creator.slug}/${achievementSlug(
-                            entry.kind,
-                            entry.categorySlug,
-                            entry.year,
-                          )}`}
-                          className="palma-label text-taupe-deep hover:text-ink transition-colors"
-                        >
-                          This honour
-                        </Link>
-                        <Link
-                          href={`/categories/${entry.categorySlug}?year=${entry.year}`}
-                          className="palma-label text-taupe-deep hover:text-ink transition-colors"
-                        >
-                          Category
-                        </Link>
-                        {entry.code ? (
-                          <Link
-                            href={`/verify/${entry.code}`}
-                            className="palma-label text-olive hover:text-ink transition-colors"
+                <>
+                  {/* The summary: one row per honour held, with repeats in a
+                      category collapsed. The drawers below carry the seasons,
+                      the individual honours and their codes. */}
+                  <RevealGroup as="ul" className="mt-2">
+                    {honourGroups.map((group) => (
+                      <RevealItem
+                        as="li"
+                        key={`${group.kind}-${group.categorySlug}`}
+                        className="border-stone-deep border-b py-7"
+                      >
+                        <AchievementBadge
+                          kind={group.kind}
+                          year={group.entries[0]!.year}
+                          categoryName={group.categoryName}
+                          times={group.entries.length}
+                          revoked={group.entries[0]!.state === 'revoked'}
+                        />
+                      </RevealItem>
+                    ))}
+                  </RevealGroup>
+
+                  <div className="mt-10">
+                    <span className="palma-label text-taupe-deep">By season</span>
+                    <div className="border-stone-deep mt-4 flex flex-col border-t">
+                      {honourYears.map((year, index) => {
+                        const entries = active.filter((entry) => entry.year === year);
+                        return (
+                          <details
+                            key={year}
+                            open={index === 0}
+                            className="group border-stone-deep border-b"
                           >
-                            Verify
-                          </Link>
-                        ) : null}
-                      </div>
-                    </RevealItem>
-                  ))}
-                </RevealGroup>
+                            <summary className="flex cursor-pointer list-none items-baseline justify-between gap-6 py-5 [&::-webkit-details-marker]:hidden">
+                              <span className="font-display text-xl leading-none">
+                                PALMA {year}
+                              </span>
+                              <span className="flex shrink-0 items-center gap-3">
+                                <span className="palma-label text-taupe-deep">
+                                  {entries.length} {pluralise(entries.length, 'honour')}
+                                </span>
+                                <Plus
+                                  className="text-taupe-deep size-4 transition-transform group-open:rotate-45"
+                                  aria-hidden="true"
+                                />
+                              </span>
+                            </summary>
+                            <ul className="divide-stone-deep/60 flex flex-col divide-y">
+                              {entries.map((entry) => (
+                                <li
+                                  key={entry.id}
+                                  className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between"
+                                >
+                                  <AchievementBadge
+                                    kind={entry.kind}
+                                    year={entry.year}
+                                    categoryName={entry.categoryName}
+                                    revoked={entry.state === 'revoked'}
+                                  />
+                                  <div className="flex shrink-0 items-center gap-3 pl-7.5 sm:pl-0">
+                                    {/* This honour on its own, for citing one
+                                        specifically. The link a creator hands
+                                        out is /c/{slug}, one address for the
+                                        person rather than one per honour, and
+                                        it sits above the list. */}
+                                    <Link
+                                      href={`/creators/${creator.slug}/${achievementSlug(
+                                        entry.kind,
+                                        entry.categorySlug,
+                                        entry.year,
+                                      )}`}
+                                      className="palma-label text-taupe-deep hover:text-ink transition-colors"
+                                    >
+                                      This honour
+                                    </Link>
+                                    <Link
+                                      href={`/categories/${entry.categorySlug}?year=${entry.year}`}
+                                      className="palma-label text-taupe-deep hover:text-ink transition-colors"
+                                    >
+                                      Category
+                                    </Link>
+                                    {entry.code ? (
+                                      <Link
+                                        href={`/verify/${entry.code}`}
+                                        className="palma-label text-olive hover:text-ink transition-colors"
+                                      >
+                                        Verify
+                                      </Link>
+                                    ) : null}
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          </details>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
               )}
 
               <p className="text-taupe-deep mt-8 text-sm leading-relaxed">
@@ -322,9 +425,7 @@ export default async function CreatorPage({ params }: Params) {
                   <p className="font-display text-xl leading-snug">
                     {wins.length} PALMA {pluralise(wins.length, 'win')}
                   </p>
-                  <p className="text-taupe-deep text-sm leading-relaxed">
-                    {wins.map((entry) => `${entry.categoryName}, ${entry.year}`).join(' · ')}
-                  </p>
+                  <p className="text-taupe-deep text-sm leading-relaxed">{winLines.join(' · ')}</p>
                 </div>
               ) : null}
 

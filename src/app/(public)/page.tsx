@@ -25,8 +25,8 @@ export const revalidate = 900;
 export default async function HomePage() {
   const season = await getCurrentSeason();
   const [creators, honours, roll, articles, categories] = await Promise.all([
-    listCreators({ honoursOnly: true, limit: 4 }),
-    listRecentHonours(5),
+    listCreators({ honoursOnly: true, limit: 3 }),
+    listRecentHonours(6),
     getRollOfHonour(),
     listArticles({ limit: 3 }),
     listCategories(season.year),
@@ -190,7 +190,7 @@ export default async function HomePage() {
             }
           />
 
-          <div className="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
             {creators.map((creator, index) => (
               <Reveal key={creator.slug} delay={index * 80}>
                 <CreatorCard creator={creator} priority={index < 2} />

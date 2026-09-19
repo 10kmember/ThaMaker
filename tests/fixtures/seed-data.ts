@@ -122,10 +122,7 @@ export const people: Person[] = [
         'Maya Rivers makes long-form video about how people actually earn a living online. Her work is researched like journalism and cut like film, and she has published to the same schedule for six years without an agency behind her. She writes her own scripts, does her own archival research, and credits every contributor on screen.',
       websiteUrl: 'https://example.com/maya-rivers',
       verified: true,
-      links: [
-        { label: 'Channel', url: 'https://example.com/maya-rivers/video' },
-        { label: 'Written work', url: 'https://example.com/maya-rivers/writing' },
-      ],
+      links: [{ label: 'Channel', url: 'https://example.com/maya-rivers/video' }],
     },
   },
   {

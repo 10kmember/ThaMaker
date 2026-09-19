@@ -1,19 +1,19 @@
 /**
- * The two slots a creator record always shows.
+ * The one slot a creator record always shows.
  *
  * Everything else a creator adds is freeform: a label and an address, in
- * whatever order they like. These two are different because they are the two
- * questions a reader arrives with — where do I watch, and where do I read —
- * and a record that answers them only for the creators who happened to fill
- * them in is a record that looks broken on everybody else.
+ * whatever order they like. This one is different because it is the first
+ * question a reader arrives with — where do I watch — and a record that
+ * answers it only for the creators who happened to fill it in is a record
+ * that looks broken on everybody else.
  *
- * So both are always present. When a creator has given one it is a link; when
+ * So it is always present. When a creator has given it, it is a link; when
  * they have not, PALMA says so plainly, in its own voice, rather than leaving
  * a gap the reader has to interpret.
  */
 
 export type CreatorSlot = {
-  key: 'channel' | 'written';
+  key: 'channel';
   /** What the slot is called on the record. */
   label: string;
   /**
@@ -33,19 +33,30 @@ export const CREATOR_SLOTS: readonly CreatorSlot[] = [
     aliases: ['channel', 'the series', 'video', 'videos', 'stream', 'watch', 'youtube'],
     empty: 'No channel on file. PALMA has looked, and found a very tidy nothing.',
   },
-  {
-    key: 'written',
-    label: 'Written work',
-    aliases: ['written work', 'writing', 'words', 'blog', 'newsletter', 'essays', 'portfolio'],
-    empty: 'Nothing written here yet. The blank page is winning, as it usually does.',
-  },
 ];
 
 export type SlotLink = { label: string; url: string };
 
 /**
- * Fill both slots from whatever the creator actually provided, and report the
- * links that belong to neither so the record can still show them.
+ * Whether a link still points at the placeholder the record was seeded with.
+ *
+ * A record PALMA wrote before its creator claimed it carries `example.com`
+ * addresses as placeholders. Sending a reader there answers nothing, so the
+ * Channel slot links to PALMA's own holding page for the address instead;
+ * any real, creator-supplied link still goes where the creator pointed it.
+ */
+export function isPlaceholderUrl(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return host === 'example.com' || host.endsWith('.example.com');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Fill the slot from whatever the creator actually provided, and report the
+ * links that belong to something else so the record can still show them.
  */
 export function fillCreatorSlots(links: readonly SlotLink[]): {
   slots: { slot: CreatorSlot; link: SlotLink | null }[];

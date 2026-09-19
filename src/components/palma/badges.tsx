@@ -29,12 +29,19 @@ export function AchievementBadge({
   kind,
   year,
   categoryName,
+  times = 1,
   revoked = false,
   className,
 }: {
   kind: HonourEntry['kind'];
   year?: number;
   categoryName?: string;
+  /**
+   * How many seasons the same honour has been conferred. Above one, the badge
+   * collapses the repeats into a "2-time …" line rather than one row a year,
+   * and the year is left to the per-season record.
+   */
+  times?: number;
   revoked?: boolean;
   className?: string;
 }) {
@@ -53,8 +60,8 @@ export function AchievementBadge({
         <span className="palma-label">{HONOUR_LABEL[kind]}</span>
         {categoryName ? (
           <span className={cn('text-ink text-[0.9375rem]', revoked && 'line-through opacity-60')}>
-            {categoryName}
-            {year ? <span className="text-taupe-deep">, {year}</span> : null}
+            {times > 1 ? `${times}-time ${categoryName}` : categoryName}
+            {times <= 1 && year ? <span className="text-taupe-deep">, {year}</span> : null}
           </span>
         ) : null}
         {revoked ? <span className="palma-label text-red-800">Revoked</span> : null}
