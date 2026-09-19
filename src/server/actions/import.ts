@@ -6,7 +6,8 @@ import { authorise } from '@/lib/auth/guards';
 import { isValidCountryCode } from '@/lib/countries';
 import { slugify } from '@/lib/utils';
 import { recordAudit } from '@/server/audit';
-import { prisma } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { sql, withTransaction } from '@/server/db/sql';
 import { MAX_IMPORT_ROWS, parseCreatorImport, type ImportRow } from '@/domain/creator-import';
 import { linkIsPublishableUnclaimed } from '@/domain/record-minimalism';
 
@@ -56,10 +57,11 @@ async function plan(text: string) {
   // Which of these already exist, by the slug they would take.
   const slugs = parsed.rows.map((row) => slugify(row.displayName));
   const existing = slugs.length
-    ? await prisma.creator.findMany({
-        where: { slug: { in: slugs } },
-        select: { slug: true },
-      })
+    ? await sql<{ slug: string }[]>`
+        select slug
+        from "Creator"
+        where slug in ${sql(slugs)}
+      `
     : [];
   const taken = new Set(existing.map((row) => row.slug));
 
@@ -168,24 +170,41 @@ export async function commitCreatorImport(
     // Name, country, links. Nothing else, however much the paste contained.
     const links = row.links.filter((link) => linkIsPublishableUnclaimed(link.url));
 
-    await prisma.creator.create({
-      data: {
-        slug,
-        displayName: row.displayName,
-        countryCode: row.countryCode,
-        isPublished: false,
-        isClaimed: false,
-        verification: { create: { status: 'unverified' } },
-        links: {
-          create: links.map((link, position) => ({ ...link, position })),
-        },
-        staffNotes: {
-          create: {
-            authorId: session.user.id,
-            body: `Imported in bulk by ${session.user.email}. Unclaimed stub: name, country and links only. Anything further about this creator waits until they claim the record or PALMA has a reason beyond convenience.`,
-          },
-        },
-      },
+    const creatorId = createId();
+    await withTransaction(async (tx) => {
+      await tx`
+        insert into "Creator" (id, slug, "displayName", "countryCode", "isPublished", "isClaimed")
+        values (${creatorId}, ${slug}, ${row.displayName}, ${row.countryCode}, false, false)
+      `;
+
+      await tx`
+        insert into "CreatorVerification" (id, "creatorId", status)
+        values (${createId()}, ${creatorId}, 'unverified')
+      `;
+
+      if (links.length > 0) {
+        await tx`
+          insert into "CreatorLink" ${sql(
+            links.map((link, position) => ({
+              id: createId(),
+              creatorId,
+              label: link.label,
+              url: link.url,
+              position,
+            })),
+          )}
+        `;
+      }
+
+      await tx`
+        insert into "CreatorNote" (id, "creatorId", "authorId", body)
+        values (
+          ${createId()},
+          ${creatorId},
+          ${session.user.id},
+          ${`Imported in bulk by ${session.user.email}. Unclaimed stub: name, country and links only. Anything further about this creator waits until they claim the record or PALMA has a reason beyond convenience.`}
+        )
+      `;
     });
 
     written += 1;
@@ -219,8 +238,16 @@ async function uniqueSlug(row: ImportRow, claimed: Set<string>): Promise<string>
   let slug = base;
 
   for (let attempt = 2; ; attempt += 1) {
-    if (!claimed.has(slug) && !(await prisma.creator.findUnique({ where: { slug } }))) {
-      return slug;
+    if (!claimed.has(slug)) {
+      const [existing] = await sql<{ id: string }[]>`
+        select id
+        from "Creator"
+        where slug = ${slug}
+        limit 1
+      `;
+      if (!existing) {
+        return slug;
+      }
     }
     slug = `${base}-${attempt}`;
   }

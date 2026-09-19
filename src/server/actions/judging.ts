@@ -12,7 +12,8 @@ import {
 } from '@/domain/judging';
 import { conflictSchema, scoreSchema } from '@/lib/validation/judging';
 import { recordAudit } from '@/server/audit';
-import { requireDb } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { sql, withTransaction } from '@/server/db/sql';
 
 export type JudgingState = { status: 'idle' | 'error' | 'success'; message?: string };
 
@@ -44,11 +45,12 @@ export async function confirmNoConflict(
   const assignmentId = String(formData.get('assignmentId') ?? '');
   if (!assignmentId) return { status: 'error', message: 'That assignment does not exist.' };
 
-  const db = requireDb();
-  const assignment = await db.judgingAssignment.findFirst({
-    where: { id: assignmentId, judgeId },
-    select: { id: true, status: true, candidacyId: true },
-  });
+  const [assignment] = await sql<{ id: string; status: string; candidacyId: string }[]>`
+    select id, status, "candidacyId"
+    from "JudgingAssignment"
+    where id = ${assignmentId} and "judgeId" = ${judgeId}
+    limit 1
+  `;
 
   if (!assignment) return { status: 'error', message: 'That assignment is not yours.' };
   if (assignment.status === 'recused') {
@@ -59,10 +61,11 @@ export async function confirmNoConflict(
   }
 
   if (assignment.status === 'assigned') {
-    await db.judgingAssignment.update({
-      where: { id: assignment.id },
-      data: { status: 'in_progress' },
-    });
+    await sql`
+      update "JudgingAssignment"
+      set status = 'in_progress'
+      where id = ${assignment.id}
+    `;
 
     await recordAudit({
       action: 'judge.no_conflict_confirmed',
@@ -114,15 +117,30 @@ export async function submitScore(
     return { status: 'error', message: 'Every criterion must be scored from 0 to 10.' };
   }
 
-  const db = requireDb();
-
-  const assignment = await db.judgingAssignment.findFirst({
-    where: { id: parsed.data.assignmentId, judgeId },
-    include: { score: { select: { id: true } }, candidacy: { select: { creatorId: true } } },
-  });
+  const [assignment] = await sql<
+    {
+      id: string;
+      status: string;
+      candidacyId: string;
+      scoreId: string | null;
+      creatorId: string;
+    }[]
+  >`
+    select
+      ja.id,
+      ja.status,
+      ja."candidacyId",
+      js.id as "scoreId",
+      c."creatorId"
+    from "JudgingAssignment" ja
+    left join "JudgingScore" js on js."assignmentId" = ja.id
+    join "Candidacy" c on c.id = ja."candidacyId"
+    where ja.id = ${parsed.data.assignmentId} and ja."judgeId" = ${judgeId}
+    limit 1
+  `;
 
   if (!assignment) return { status: 'error', message: 'That assignment is not yours.' };
-  if (assignment.score) {
+  if (assignment.scoreId) {
     return { status: 'error', message: 'A score has already been submitted for this nomination.' };
   }
   if (assignment.status === 'recused') {
@@ -134,7 +152,7 @@ export async function submitScore(
     return declareConflictInternal({
       judgeId,
       candidacyId: assignment.candidacyId,
-      creatorId: assignment.candidacy.creatorId,
+      creatorId: assignment.creatorId,
       kind: 'other',
       note: 'Declared while scoring.',
       actor: { id: session.user.id, role: session.user.role, label: session.user.email },
@@ -158,24 +176,46 @@ export async function submitScore(
 
   const total = totalScore(card.card);
 
-  const score = await db.$transaction(async (tx) => {
-    const created = await tx.judgingScore.create({
-      data: {
-        assignmentId: assignment.id,
-        judgeId,
-        candidacyId: assignment.candidacyId,
-        ...card.card,
+  const score = await withTransaction(async (tx) => {
+    const [created] = await tx<{ id: string }[]>`
+      insert into "JudgingScore" (
+        id,
+        "assignmentId",
+        "judgeId",
+        "candidacyId",
+        achievement,
+        quality,
+        impact,
+        consistency,
+        audience,
+        fit,
         total,
-        remarks: parsed.data.remarks || null,
-      },
-    });
+        remarks
+      )
+      values (
+        ${createId()},
+        ${assignment.id},
+        ${judgeId},
+        ${assignment.candidacyId},
+        ${card.card.achievement},
+        ${card.card.quality},
+        ${card.card.impact},
+        ${card.card.consistency},
+        ${card.card.audience},
+        ${card.card.fit},
+        ${total},
+        ${parsed.data.remarks || null}
+      )
+      returning id
+    `;
 
-    await tx.judgingAssignment.update({
-      where: { id: assignment.id },
-      data: { status: 'completed', completedAt: new Date() },
-    });
+    await tx`
+      update "JudgingAssignment"
+      set status = 'completed', "completedAt" = ${new Date()}
+      where id = ${assignment.id}
+    `;
 
-    return created;
+    return created!;
   });
 
   await recordAudit({
@@ -217,11 +257,12 @@ export async function declareConflict(
 
   if (!parsed.success) return { status: 'error', message: 'Choose the kind of conflict.' };
 
-  const db = requireDb();
-  const candidacy = await db.candidacy.findUnique({
-    where: { id: parsed.data.candidacyId },
-    select: { id: true, creatorId: true },
-  });
+  const [candidacy] = await sql<{ id: string; creatorId: string }[]>`
+    select id, "creatorId"
+    from "Candidacy"
+    where id = ${parsed.data.candidacyId}
+    limit 1
+  `;
   if (!candidacy) return { status: 'error', message: 'That candidacy does not exist.' };
 
   return declareConflictInternal({
@@ -242,26 +283,28 @@ async function declareConflictInternal(input: {
   note: string | null;
   actor: { id: string; role: string; label: string };
 }): Promise<JudgingState> {
-  const db = requireDb();
-
-  const conflict = await db.$transaction(async (tx) => {
-    const created = await tx.judgeConflict.create({
-      data: {
-        judgeId: input.judgeId,
-        candidacyId: input.candidacyId,
-        creatorId: input.creatorId,
-        kind: input.kind as 'other',
-        note: input.note,
-      },
-    });
+  const conflict = await withTransaction(async (tx) => {
+    const [created] = await tx<{ id: string }[]>`
+      insert into "JudgeConflict" (id, "judgeId", "candidacyId", "creatorId", kind, note)
+      values (
+        ${createId()},
+        ${input.judgeId},
+        ${input.candidacyId},
+        ${input.creatorId},
+        ${input.kind},
+        ${input.note}
+      )
+      returning id
+    `;
 
     // Declaring removes the judge now. Only an explicit dismissal restores them.
-    await tx.judgingAssignment.updateMany({
-      where: { judgeId: input.judgeId, candidacyId: input.candidacyId },
-      data: { status: 'recused', recusedAt: new Date() },
-    });
+    await tx`
+      update "JudgingAssignment"
+      set status = 'recused', "recusedAt" = ${new Date()}
+      where "judgeId" = ${input.judgeId} and "candidacyId" = ${input.candidacyId}
+    `;
 
-    return created;
+    return created!;
   });
 
   await recordAudit({

@@ -11,7 +11,8 @@ import {
 import { containsExplicitLanguage } from '@/domain/content-policy';
 import { isValidCountryCode } from '@/lib/countries';
 import { recordAudit } from '@/server/audit';
-import { requireDb } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { sql, withTransaction } from '@/server/db/sql';
 import { currentVerificationProvider, getVerificationConfig } from '@/server/settings';
 
 export type CreatorState = { status: 'idle' | 'error' | 'success'; message?: string };
@@ -61,29 +62,39 @@ export async function updateCreatorProfile(
     };
   }
 
-  const db = requireDb();
-  const before = await db.creator.findUnique({
-    where: { id: session.user.creatorId },
-    select: { displayName: true, headline: true, biography: true, countryCode: true, city: true },
-  });
+  const creatorId = session.user.creatorId;
+  const [before = null] = await sql<
+    {
+      displayName: string;
+      headline: string | null;
+      biography: string | null;
+      countryCode: string;
+      city: string | null;
+    }[]
+  >`
+    select "displayName", headline, biography, "countryCode", city
+    from "Creator"
+    where id = ${creatorId}
+    limit 1
+  `;
 
-  await db.creator.update({
-    where: { id: session.user.creatorId },
-    data: {
-      displayName: parsed.data.displayName,
-      pronouns: parsed.data.pronouns || null,
-      countryCode: parsed.data.countryCode,
-      city: parsed.data.city || null,
-      headline: parsed.data.headline || null,
-      biography: parsed.data.biography || null,
-      websiteUrl: parsed.data.websiteUrl || null,
-    },
-  });
+  await sql`
+    update "Creator"
+    set
+      "displayName" = ${parsed.data.displayName},
+      pronouns = ${parsed.data.pronouns || null},
+      "countryCode" = ${parsed.data.countryCode},
+      city = ${parsed.data.city || null},
+      headline = ${parsed.data.headline || null},
+      biography = ${parsed.data.biography || null},
+      "websiteUrl" = ${parsed.data.websiteUrl || null}
+    where id = ${creatorId}
+  `;
 
   await recordAudit({
     action: 'creator.profile_updated',
     entityType: 'Creator',
-    entityId: session.user.creatorId,
+    entityId: creatorId,
     actor: { id: session.user.id, role: session.user.role, label: session.user.email },
     before,
     after: parsed.data,
@@ -136,19 +147,33 @@ export async function updateCreatorLinks(
     return { status: 'error', message: parsed.error.issues[0]?.message ?? 'Check the links.' };
   }
 
-  const db = requireDb();
   const creatorId = session.user.creatorId;
-  const before = await db.creatorLink.findMany({
-    where: { creatorId },
-    orderBy: { position: 'asc' },
-    select: { label: true, url: true },
-  });
+  const before = await sql<{ label: string; url: string }[]>`
+    select label, url
+    from "CreatorLink"
+    where "creatorId" = ${creatorId}
+    order by position asc
+  `;
 
-  await db.$transaction(async (tx) => {
-    await tx.creatorLink.deleteMany({ where: { creatorId } });
-    await tx.creatorLink.createMany({
-      data: parsed.data.links.map((link, position) => ({ ...link, creatorId, position })),
-    });
+  await withTransaction(async (tx) => {
+    await tx`
+      delete from "CreatorLink"
+      where "creatorId" = ${creatorId}
+    `;
+
+    if (parsed.data.links.length > 0) {
+      await tx`
+        insert into "CreatorLink" ${sql(
+          parsed.data.links.map((link, position) => ({
+            id: createId(),
+            creatorId,
+            label: link.label,
+            url: link.url,
+            position,
+          })),
+        )}
+      `;
+    }
   });
 
   await recordAudit({
@@ -189,12 +214,24 @@ export async function updateNotificationPreferences(
 
   if (!parsed.success) return { status: 'error', message: 'Could not save those preferences.' };
 
-  const db = requireDb();
-  await db.notificationPreference.upsert({
-    where: { userId: session.user.id },
-    create: { userId: session.user.id, ...parsed.data },
-    update: parsed.data,
-  });
+  await sql`
+    insert into "NotificationPreference" (
+      id, "userId", "seasonAnnouncements", "nominationUpdates", "honourAnnouncements", "journalDigest"
+    )
+    values (
+      ${createId()},
+      ${session.user.id},
+      ${parsed.data.seasonAnnouncements},
+      ${parsed.data.nominationUpdates},
+      ${parsed.data.honourAnnouncements},
+      ${parsed.data.journalDigest}
+    )
+    on conflict ("userId") do update set
+      "seasonAnnouncements" = excluded."seasonAnnouncements",
+      "nominationUpdates" = excluded."nominationUpdates",
+      "honourAnnouncements" = excluded."honourAnnouncements",
+      "journalDigest" = excluded."journalDigest"
+  `;
 
   revalidatePath('/creator');
   return { status: 'success', message: 'Preferences saved.' };
@@ -221,8 +258,6 @@ export async function startVerification(_previous: CreatorState): Promise<Creato
     return { status: 'error', message: 'Claim a creator profile first.' };
   }
 
-  const db = requireDb();
-
   // Read at the moment the check starts, so the row records who actually
   // decided it. A row settled by a moderator keeps saying so for ever, even
   // after a provider is contracted — the history is not rewritten to claim a
@@ -230,21 +265,15 @@ export async function startVerification(_previous: CreatorState): Promise<Creato
   const config = await getVerificationConfig();
   const provider = await currentVerificationProvider();
 
-  await db.creatorVerification.upsert({
-    where: { creatorId: session.user.creatorId },
-    create: {
-      creatorId: session.user.creatorId,
-      status: 'pending',
-      provider,
-      lastCheckedAt: new Date(),
-    },
-    update: {
-      status: 'pending',
-      provider,
-      lastCheckedAt: new Date(),
-      failureCode: null,
-    },
-  });
+  await sql`
+    insert into "CreatorVerification" (id, "creatorId", status, provider, "lastCheckedAt")
+    values (${createId()}, ${session.user.creatorId}, 'pending', ${provider}, ${new Date()})
+    on conflict ("creatorId") do update set
+      status = 'pending',
+      provider = excluded.provider,
+      "lastCheckedAt" = excluded."lastCheckedAt",
+      "failureCode" = null
+  `;
 
   await recordAudit({
     action: 'creator.verification_updated',

@@ -14,9 +14,8 @@ import {
   sendOperatorInvite,
   sendPasswordReset,
 } from '@/server/email/messages';
-import { requireDb } from '@/server/db';
 import { createId } from '@/server/db/ids';
-import { withTransaction } from '@/server/db/sql';
+import { sql, withTransaction } from '@/server/db/sql';
 import { issuePasswordSetToken } from '@/server/actions/password';
 import { INVITE_TTL_MS, RESET_TTL_MS } from '@/domain/password-tokens';
 
@@ -51,11 +50,12 @@ export async function changeUserRole(
     return { status: 'error', message: 'You cannot change your own role.' };
   }
 
-  const db = requireDb();
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    select: { id: true, email: true, role: true },
-  });
+  const [user] = await sql<{ id: string; email: string; role: Role }[]>`
+    select id, email, role
+    from "User"
+    where id = ${userId}
+    limit 1
+  `;
 
   if (!user) return { status: 'error', message: 'That account does not exist.' };
 
@@ -70,7 +70,11 @@ export async function changeUserRole(
   if (user.role === role)
     return { status: 'error', message: 'That is already the account’s role.' };
 
-  await db.user.update({ where: { id: user.id }, data: { role } });
+  await sql`
+    update "User"
+    set role = ${role}
+    where id = ${user.id}
+  `;
 
   await recordAudit({
     action: 'user.role_changed',
@@ -117,35 +121,43 @@ export async function setAccountState(
     return { status: 'error', message: 'A suspension has to carry a reason.' };
   }
 
-  const db = requireDb();
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    select: { id: true, email: true, role: true, isActive: true },
-  });
+  const [user] = await sql<{ id: string; email: string; role: Role; isActive: boolean }[]>`
+    select id, email, role, "isActive"
+    from "User"
+    where id = ${userId}
+    limit 1
+  `;
 
   if (!user) return { status: 'error', message: 'That account does not exist.' };
   if (user.role === 'super_admin' && session.user.role !== 'super_admin') {
     return { status: 'error', message: 'Only a super administrator can do that.' };
   }
 
-  await db.$transaction(async (tx) => {
-    await tx.user.update({ where: { id: user.id }, data: { isActive: !suspend } });
+  await withTransaction(async (tx) => {
+    await tx`
+      update "User"
+      set "isActive" = ${!suspend}
+      where id = ${user.id}
+    `;
 
     if (suspend) {
-      await tx.authSession.updateMany({
-        where: { userId: user.id, revokedAt: null },
-        data: { revokedAt: new Date() },
-      });
+      await tx`
+        update "AuthSession"
+        set "revokedAt" = ${new Date()}
+        where "userId" = ${user.id} and "revokedAt" is null
+      `;
 
-      await tx.moderationAction.create({
-        data: {
-          actorId: session.user.id,
-          kind: 'profile_suspended',
-          entityType: 'User',
-          entityId: user.id,
-          rationale: reason,
-        },
-      });
+      await tx`
+        insert into "ModerationAction" (id, "actorId", kind, "entityType", "entityId", rationale)
+        values (
+          ${createId()},
+          ${session.user.id},
+          'profile_suspended',
+          'User',
+          ${user.id},
+          ${reason}
+        )
+      `;
     }
   });
 
@@ -197,14 +209,19 @@ export async function revokeSessions(
   }
 
   const userId = String(formData.get('userId') ?? '');
-  const db = requireDb();
-  const user = await db.user.findUnique({ where: { id: userId }, select: { email: true } });
+  const [user] = await sql<{ email: string }[]>`
+    select email
+    from "User"
+    where id = ${userId}
+    limit 1
+  `;
   if (!user) return { status: 'error', message: 'That account does not exist.' };
 
-  const { count } = await db.authSession.updateMany({
-    where: { userId, revokedAt: null },
-    data: { revokedAt: new Date() },
-  });
+  const { count } = await sql`
+    update "AuthSession"
+    set "revokedAt" = ${new Date()}
+    where "userId" = ${userId} and "revokedAt" is null
+  `;
 
   await recordAudit({
     action: 'user.sessions_revoked',
@@ -252,22 +269,26 @@ export async function proposeConsequentialAction(
     return { status: 'error', message: 'An irreversible action needs a reason of real substance.' };
   }
 
-  const db = requireDb();
-  const proposal = await db.consequentialAction.create({
-    data: {
-      kind,
-      entityType: kind === 'account_ban' ? 'User' : 'Honour',
-      entityId,
-      subject,
-      reason,
-      requestedById: session.user.id,
-    },
-  });
+  const [proposal] = await sql<{ id: string }[]>`
+    insert into "ConsequentialAction" (
+      id, kind, "entityType", "entityId", subject, reason, "requestedById"
+    )
+    values (
+      ${createId()},
+      ${kind},
+      ${kind === 'account_ban' ? 'User' : 'Honour'},
+      ${entityId},
+      ${subject},
+      ${reason},
+      ${session.user.id}
+    )
+    returning id
+  `;
 
   await recordAudit({
     action: 'action.proposed',
     entityType: 'ConsequentialAction',
-    entityId: proposal.id,
+    entityId: proposal!.id,
     actor: { id: session.user.id, role: session.user.role, label: session.user.email },
     summary: `${kind.replace('_', ' ')} proposed for ${subject}`,
     after: { reason },
@@ -302,8 +323,23 @@ export async function decideConsequentialAction(
   const id = String(formData.get('actionId') ?? '');
   const decision = String(formData.get('decision') ?? '');
 
-  const db = requireDb();
-  const proposal = await db.consequentialAction.findUnique({ where: { id } });
+  const [proposal] = await sql<
+    {
+      id: string;
+      kind: string;
+      entityId: string;
+      subject: string;
+      reason: string;
+      requestedById: string;
+      executedAt: Date | null;
+      cancelledAt: Date | null;
+    }[]
+  >`
+    select id, kind, "entityId", subject, reason, "requestedById", "executedAt", "cancelledAt"
+    from "ConsequentialAction"
+    where id = ${id}
+    limit 1
+  `;
 
   if (!proposal) return { status: 'error', message: 'That proposal does not exist.' };
   if (proposal.executedAt || proposal.cancelledAt) {
@@ -311,10 +347,11 @@ export async function decideConsequentialAction(
   }
 
   if (decision === 'cancel') {
-    await db.consequentialAction.update({
-      where: { id },
-      data: { cancelledAt: new Date(), cancelledReason: 'Cancelled before execution.' },
-    });
+    await sql`
+      update "ConsequentialAction"
+      set "cancelledAt" = ${new Date()}, "cancelledReason" = 'Cancelled before execution.'
+      where id = ${id}
+    `;
 
     await recordAudit({
       action: 'action.cancelled',
@@ -338,46 +375,58 @@ export async function decideConsequentialAction(
 
   const now = new Date();
 
-  await db.$transaction(async (tx) => {
+  await withTransaction(async (tx) => {
     if (proposal.kind === 'account_ban') {
-      await tx.user.update({ where: { id: proposal.entityId }, data: { isActive: false } });
-      await tx.authSession.updateMany({
-        where: { userId: proposal.entityId, revokedAt: null },
-        data: { revokedAt: now },
-      });
-      await tx.moderationAction.create({
-        data: {
-          actorId: session.user.id,
-          kind: 'creator_banned',
-          entityType: 'User',
-          entityId: proposal.entityId,
-          rationale: proposal.reason,
-        },
-      });
+      await tx`
+        update "User"
+        set "isActive" = false
+        where id = ${proposal.entityId}
+      `;
+      await tx`
+        update "AuthSession"
+        set "revokedAt" = ${now}
+        where "userId" = ${proposal.entityId} and "revokedAt" is null
+      `;
+      await tx`
+        insert into "ModerationAction" (id, "actorId", kind, "entityType", "entityId", rationale)
+        values (
+          ${createId()},
+          ${session.user.id},
+          'creator_banned',
+          'User',
+          ${proposal.entityId},
+          ${proposal.reason}
+        )
+      `;
     } else {
-      await tx.honour.update({
-        where: { id: proposal.entityId },
-        data: { state: 'revoked', revokedAt: now, revokedReason: proposal.reason },
-      });
-      await tx.achievement.updateMany({
-        where: { honourId: proposal.entityId },
-        data: { state: 'revoked', revokedAt: now },
-      });
-      await tx.moderationAction.create({
-        data: {
-          actorId: session.user.id,
-          kind: 'honour_revoked',
-          entityType: 'Honour',
-          entityId: proposal.entityId,
-          rationale: proposal.reason,
-        },
-      });
+      await tx`
+        update "Honour"
+        set state = 'revoked', "revokedAt" = ${now}, "revokedReason" = ${proposal.reason}
+        where id = ${proposal.entityId}
+      `;
+      await tx`
+        update "Achievement"
+        set state = 'revoked', "revokedAt" = ${now}
+        where "honourId" = ${proposal.entityId}
+      `;
+      await tx`
+        insert into "ModerationAction" (id, "actorId", kind, "entityType", "entityId", rationale)
+        values (
+          ${createId()},
+          ${session.user.id},
+          'honour_revoked',
+          'Honour',
+          ${proposal.entityId},
+          ${proposal.reason}
+        )
+      `;
     }
 
-    await tx.consequentialAction.update({
-      where: { id },
-      data: { approvedById: session.user.id, approvedAt: now, executedAt: now },
-    });
+    await tx`
+      update "ConsequentialAction"
+      set "approvedById" = ${session.user.id}, "approvedAt" = ${now}, "executedAt" = ${now}
+      where id = ${id}
+    `;
   });
 
   await recordAudit({
@@ -458,9 +507,12 @@ export async function inviteOperator(
     };
   }
 
-  const db = requireDb();
-
-  const existing = await db.user.findUnique({ where: { email }, select: { id: true } });
+  const [existing] = await sql<{ id: string }[]>`
+    select id
+    from "User"
+    where email = ${email}
+    limit 1
+  `;
   if (existing) {
     // Unlike the public forms, this is an authenticated internal tool talking
     // to a super administrator — there is no stranger here to keep an address
@@ -557,12 +609,13 @@ export async function issueOperatorPasswordReset(
   }
 
   const userId = String(formData.get('userId') ?? '');
-  const db = requireDb();
 
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    select: { id: true, email: true, role: true, isActive: true },
-  });
+  const [user] = await sql<{ id: string; email: string; role: Role; isActive: boolean }[]>`
+    select id, email, role, "isActive"
+    from "User"
+    where id = ${userId}
+    limit 1
+  `;
 
   if (!user) return { status: 'error', message: 'That account does not exist.' };
   if (user.role === 'creator') {

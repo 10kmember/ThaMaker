@@ -10,7 +10,8 @@ import { SCORING_CRITERIA, totalScore, validateScoreCard } from '@/domain/judgin
 import { scoreCorrectionSchema } from '@/lib/validation/judging';
 import { recordAudit } from '@/server/audit';
 import { sendCandidacyUpdate, sendPanelAssignment } from '@/server/email/messages';
-import { requireDb } from '@/server/db';
+import { createId } from '@/server/db/ids';
+import { sql } from '@/server/db/sql';
 import { conferHonour, conferThePalma, revokeHonour } from '@/server/services/honours';
 import { conferralObjections, nameObjections } from '@/domain/the-palma';
 
@@ -49,33 +50,60 @@ export async function reviewCandidacy(
     return { status: 'error', message: 'Record a reason of at least 10 characters.' };
   }
 
-  const db = requireDb();
-  const before = await db.candidacy.findUnique({
-    where: { id: candidacyId },
-    select: {
-      status: true,
-      reference: true,
-      creatorId: true,
-      creator: {
-        select: { displayName: true, user: { select: { id: true, email: true } } },
-      },
-      category: { select: { name: true } },
-      awardYear: { select: { year: true } },
-    },
-  });
+  const [before] = await sql<
+    {
+      status: string;
+      reference: string;
+      creatorId: string;
+      displayName: string;
+      holderId: string | null;
+      holderEmail: string | null;
+      categoryName: string;
+      year: number;
+    }[]
+  >`
+    select
+      c.status,
+      c.reference,
+      c."creatorId",
+      cr."displayName",
+      u.id as "holderId",
+      u.email as "holderEmail",
+      cat.name as "categoryName",
+      ay.year
+    from "Candidacy" c
+    join "Creator" cr on cr.id = c."creatorId"
+    left join "User" u on u.id = cr."userId"
+    join "Category" cat on cat.id = c."categoryId"
+    join "AwardYear" ay on ay.id = c."awardYearId"
+    where c.id = ${candidacyId}
+    limit 1
+  `;
   if (!before) return { status: 'error', message: 'That candidacy does not exist.' };
 
-  await db.candidacy.update({
-    where: { id: candidacyId },
-    data: {
-      status: decision as 'eligible',
-      reviewedAt: new Date(),
-      reviewedById: session.user.id,
-      reviewNote: note || null,
-      // Ruling on it resolves whatever the integrity screen raised.
-      ...(decision === 'eligible' ? { integrityFlag: false } : {}),
-    },
-  });
+  if (decision === 'eligible') {
+    await sql`
+      update "Candidacy"
+      set
+        status = ${decision},
+        "reviewedAt" = ${new Date()},
+        "reviewedById" = ${session.user.id},
+        "reviewNote" = ${note || null},
+        -- Ruling on it resolves whatever the integrity screen raised.
+        "integrityFlag" = false
+      where id = ${candidacyId}
+    `;
+  } else {
+    await sql`
+      update "Candidacy"
+      set
+        status = ${decision},
+        "reviewedAt" = ${new Date()},
+        "reviewedById" = ${session.user.id},
+        "reviewNote" = ${note || null}
+      where id = ${candidacyId}
+    `;
+  }
 
   await recordAudit({
     action: 'candidacy.eligibility_changed',
@@ -90,15 +118,14 @@ export async function reviewCandidacy(
   // Only the two outcomes a creator can act on. "Under review" is PALMA's
   // internal state and telling somebody their case is being looked at, twice,
   // is noise rather than transparency.
-  const holder = before.creator.user;
-  if (holder && (decision === 'eligible' || decision === 'ineligible')) {
+  if (before.holderId && before.holderEmail && (decision === 'eligible' || decision === 'ineligible')) {
     await sendCandidacyUpdate({
-      to: holder.email,
-      userId: holder.id,
+      to: before.holderEmail,
+      userId: before.holderId,
       creatorId: before.creatorId,
-      creatorName: before.creator.displayName,
-      categoryName: before.category.name,
-      year: before.awardYear.year,
+      creatorName: before.displayName,
+      categoryName: before.categoryName,
+      year: before.year,
       status: decision === 'eligible' ? 'in_contention' : 'ineligible',
       reason: note || null,
     });
@@ -125,42 +152,64 @@ export async function assignJudges(_previous: AdminState, formData: FormData): P
   }
 
   const categoryId = String(formData.get('categoryId') ?? '');
-  const db = requireDb();
 
-  const category = await db.category.findUnique({
-    where: { id: categoryId },
-    include: {
-      awardYear: { include: { judges: { include: { judge: true } } } },
-      candidacies: { where: { status: 'eligible' }, select: { id: true, creatorId: true } },
-    },
-  });
+  const [category] = await sql<{ id: string; name: string; awardYearId: string; year: number }[]>`
+    select cat.id, cat.name, cat."awardYearId", ay.year
+    from "Category" cat
+    join "AwardYear" ay on ay.id = cat."awardYearId"
+    where cat.id = ${categoryId}
+    limit 1
+  `;
 
   if (!category) return { status: 'error', message: 'That category does not exist.' };
-  if (category.candidacies.length === 0) {
+
+  const candidacies = await sql<{ id: string; creatorId: string }[]>`
+    select id, "creatorId"
+    from "Candidacy"
+    where "categoryId" = ${categoryId} and status = 'eligible'
+  `;
+
+  if (candidacies.length === 0) {
     return { status: 'error', message: 'No eligible candidacies to assign in this category.' };
   }
 
-  const judgeIds = category.awardYear.judges
-    .filter((membership) => membership.judge.isActive)
+  const memberships = await sql<{ judgeId: string; isActive: boolean }[]>`
+    select m."judgeId", j."isActive"
+    from "JudgePanelMembership" m
+    join "Judge" j on j.id = m."judgeId"
+    where m."awardYearId" = ${category.awardYearId}
+  `;
+
+  const judgeIds = memberships
+    .filter((membership) => membership.isActive)
     .map((membership) => membership.judgeId);
 
   if (judgeIds.length === 0) {
     return { status: 'error', message: 'No active judges are seated on this season’s panel.' };
   }
 
-  const conflicts = await db.judgeConflict.findMany({
-    where: { judgeId: { in: judgeIds }, status: { not: 'dismissed' } },
-    select: { judgeId: true, creatorId: true, candidacyId: true, status: true },
-  });
+  const conflicts = await sql<
+    {
+      judgeId: string;
+      creatorId: string | null;
+      candidacyId: string | null;
+      status: 'declared' | 'upheld' | 'dismissed';
+    }[]
+  >`
+    select "judgeId", "creatorId", "candidacyId", status
+    from "JudgeConflict"
+    where "judgeId" in ${sql(judgeIds)} and status <> 'dismissed'
+  `;
 
-  const existing = await db.judgingAssignment.findMany({
-    where: { categoryId },
-    select: { judgeId: true, candidacyId: true },
-  });
+  const existing = await sql<{ judgeId: string; candidacyId: string }[]>`
+    select "judgeId", "candidacyId"
+    from "JudgingAssignment"
+    where "categoryId" = ${categoryId}
+  `;
   const alreadyAssigned = new Set(existing.map((row) => `${row.judgeId}:${row.candidacyId}`));
 
   const plan = planAssignments({
-    candidacies: category.candidacies,
+    candidacies,
     judgeIds,
     conflicts: conflicts.map((conflict) => ({
       judgeId: conflict.judgeId,
@@ -179,14 +228,17 @@ export async function assignJudges(_previous: AdminState, formData: FormData): P
     return { status: 'success', message: 'Every eligible candidacy is already assigned.' };
   }
 
-  await db.judgingAssignment.createMany({
-    data: fresh.map((assignment) => ({
-      judgeId: assignment.judgeId,
-      candidacyId: assignment.candidacyId,
-      categoryId,
-    })),
-    skipDuplicates: true,
-  });
+  await sql`
+    insert into "JudgingAssignment" ${sql(
+      fresh.map((assignment) => ({
+        id: createId(),
+        judgeId: assignment.judgeId,
+        candidacyId: assignment.candidacyId,
+        categoryId,
+      })),
+    )}
+    on conflict do nothing
+  `;
 
   // One message per judge naming how many cases they have, rather than one per
   // case. A panel member who opens fourteen identical emails learns nothing
@@ -196,19 +248,23 @@ export async function assignJudges(_previous: AdminState, formData: FormData): P
     perJudge.set(assignment.judgeId, (perJudge.get(assignment.judgeId) ?? 0) + 1);
   }
 
-  const seated = await db.judge.findMany({
-    where: { id: { in: [...perJudge.keys()] } },
-    select: { id: true, displayName: true, user: { select: { id: true, email: true } } },
-  });
+  const seated = await sql<
+    { id: string; displayName: string; userId: string | null; userEmail: string | null }[]
+  >`
+    select j.id, j."displayName", u.id as "userId", u.email as "userEmail"
+    from "Judge" j
+    left join "User" u on u.id = j."userId"
+    where j.id in ${sql([...perJudge.keys()])}
+  `;
 
   for (const judge of seated) {
-    if (!judge.user) continue;
+    if (!judge.userId || !judge.userEmail) continue;
     await sendPanelAssignment({
-      to: judge.user.email,
-      userId: judge.user.id,
+      to: judge.userEmail,
+      userId: judge.userId,
       judgeName: judge.displayName,
       categoryName: category.name,
-      year: category.awardYear.year,
+      year: category.year,
       caseCount: perJudge.get(judge.id) ?? 0,
     });
   }
@@ -247,30 +303,55 @@ export async function confirmFinalists(
   }
 
   const categoryId = String(formData.get('categoryId') ?? '');
-  const db = requireDb();
 
-  const category = await db.category.findUnique({
-    where: { id: categoryId },
-    include: {
-      candidacies: {
-        where: { status: { notIn: ['withdrawn', 'ineligible'] } },
-        include: {
-          creator: { include: { verification: true } },
-          scores: { select: { total: true } },
-        },
-      },
-    },
-  });
+  const [category] = await sql<{ id: string; name: string }[]>`
+    select id, name
+    from "Category"
+    where id = ${categoryId}
+    limit 1
+  `;
 
   if (!category) return { status: 'error', message: 'That category does not exist.' };
 
+  const candidacies = await sql<
+    {
+      id: string;
+      creatorId: string;
+      isSuspended: boolean;
+      verificationStatus: string | null;
+    }[]
+  >`
+    select
+      c.id,
+      c."creatorId",
+      cr."isSuspended",
+      cv.status as "verificationStatus"
+    from "Candidacy" c
+    join "Creator" cr on cr.id = c."creatorId"
+    left join "CreatorVerification" cv on cv."creatorId" = c."creatorId"
+    where c."categoryId" = ${categoryId} and c.status not in ('withdrawn', 'ineligible')
+  `;
+
+  const scores = candidacies.length
+    ? await sql<{ candidacyId: string; total: number }[]>`
+        select "candidacyId", total
+        from "JudgingScore"
+        where "candidacyId" in ${sql(candidacies.map((candidacy) => candidacy.id))}
+      `
+    : [];
+  const totalsByCandidacy = new Map<string, number[]>();
+  for (const score of scores) {
+    const totals = totalsByCandidacy.get(score.candidacyId) ?? [];
+    totals.push(score.total);
+    totalsByCandidacy.set(score.candidacyId, totals);
+  }
+
   const proposal = proposeFinalists(
-    category.candidacies.map((candidacy) => ({
+    candidacies.map((candidacy) => ({
       candidacyId: candidacy.id,
       creatorId: candidacy.creatorId,
-      totals: candidacy.scores.map((score) => score.total),
-      eligible:
-        !candidacy.creator.isSuspended && candidacy.creator.verification?.status === 'verified',
+      totals: totalsByCandidacy.get(candidacy.id) ?? [],
+      eligible: !candidacy.isSuspended && candidacy.verificationStatus === 'verified',
     })),
     DEFAULT_FINALIST_COUNT,
   );
@@ -321,36 +402,52 @@ export async function confirmWinner(
 
   const categoryId = String(formData.get('categoryId') ?? '');
   const citation = String(formData.get('citation') ?? '').trim() || null;
-  const db = requireDb();
 
-  const finalists = await db.honour.findMany({
-    where: { categoryId, kind: 'finalist', state: 'active' },
-    include: {
-      candidacy: {
-        include: {
-          creator: { include: { verification: true } },
-          scores: { select: { total: true } },
-        },
-      },
-      category: true,
-    },
-  });
+  const finalists = await sql<
+    {
+      id: string;
+      candidacyId: string;
+      creatorId: string;
+      isSuspended: boolean;
+      verificationStatus: string | null;
+    }[]
+  >`
+    select
+      h.id,
+      c.id as "candidacyId",
+      h."creatorId",
+      cr."isSuspended",
+      cv.status as "verificationStatus"
+    from "Honour" h
+    join "Candidacy" c on c.id = h."candidacyId"
+    join "Creator" cr on cr.id = c."creatorId"
+    left join "CreatorVerification" cv on cv."creatorId" = c."creatorId"
+    where h."categoryId" = ${categoryId} and h.kind = 'finalist' and h.state = 'active'
+  `;
 
   if (finalists.length === 0) {
     return { status: 'error', message: 'Confirm the finalists before selecting a winner.' };
   }
 
+  const scores = await sql<{ candidacyId: string; total: number }[]>`
+    select "candidacyId", total
+    from "JudgingScore"
+    where "candidacyId" in ${sql(finalists.map((honour) => honour.candidacyId))}
+  `;
+  const totalsByCandidacy = new Map<string, number[]>();
+  for (const score of scores) {
+    const totals = totalsByCandidacy.get(score.candidacyId) ?? [];
+    totals.push(score.total);
+    totalsByCandidacy.set(score.candidacyId, totals);
+  }
+
   const proposal = proposeWinner(
-    finalists
-      .filter((honour) => honour.candidacy)
-      .map((honour) => ({
-        candidacyId: honour.candidacy!.id,
-        creatorId: honour.creatorId,
-        totals: honour.candidacy!.scores.map((score) => score.total),
-        eligible:
-          !honour.candidacy!.creator.isSuspended &&
-          honour.candidacy!.creator.verification?.status === 'verified',
-      })),
+    finalists.map((honour) => ({
+      candidacyId: honour.candidacyId,
+      creatorId: honour.creatorId,
+      totals: totalsByCandidacy.get(honour.candidacyId) ?? [],
+      eligible: !honour.isSuspended && honour.verificationStatus === 'verified',
+    })),
   );
 
   const winner = proposal.selected[0];
@@ -434,8 +531,23 @@ export async function correctScore(_previous: AdminState, formData: FormData): P
     return { status: 'error', message: parsed.error.issues[0]?.message ?? 'Check the correction.' };
   }
 
-  const db = requireDb();
-  const existing = await db.judgingScore.findUnique({ where: { id: parsed.data.scoreId } });
+  const [existing] = await sql<
+    {
+      id: string;
+      achievement: number;
+      quality: number;
+      impact: number;
+      consistency: number;
+      audience: number;
+      fit: number;
+      total: number;
+    }[]
+  >`
+    select id, achievement, quality, impact, consistency, audience, fit, total
+    from "JudgingScore"
+    where id = ${parsed.data.scoreId}
+    limit 1
+  `;
   if (!existing) return { status: 'error', message: 'That score does not exist.' };
 
   const card = validateScoreCard(
@@ -450,16 +562,21 @@ export async function correctScore(_previous: AdminState, formData: FormData): P
 
   const total = totalScore(card.card);
 
-  await db.judgingScore.update({
-    where: { id: existing.id },
-    data: {
-      ...card.card,
-      total,
-      correctedAt: new Date(),
-      correctedById: session.user.id,
-      correctionNote: parsed.data.correctionNote,
-    },
-  });
+  await sql`
+    update "JudgingScore"
+    set
+      achievement = ${card.card.achievement},
+      quality = ${card.card.quality},
+      impact = ${card.card.impact},
+      consistency = ${card.card.consistency},
+      audience = ${card.card.audience},
+      fit = ${card.card.fit},
+      total = ${total},
+      "correctedAt" = ${new Date()},
+      "correctedById" = ${session.user.id},
+      "correctionNote" = ${parsed.data.correctionNote}
+    where id = ${existing.id}
+  `;
 
   await recordAudit({
     action: 'score.corrected',
@@ -501,8 +618,12 @@ export async function advanceSeason(
   const target = String(formData.get('stage') ?? '') as SeasonStage;
   if (!SEASON_STAGES.includes(target)) return { status: 'error', message: 'Unknown stage.' };
 
-  const db = requireDb();
-  const season = await db.awardYear.findUnique({ where: { year } });
+  const [season] = await sql<{ id: string; title: string; stage: string }[]>`
+    select id, title, stage
+    from "AwardYear"
+    where year = ${year}
+    limit 1
+  `;
   if (!season) return { status: 'error', message: 'That season does not exist.' };
 
   if (!canAdvance(season.stage as SeasonStage, target)) {
@@ -512,7 +633,11 @@ export async function advanceSeason(
     };
   }
 
-  await db.awardYear.update({ where: { year }, data: { stage: target } });
+  await sql`
+    update "AwardYear"
+    set stage = ${target}
+    where year = ${year}
+  `;
 
   await recordAudit({
     action: 'season.stage_changed',
@@ -569,18 +694,31 @@ export async function proposeThePalmaAction(
   const naming = nameObjections(citation);
   if (naming.length > 0) return { status: 'error', message: naming.join(' ') };
 
-  const db = requireDb();
-  const [awardYear, creator] = await Promise.all([
-    db.awardYear.findUnique({ where: { id: awardYearId }, select: { year: true } }),
-    db.creator.findUnique({
-      where: { id: creatorId },
-      select: {
-        displayName: true,
-        isPublished: true,
-        isSuspended: true,
-        verification: { select: { status: true } },
-      },
-    }),
+  const [[awardYear], [creator]] = await Promise.all([
+    sql<{ year: number }[]>`
+      select year
+      from "AwardYear"
+      where id = ${awardYearId}
+      limit 1
+    `,
+    sql<
+      {
+        displayName: string;
+        isPublished: boolean;
+        isSuspended: boolean;
+        verificationStatus: string | null;
+      }[]
+    >`
+      select
+        c."displayName",
+        c."isPublished",
+        c."isSuspended",
+        cv.status as "verificationStatus"
+      from "Creator" c
+      left join "CreatorVerification" cv on cv."creatorId" = c.id
+      where c.id = ${creatorId}
+      limit 1
+    `,
   ]);
 
   if (!awardYear) return { status: 'error', message: 'That season does not exist.' };
@@ -588,13 +726,20 @@ export async function proposeThePalmaAction(
 
   // Everything the conferral will check, checked now, so the desk finds out
   // at the point of writing rather than the approver finding out days later.
-  const [existingThisSeason, held] = await Promise.all([
-    db.honour.count({ where: { awardYearId, kind: 'the_palma', state: 'active' } }),
-    db.honour.findMany({
-      where: { creatorId, kind: 'the_palma', state: 'active' },
-      select: { awardYear: { select: { year: true } } },
-    }),
+  const [countRows, held] = await Promise.all([
+    sql<{ count: number }[]>`
+      select count(*)::int as count
+      from "Honour"
+      where "awardYearId" = ${awardYearId} and kind = 'the_palma' and state = 'active'
+    `,
+    sql<{ year: number }[]>`
+      select ay.year
+      from "Honour" h
+      join "AwardYear" ay on ay.id = h."awardYearId"
+      where h."creatorId" = ${creatorId} and h.kind = 'the_palma' and h.state = 'active'
+    `,
   ]);
+  const existingThisSeason = countRows[0]?.count ?? 0;
 
   // Checked here as well as at conferral, and with the real status rather than
   // an assumed one. A proposal that can never be conferred is worse than a
@@ -602,8 +747,8 @@ export async function proposeThePalmaAction(
   // off days later is the one who discovers it cannot be done.
   const objections = conferralObjections({
     existingThisSeason,
-    creatorHeldIn: held.map((honour) => honour.awardYear.year),
-    creatorIsVerified: creator.verification?.status === 'verified',
+    creatorHeldIn: held.map((honour) => honour.year),
+    creatorIsVerified: creator.verificationStatus === 'verified',
     creatorIsPublished: creator.isPublished && !creator.isSuspended,
     citation,
   });
@@ -615,28 +760,35 @@ export async function proposeThePalmaAction(
   // names — which breaks the first time two creators share a prefix.
   const entityId = `${awardYearId}:${creatorId}`;
 
-  const pending = await db.consequentialAction.findFirst({
-    where: {
-      kind: 'the_palma_conferral',
-      entityId: { startsWith: `${awardYearId}:` },
-      executedAt: null,
-      cancelledAt: null,
-    },
-  });
+  const [pending] = await sql<{ id: string }[]>`
+    select id
+    from "ConsequentialAction"
+    where
+      kind = 'the_palma_conferral'
+      and "entityId" like ${`${awardYearId}:%`}
+      and "executedAt" is null
+      and "cancelledAt" is null
+    limit 1
+  `;
   if (pending) {
     return { status: 'error', message: 'THE PALMA is already proposed for that season.' };
   }
 
-  const proposal = await db.consequentialAction.create({
-    data: {
-      kind: 'the_palma_conferral',
-      entityType: 'AwardYear:Creator',
-      entityId,
-      subject: `${creator.displayName}, THE PALMA ${awardYear.year}`,
-      reason: citation,
-      requestedById: session.user.id,
-    },
-  });
+  const [proposal] = await sql<{ id: string }[]>`
+    insert into "ConsequentialAction" (
+      id, kind, "entityType", "entityId", subject, reason, "requestedById"
+    )
+    values (
+      ${createId()},
+      'the_palma_conferral',
+      'AwardYear:Creator',
+      ${entityId},
+      ${`${creator.displayName}, THE PALMA ${awardYear.year}`},
+      ${citation},
+      ${session.user.id}
+    )
+    returning id
+  `;
 
   // The creator is carried on the audit entry rather than a column, because
   // ConsequentialAction has no field for it and inventing one for a single
@@ -644,7 +796,7 @@ export async function proposeThePalmaAction(
   await recordAudit({
     action: 'action.proposed',
     entityType: 'ConsequentialAction',
-    entityId: proposal.id,
+    entityId: proposal!.id,
     actor: { id: session.user.id, role: session.user.role, label: session.user.email },
     summary: `THE PALMA ${awardYear.year} proposed for ${creator.displayName}`,
     after: { creatorId, citation },
@@ -680,9 +832,25 @@ export async function decideThePalmaAction(
 
   const id = String(formData.get('actionId') ?? '').trim();
   const decision = String(formData.get('decision') ?? '').trim();
-  const db = requireDb();
 
-  const proposal = await db.consequentialAction.findUnique({ where: { id } });
+  const [proposal] = await sql<
+    {
+      id: string;
+      kind: string;
+      entityId: string;
+      subject: string;
+      reason: string;
+      requestedById: string;
+      executedAt: Date | null;
+      cancelledAt: Date | null;
+    }[]
+  >`
+    select id, kind, "entityId", subject, reason, "requestedById", "executedAt", "cancelledAt"
+    from "ConsequentialAction"
+    where id = ${id}
+    limit 1
+  `;
+
   if (!proposal || proposal.kind !== 'the_palma_conferral') {
     return { status: 'error', message: 'That proposal does not exist.' };
   }
@@ -691,10 +859,11 @@ export async function decideThePalmaAction(
   }
 
   if (decision === 'decline') {
-    await db.consequentialAction.update({
-      where: { id },
-      data: { cancelledAt: new Date(), cancelledReason: 'Declined before conferral.' },
-    });
+    await sql`
+      update "ConsequentialAction"
+      set "cancelledAt" = ${new Date()}, "cancelledReason" = 'Declined before conferral.'
+      where id = ${id}
+    `;
     await recordAudit({
       action: 'action.cancelled',
       entityType: 'ConsequentialAction',
@@ -729,10 +898,14 @@ export async function decideThePalmaAction(
 
   if (!result.ok) return { status: 'error', message: result.reason };
 
-  await db.consequentialAction.update({
-    where: { id },
-    data: { approvedById: session.user.id, approvedAt: new Date(), executedAt: new Date() },
-  });
+  await sql`
+    update "ConsequentialAction"
+    set
+      "approvedById" = ${session.user.id},
+      "approvedAt" = ${new Date()},
+      "executedAt" = ${new Date()}
+    where id = ${id}
+  `;
 
   revalidatePath('/portal/the-palma');
   revalidatePath('/admin/the-palma');
