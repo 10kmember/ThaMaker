@@ -19,6 +19,7 @@ import {
 import { HONOUR_LABEL } from '@/components/palma/badges';
 import { isThePalma } from '@/domain/honours';
 import { getAchievementByCode } from '@/server/data/queries';
+import { enforceRateLimit, RATE_LIMITS } from '@/server/rate-limit';
 
 export const revalidate = 300;
 
@@ -55,6 +56,26 @@ export default async function VerifyPage({ params }: Params) {
   const { code } = await params;
   const normalised = normaliseCode(decodeURIComponent(code));
   if (!isValidCodeFormat(normalised)) notFound();
+
+  const rate = await enforceRateLimit(RATE_LIMITS.verifyLookup, 'verify');
+  if (!rate.allowed) {
+    return (
+      <section className="on-ink bg-ink text-ivory">
+        <Container className="flex flex-col items-center gap-8 py-24 text-center sm:py-32">
+          <Wordmark size="md" href={null} />
+          <span className="palma-label text-champagne">Slow down</span>
+          <h1 className="max-w-160 text-4xl leading-tight sm:text-5xl">
+            Too many checks from this network
+          </h1>
+          <p className="text-ivory/65 max-w-120">
+            Verification is public, but it is not a scraping endpoint. Try again in about{' '}
+            {Math.max(1, Math.ceil(rate.retryAfterSeconds / 60))} minute
+            {Math.ceil(rate.retryAfterSeconds / 60) === 1 ? '' : 's'}.
+          </p>
+        </Container>
+      </section>
+    );
+  }
 
   const record = await getAchievementByCode(normalised);
   if (!record) notFound();
