@@ -2,7 +2,7 @@ import { AssignJudgesForm } from '@/components/admin/AdminForms';
 import { EmptyState, Notice } from '@/components/ui/feedback';
 import { buildMetadata } from '@/lib/seo';
 import { requirePermission } from '@/lib/auth/guards';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 
 export const metadata = buildMetadata({
   title: 'Judging',
@@ -14,23 +14,37 @@ export const metadata = buildMetadata({
 export default async function AdminJudgingPage() {
   await requirePermission('admin:assign_judging', '/admin/judging');
 
-  const db = prisma;
+  const categories = await sql<
+    { id: string; name: string; eligibleCount: number; assignedCount: number }[]
+  >`
+    select
+      c.id,
+      c.name,
+      (select count(*)::int from "Candidacy" cd
+        where cd."categoryId" = c.id and cd.status = 'eligible') as "eligibleCount",
+      (select count(*)::int from "JudgingAssignment" a
+        where a."categoryId" = c.id) as "assignedCount"
+    from "Category" c
+    join "AwardYear" ay on ay.id = c."awardYearId"
+    where ay."isCurrent" = true
+    order by c.position asc
+  `;
 
-  const categories = await db.category.findMany({
-    where: { awardYear: { isCurrent: true } },
-    orderBy: { position: 'asc' },
-    include: {
-      _count: { select: { assignments: true } },
-      candidacies: { where: { status: 'eligible' }, select: { id: true } },
-    },
-  });
-
-  const conflicts = await db.judgeConflict.findMany({
-    where: { status: 'declared' },
-    include: { judge: true },
-    orderBy: { declaredAt: 'desc' },
-    take: 20,
-  });
+  const conflicts = await sql<
+    { id: string; kind: string; candidacyId: string | null; creatorId: string | null; judgeName: string }[]
+  >`
+    select
+      jc.id,
+      jc.kind,
+      jc."candidacyId",
+      jc."creatorId",
+      j."displayName" as "judgeName"
+    from "JudgeConflict" jc
+    join "Judge" j on j.id = jc."judgeId"
+    where jc.status = 'declared'
+    order by jc."declaredAt" desc
+    limit 20
+  `;
 
   return (
     <>
@@ -50,8 +64,8 @@ export default async function AdminJudgingPage() {
               key={category.id}
               categoryId={category.id}
               categoryName={category.name}
-              eligibleCount={category.candidacies.length}
-              assignedCount={category._count.assignments}
+              eligibleCount={category.eligibleCount}
+              assignedCount={category.assignedCount}
             />
           ))}
         </div>
@@ -66,7 +80,7 @@ export default async function AdminJudgingPage() {
                 key={conflict.id}
                 className="border-stone-deep flex flex-wrap items-center justify-between gap-4 border p-5"
               >
-                <span className="font-display text-lg">{conflict.judge.displayName}</span>
+                <span className="font-display text-lg">{conflict.judgeName}</span>
                 <span className="palma-label text-taupe-deep">{conflict.kind}</span>
                 <span className="text-taupe-deep text-sm">
                   {conflict.candidacyId ?? conflict.creatorId}

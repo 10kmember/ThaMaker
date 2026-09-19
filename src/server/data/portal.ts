@@ -1,6 +1,6 @@
 import 'server-only';
 import { canIssueReferralLink, referralPath } from '@/domain/nomination';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import { getDossierBadge } from './dossier';
 
 export type PortalCandidacy = {
@@ -76,84 +76,177 @@ export type CreatorPortal = {
   };
 };
 
+/**
+ * DateTime columns are `timestamp(3)` without time zone, holding UTC wall
+ * clock. Render the same wall-clock UTC ISO string straight out of Postgres so
+ * the DTOs do not depend on the session time zone. Returns a raw SQL fragment;
+ * only ever called with static, quoted column references.
+ */
+const isoTs = (ref: string) =>
+  sql.unsafe(`to_char(${ref}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`);
+
+type PortalRow = {
+  email: string;
+  creatorId: string | null;
+  creatorSlug: string | null;
+  displayName: string | null;
+  pronouns: string | null;
+  countryCode: string | null;
+  city: string | null;
+  headline: string | null;
+  biography: string | null;
+  websiteUrl: string | null;
+  portraitUrl: string | null;
+  portraitAlt: string | null;
+  isPublished: boolean | null;
+  isSuspended: boolean | null;
+  creatorUserId: string | null;
+  verificationStatus: string | null;
+  verificationProvider: string | null;
+  verifiedAt: string | null;
+  expiresAt: string | null;
+  portraitStatus: string | null;
+  portraitAltText: string | null;
+  withdrawnReason: string | null;
+  seasonAnnouncements: boolean | null;
+  nominationUpdates: boolean | null;
+  honourAnnouncements: boolean | null;
+  journalDigest: boolean | null;
+  links: { id: string; label: string; url: string }[];
+  achievements: { code: string; kind: string; year: number; categoryName: string; state: string }[];
+  candidacies: { id: string; reference: string; categoryName: string; year: number; status: string }[];
+};
+
 export async function getCreatorPortal(userId: string): Promise<CreatorPortal | null> {
-  const db = prisma;
-  if (!db) return null;
+  const rows = await sql<PortalRow[]>`
+    select
+      u.email,
+      c.id as "creatorId",
+      c.slug as "creatorSlug",
+      c."displayName",
+      c.pronouns,
+      c."countryCode",
+      c.city,
+      c.headline,
+      c.biography,
+      c."websiteUrl",
+      c."portraitUrl",
+      c."portraitAlt",
+      c."isPublished",
+      c."isSuspended",
+      c."userId" as "creatorUserId",
+      v.status as "verificationStatus",
+      v.provider as "verificationProvider",
+      ${isoTs('v."verifiedAt"')} as "verifiedAt",
+      ${isoTs('v."expiresAt"')} as "expiresAt",
+      p.status as "portraitStatus",
+      p.alt as "portraitAltText",
+      p."withdrawnReason" as "withdrawnReason",
+      np."seasonAnnouncements" as "seasonAnnouncements",
+      np."nominationUpdates" as "nominationUpdates",
+      np."honourAnnouncements" as "honourAnnouncements",
+      np."journalDigest" as "journalDigest",
+      (select coalesce(
+          json_agg(json_build_object('id', l.id, 'label', l.label, 'url', l.url)
+            order by l.position asc),
+          '[]'::json)
+        from "CreatorLink" l
+        where l."creatorId" = c.id) as "links",
+      (select coalesce(
+          json_agg(json_build_object(
+            'code', a.code,
+            'kind', a.kind,
+            'year', a.year,
+            'categoryName', a."categoryName",
+            'state', a.state)
+            order by a."issuedAt" desc),
+          '[]'::json)
+        from "Achievement" a
+        where a."creatorId" = c.id) as "achievements",
+      (select coalesce(
+          json_agg(json_build_object(
+            'id', cd.id,
+            'reference', cd.reference,
+            'categoryName', cat.name,
+            'year', ay.year,
+            'status', cd.status)
+            order by cd."createdAt" desc),
+          '[]'::json)
+        from (
+          select * from "Candidacy" cd0
+          where cd0."creatorId" = c.id
+          order by cd0."createdAt" desc
+          limit 50
+        ) cd
+        join "Category" cat on cat.id = cd."categoryId"
+        join "AwardYear" ay on ay.id = cd."awardYearId") as "candidacies"
+    from "User" u
+    left join "NotificationPreference" np on np."userId" = u.id
+    left join "Creator" c on c."userId" = u.id
+    left join "CreatorVerification" v on v."creatorId" = c.id
+    left join "CreatorPortrait" p on p."creatorId" = c.id
+    where u.id = ${userId}
+    limit 1
+  `;
 
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    include: {
-      notificationPrefs: true,
-      creator: {
-        include: {
-          verification: true,
-          portrait: true,
-          links: { orderBy: { position: 'asc' } },
-          achievements: { include: { honour: true }, orderBy: { issuedAt: 'desc' } },
-          candidacies: {
-            include: { category: true, awardYear: true },
-            orderBy: { createdAt: 'desc' },
-            take: 50,
-          },
-        },
-      },
-    },
-  });
-
+  const user = rows[0];
   if (!user) return null;
 
   const [dossier, subscriptions] = await Promise.all([
     getDossierBadge(userId),
-    db.emailSubscription.findMany({
-      where: { email: user.email, status: 'confirmed' },
-      select: { type: true },
-    }),
+    sql<{ type: string }[]>`
+      select type
+      from "EmailSubscription"
+      where email = ${user.email} and status = 'confirmed'
+    `,
   ]);
 
+  const hasProfile = user.creatorId !== null;
+
   return {
-    hasProfile: Boolean(user.creator),
-    creatorSlug: user.creator?.slug ?? null,
-    displayName: user.creator?.displayName ?? null,
-    isPublished: user.creator?.isPublished ?? false,
-    profile: user.creator
+    hasProfile,
+    creatorSlug: user.creatorSlug,
+    displayName: user.displayName,
+    isPublished: user.isPublished ?? false,
+    profile: hasProfile
       ? {
-          displayName: user.creator.displayName,
-          pronouns: user.creator.pronouns ?? '',
-          countryCode: user.creator.countryCode,
-          city: user.creator.city ?? '',
-          headline: user.creator.headline ?? '',
-          biography: user.creator.biography ?? '',
-          websiteUrl: user.creator.websiteUrl ?? '',
+          displayName: user.displayName!,
+          pronouns: user.pronouns ?? '',
+          countryCode: user.countryCode!,
+          city: user.city ?? '',
+          headline: user.headline ?? '',
+          biography: user.biography ?? '',
+          websiteUrl: user.websiteUrl ?? '',
         }
       : null,
-    links: (user.creator?.links ?? []).map((link) => ({
+    links: user.links.map((link) => ({
       id: link.id,
       label: link.label,
       url: link.url,
     })),
     verification: {
-      status: user.creator?.verification?.status ?? 'unverified',
-      provider: user.creator?.verification?.provider ?? null,
-      verifiedAt: user.creator?.verification?.verifiedAt?.toISOString() ?? null,
-      expiresAt: user.creator?.verification?.expiresAt?.toISOString() ?? null,
+      status: user.verificationStatus ?? 'unverified',
+      provider: user.verificationProvider,
+      verifiedAt: user.verifiedAt,
+      expiresAt: user.expiresAt,
     },
-    candidacies: (user.creator?.candidacies ?? []).map((candidacy) => ({
+    candidacies: user.candidacies.map((candidacy) => ({
       id: candidacy.id,
       reference: candidacy.reference,
-      categoryName: candidacy.category.name,
-      year: candidacy.awardYear.year,
+      categoryName: candidacy.categoryName,
+      year: candidacy.year,
       status: candidacy.status,
     })),
     referralPath:
-      user.creator &&
+      hasProfile &&
       canIssueReferralLink({
-        isClaimed: user.creator.userId !== null,
-        isSuspended: user.creator.isSuspended,
-        verificationStatus: user.creator.verification?.status ?? 'unverified',
+        isClaimed: user.creatorUserId !== null,
+        isSuspended: user.isSuspended ?? false,
+        verificationStatus: user.verificationStatus ?? 'unverified',
       })
-        ? referralPath(user.creator.slug)
+        ? referralPath(user.creatorSlug!)
         : null,
-    achievements: (user.creator?.achievements ?? []).map((achievement) => ({
+    achievements: user.achievements.map((achievement) => ({
       code: achievement.code,
       kind: achievement.kind,
       year: achievement.year,
@@ -161,18 +254,18 @@ export async function getCreatorPortal(userId: string): Promise<CreatorPortal | 
       state: achievement.state,
     })),
     preferences: {
-      seasonAnnouncements: user.notificationPrefs?.seasonAnnouncements ?? true,
-      nominationUpdates: user.notificationPrefs?.nominationUpdates ?? true,
-      honourAnnouncements: user.notificationPrefs?.honourAnnouncements ?? true,
-      journalDigest: user.notificationPrefs?.journalDigest ?? false,
+      seasonAnnouncements: user.seasonAnnouncements ?? true,
+      nominationUpdates: user.nominationUpdates ?? true,
+      honourAnnouncements: user.honourAnnouncements ?? true,
+      journalDigest: user.journalDigest ?? false,
     },
     dossier,
     subscriptions: subscriptions.map((row) => row.type),
     portrait: {
-      status: (user.creator?.portrait?.status ?? 'none') as 'none' | 'published' | 'withdrawn',
-      url: user.creator?.portraitUrl ?? null,
-      alt: user.creator?.portrait?.alt ?? user.creator?.portraitAlt ?? null,
-      withdrawnReason: user.creator?.portrait?.withdrawnReason ?? null,
+      status: (user.portraitStatus ?? 'none') as 'none' | 'published' | 'withdrawn',
+      url: user.portraitUrl,
+      alt: user.portraitAltText ?? user.portraitAlt,
+      withdrawnReason: user.withdrawnReason,
     },
   };
 }
