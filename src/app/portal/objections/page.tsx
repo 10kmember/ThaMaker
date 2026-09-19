@@ -4,7 +4,7 @@ import { EmptyState, Notice } from '@/components/ui/feedback';
 import { ObjectionDecisionForm } from '@/components/operations/ObjectionDecisionForm';
 import { buildMetadata } from '@/lib/seo';
 import { requirePermission } from '@/lib/auth/guards';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import { formatShortDate } from '@/lib/format';
 
 export const dynamic = 'force-dynamic';
@@ -27,29 +27,53 @@ export default async function ObjectionsPage() {
   await requirePermission('creators:view_records', '/portal/objections');
 
   const [open, settled] = await Promise.all([
-    prisma.recordObjection.findMany({
-      where: { status: 'received' },
-      orderBy: { createdAt: 'asc' },
-      include: {
-        creator: {
-          select: {
-            slug: true,
-            displayName: true,
-            countryCode: true,
-            createdAt: true,
-            links: { select: { id: true, label: true, url: true } },
-            honours: { select: { id: true }, where: { state: 'active' } },
-            candidacies: { select: { id: true } },
-          },
-        },
-      },
-    }),
-    prisma.recordObjection.findMany({
-      where: { status: { not: 'received' } },
-      orderBy: { decidedAt: 'desc' },
-      take: 20,
-      include: { creator: { select: { slug: true, displayName: true } } },
-    }),
+    sql<
+      {
+        id: string;
+        contactEmail: string;
+        note: string | null;
+        createdAt: string;
+        creatorSlug: string;
+        creatorDisplayName: string;
+        creatorCountryCode: string;
+        creatorCreatedAt: string;
+        linkCount: number;
+        honourCount: number;
+        candidacyCount: number;
+      }[]
+    >`
+      SELECT
+        o."id",
+        o."contactEmail",
+        o."note",
+        to_char(o."createdAt", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "createdAt",
+        c."slug" AS "creatorSlug",
+        c."displayName" AS "creatorDisplayName",
+        c."countryCode" AS "creatorCountryCode",
+        to_char(c."createdAt", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "creatorCreatedAt",
+        (SELECT count(*)::int FROM "CreatorLink" l WHERE l."creatorId" = c."id") AS "linkCount",
+        (
+          SELECT count(*)::int FROM "Honour" h
+          WHERE h."creatorId" = c."id" AND h."state" = 'active'
+        ) AS "honourCount",
+        (SELECT count(*)::int FROM "Candidacy" cd WHERE cd."creatorId" = c."id") AS "candidacyCount"
+      FROM "RecordObjection" o
+      JOIN "Creator" c ON c."id" = o."creatorId"
+      WHERE o."status" = 'received'
+      ORDER BY o."createdAt" ASC
+    `,
+    sql<{ id: string; status: string; decidedAt: string | null; creatorDisplayName: string }[]>`
+      SELECT
+        o."id",
+        o."status",
+        to_char(o."decidedAt", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "decidedAt",
+        c."displayName" AS "creatorDisplayName"
+      FROM "RecordObjection" o
+      JOIN "Creator" c ON c."id" = o."creatorId"
+      WHERE o."status" <> 'received'
+      ORDER BY o."decidedAt" DESC
+      LIMIT 20
+    `,
   ]);
 
   return (
@@ -84,21 +108,21 @@ export default async function ObjectionsPage() {
         ) : (
           <ul className="flex flex-col gap-10">
             {open.map((objection) => {
-              const hasHonours = objection.creator.honours.length > 0;
+              const hasHonours = objection.honourCount > 0;
 
               return (
                 <li key={objection.id} className="border-stone-deep border p-7">
                   <div className="flex flex-wrap items-baseline justify-between gap-4">
                     <div className="flex min-w-0 flex-col gap-1">
                       <Link
-                        href={`/portal/creators/${objection.creator.slug}`}
+                        href={`/portal/creators/${objection.creatorSlug}`}
                         className="font-display hover:text-olive text-2xl transition-colors"
                       >
-                        {objection.creator.displayName}
+                        {objection.creatorDisplayName}
                       </Link>
                       <span className="palma-label text-taupe-deep">
-                        Objected {formatShortDate(objection.createdAt.toISOString())} · record
-                        written {formatShortDate(objection.creator.createdAt.toISOString())}
+                        Objected {formatShortDate(objection.createdAt)} · record written{' '}
+                        {formatShortDate(objection.creatorCreatedAt)}
                       </span>
                     </div>
                     {hasHonours ? (
@@ -111,15 +135,15 @@ export default async function ObjectionsPage() {
                   <dl className="border-stone-deep mt-6 grid gap-x-8 gap-y-4 border-y py-5 sm:grid-cols-3">
                     <div className="flex min-w-0 flex-col gap-1">
                       <dt className="palma-label text-taupe-deep">Country</dt>
-                      <dd className="text-sm">{objection.creator.countryCode}</dd>
+                      <dd className="text-sm">{objection.creatorCountryCode}</dd>
                     </div>
                     <div className="flex min-w-0 flex-col gap-1">
                       <dt className="palma-label text-taupe-deep">Links held</dt>
-                      <dd className="text-sm">{objection.creator.links.length}</dd>
+                      <dd className="text-sm">{objection.linkCount}</dd>
                     </div>
                     <div className="flex min-w-0 flex-col gap-1">
                       <dt className="palma-label text-taupe-deep">Candidacies</dt>
-                      <dd className="text-sm">{objection.creator.candidacies.length}</dd>
+                      <dd className="text-sm">{objection.candidacyCount}</dd>
                     </div>
                   </dl>
 
@@ -150,7 +174,7 @@ export default async function ObjectionsPage() {
                   <div className="border-stone-deep mt-7 border-t pt-7">
                     <ObjectionDecisionForm
                       objectionId={objection.id}
-                      name={objection.creator.displayName}
+                      name={objection.creatorDisplayName}
                       hasHonours={hasHonours}
                     />
                   </div>
@@ -170,13 +194,13 @@ export default async function ObjectionsPage() {
                 key={objection.id}
                 className="border-stone-deep/60 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-b py-4"
               >
-                <span className="font-display text-base">{objection.creator.displayName}</span>
+                <span className="font-display text-base">{objection.creatorDisplayName}</span>
                 <span className="flex flex-wrap items-center gap-3">
                   <Badge variant={objection.status === 'upheld' ? 'olive' : 'muted'}>
                     {objection.status === 'upheld' ? 'Record removed' : 'Refused'}
                   </Badge>
                   <span className="palma-label text-taupe">
-                    {objection.decidedAt ? formatShortDate(objection.decidedAt.toISOString()) : ''}
+                    {objection.decidedAt ? formatShortDate(objection.decidedAt) : ''}
                   </span>
                 </span>
               </li>

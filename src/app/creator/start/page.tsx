@@ -5,7 +5,7 @@ import { StartRecordForm } from '@/components/account/StartRecordForm';
 import { Notice } from '@/components/ui/feedback';
 import { buildMetadata } from '@/lib/seo';
 import { requireSession } from '@/lib/auth/guards';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,10 +19,13 @@ export const metadata = buildMetadata({
 export default async function StartRecordPage() {
   const session = await requireSession('/creator/start');
 
-  const held = await prisma.creator.findFirst({
-    where: { userId: session.user.id },
-    select: { slug: true, displayName: true, isPublished: true },
-  });
+  const heldRows = await sql<{ slug: string; displayName: string; isPublished: boolean }[]>`
+    SELECT "slug", "displayName", "isPublished"
+    FROM "Creator"
+    WHERE "userId" = ${session.user.id}
+    LIMIT 1
+  `;
+  const held = heldRows[0] ?? null;
 
   // An account already holding a record is editing, not starting.
   if (held) redirect('/creator');

@@ -9,7 +9,7 @@ import { requireSession } from '@/lib/auth/guards';
 import { homeForRole } from '@/lib/auth/entrances';
 import { EMAIL_LIST_ORDER, emailList } from '@/domain/email-lists';
 import { TEMPLATE_LIST } from '@/server/email/register';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import { featureLive } from '@/server/features';
 import { CONTACTS } from '@/lib/legal';
 
@@ -44,21 +44,44 @@ export const metadata = buildMetadata({
 export default async function EmailPreferencesPage() {
   const session = await requireSession('/account/email-preferences');
 
-  const [subscriptions, prefs] = await Promise.all([
-    prisma.emailSubscription.findMany({
-      where: { email: session.user.email },
-      select: { type: true, status: true, confirmedAt: true, consentAt: true, source: true },
-    }),
-    prisma.notificationPreference.findUnique({
-      where: { userId: session.user.id },
-      select: {
-        seasonAnnouncements: true,
-        nominationUpdates: true,
-        honourAnnouncements: true,
-        journalDigest: true,
-      },
-    }),
+  const [subscriptions, prefRows] = await Promise.all([
+    sql<
+      {
+        type: string;
+        status: string;
+        confirmedAt: string | null;
+        consentAt: string | null;
+        source: string;
+      }[]
+    >`
+      SELECT
+        "type",
+        "status",
+        to_char("confirmedAt", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "confirmedAt",
+        to_char("consentAt", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "consentAt",
+        "source"
+      FROM "EmailSubscription"
+      WHERE "email" = ${session.user.email}
+    `,
+    sql<
+      {
+        seasonAnnouncements: boolean;
+        nominationUpdates: boolean;
+        honourAnnouncements: boolean;
+        journalDigest: boolean;
+      }[]
+    >`
+      SELECT
+        "seasonAnnouncements",
+        "nominationUpdates",
+        "honourAnnouncements",
+        "journalDigest"
+      FROM "NotificationPreference"
+      WHERE "userId" = ${session.user.id}
+      LIMIT 1
+    `,
   ]);
+  const prefs = prefRows[0] ?? null;
 
   // An account that has never touched these has no row, and the defaults are
   // the ones the portal used: on, except the digest, which is a publication
@@ -83,7 +106,7 @@ export default async function EmailPreferencesPage() {
       ...emailList(key),
       subscribed: row?.status === 'confirmed',
       available: availability.find(([listKey]) => listKey === key)?.[1] ?? true,
-      since: row?.confirmedAt?.toISOString() ?? null,
+      since: row?.confirmedAt ?? null,
       source: row?.source ?? null,
     };
   });

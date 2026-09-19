@@ -6,7 +6,7 @@ import { buildMetadata } from '@/lib/seo';
 import { requirePermission } from '@/lib/auth/guards';
 import { can } from '@/lib/auth/rbac';
 import { PLACEMENT_LIST, placement as placementRule, type Placement } from '@/domain/sponsorship';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import { featureStates } from '@/server/features';
 import { formatShortDate } from '@/lib/format';
 
@@ -31,36 +31,65 @@ export default async function SponsorshipsPage() {
   const session = await requirePermission('commercial:assign_placement', '/portal/sponsorships');
 
   const [placements, sponsors, seasons, categories, articles, events, states] = await Promise.all([
-    prisma.sponsorship.findMany({
-      orderBy: [{ isApproved: 'asc' }, { createdAt: 'desc' }],
-      include: {
-        sponsor: { select: { name: true, status: true, agreementStatus: true } },
-        category: { select: { name: true, slug: true } },
-        article: { select: { title: true } },
-        event: { select: { name: true } },
-        awardYear: { select: { title: true, id: true } },
-      },
-    }),
-    prisma.sponsor.findMany({
-      where: { status: 'active', agreementStatus: 'signed' },
-      select: { id: true, name: true },
-      orderBy: { name: 'asc' },
-    }),
-    prisma.awardYear.findMany({
-      select: { id: true, title: true, year: true },
-      orderBy: { year: 'desc' },
-      take: 5,
-    }),
-    prisma.category.findMany({
-      select: { id: true, name: true, awardYearId: true },
-      orderBy: { name: 'asc' },
-    }),
-    prisma.article.findMany({
-      select: { id: true, title: true },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    }),
-    prisma.palmaEvent.findMany({ select: { id: true, name: true }, orderBy: { name: 'asc' } }),
+    sql<
+      {
+        id: string;
+        placement: string;
+        isApproved: boolean;
+        approvedAt: string | null;
+        sponsorName: string;
+        categoryName: string | null;
+        articleTitle: string | null;
+        eventName: string | null;
+        awardYearTitle: string;
+      }[]
+    >`
+      SELECT
+        sp."id",
+        sp."placement",
+        sp."isApproved",
+        to_char(sp."approvedAt", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "approvedAt",
+        s."name" AS "sponsorName",
+        cat."name" AS "categoryName",
+        a."title" AS "articleTitle",
+        e."name" AS "eventName",
+        ay."title" AS "awardYearTitle"
+      FROM "Sponsorship" sp
+      JOIN "Sponsor" s ON s."id" = sp."sponsorId"
+      LEFT JOIN "Category" cat ON cat."id" = sp."categoryId"
+      LEFT JOIN "Article" a ON a."id" = sp."articleId"
+      LEFT JOIN "PalmaEvent" e ON e."id" = sp."eventId"
+      JOIN "AwardYear" ay ON ay."id" = sp."awardYearId"
+      ORDER BY sp."isApproved" ASC, sp."createdAt" DESC
+    `,
+    sql<{ id: string; name: string }[]>`
+      SELECT "id", "name"
+      FROM "Sponsor"
+      WHERE "status" = 'active' AND "agreementStatus" = 'signed'
+      ORDER BY "name" ASC
+    `,
+    sql<{ id: string; title: string; year: number }[]>`
+      SELECT "id", "title", "year"
+      FROM "AwardYear"
+      ORDER BY "year" DESC
+      LIMIT 5
+    `,
+    sql<{ id: string; name: string; awardYearId: string }[]>`
+      SELECT "id", "name", "awardYearId"
+      FROM "Category"
+      ORDER BY "name" ASC
+    `,
+    sql<{ id: string; title: string }[]>`
+      SELECT "id", "title"
+      FROM "Article"
+      ORDER BY "createdAt" DESC
+      LIMIT 50
+    `,
+    sql<{ id: string; name: string }[]>`
+      SELECT "id", "name"
+      FROM "PalmaEvent"
+      ORDER BY "name" ASC
+    `,
     featureStates(),
   ]);
 
@@ -141,17 +170,14 @@ export default async function SponsorshipsPage() {
                 className="border-stone-deep flex flex-wrap items-center justify-between gap-4 border-b py-5"
               >
                 <span className="flex min-w-0 flex-col gap-1">
-                  <span className="font-display text-lg">{row.sponsor.name}</span>
+                  <span className="font-display text-lg">{row.sponsorName}</span>
                   <span className="palma-label text-taupe-deep">
                     {placementRule(row.placement as Placement).name} ·{' '}
-                    {row.category?.name ??
-                      row.article?.title ??
-                      row.event?.name ??
-                      row.awardYear.title}
+                    {row.categoryName ?? row.articleTitle ?? row.eventName ?? row.awardYearTitle}
                   </span>
                 </span>
                 {mayApprove ? (
-                  <PlacementDecision sponsorshipId={row.id} name={row.sponsor.name} />
+                  <PlacementDecision sponsorshipId={row.id} name={row.sponsorName} />
                 ) : (
                   <Badge variant="muted">With administration</Badge>
                 )}
@@ -180,15 +206,11 @@ export default async function SponsorshipsPage() {
                   className="border-stone-deep flex flex-wrap items-center justify-between gap-4 border-b py-5"
                 >
                   <span className="flex min-w-0 flex-col gap-1">
-                    <span className="font-display text-lg">{row.sponsor.name}</span>
+                    <span className="font-display text-lg">{row.sponsorName}</span>
                     <span className="palma-label text-taupe-deep">
                       {placementRule(row.placement as Placement).name} ·{' '}
-                      {row.category?.name ??
-                        row.article?.title ??
-                        row.event?.name ??
-                        row.awardYear.title}{' '}
-                      · approved{' '}
-                      {row.approvedAt ? formatShortDate(row.approvedAt.toISOString()) : ''}
+                      {row.categoryName ?? row.articleTitle ?? row.eventName ?? row.awardYearTitle}{' '}
+                      · approved {row.approvedAt ? formatShortDate(row.approvedAt) : ''}
                     </span>
                   </span>
                   <span className="flex items-center gap-3">
@@ -196,7 +218,7 @@ export default async function SponsorshipsPage() {
                       {gate?.live ? 'Showing' : 'Held. Feature off'}
                     </Badge>
                     {mayApprove ? (
-                      <PlacementDecision sponsorshipId={row.id} name={row.sponsor.name} approved />
+                      <PlacementDecision sponsorshipId={row.id} name={row.sponsorName} approved />
                     ) : null}
                   </span>
                 </li>

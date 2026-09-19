@@ -11,7 +11,7 @@ import {
 import { buildMetadata } from '@/lib/seo';
 import { requireSession } from '@/lib/auth/guards';
 import { homeForRole } from '@/lib/auth/entrances';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import { formatShortDate } from '@/lib/format';
 import { titleCase } from '@/lib/utils';
 import { CONTACTS } from '@/lib/legal';
@@ -34,24 +34,53 @@ export const metadata = buildMetadata({
 export default async function AccountPage() {
   const session = await requireSession('/account');
 
-  const [user, sessions] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        email: true,
-        name: true,
-        role: true,
-        createdAt: true,
-        lastLoginAt: true,
-        creator: { select: { displayName: true, slug: true } },
-      },
-    }),
-    prisma.authSession.findMany({
-      where: { userId: session.user.id, revokedAt: null, expiresAt: { gt: new Date() } },
-      select: { id: true, createdAt: true, userAgent: true },
-      orderBy: { createdAt: 'desc' },
-    }),
+  const [userRows, sessions] = await Promise.all([
+    sql<
+      {
+        email: string;
+        name: string;
+        role: string;
+        createdAt: string;
+        lastLoginAt: string | null;
+        creatorDisplayName: string | null;
+        creatorSlug: string | null;
+      }[]
+    >`
+      SELECT
+        u."email",
+        u."name",
+        u."role",
+        to_char(u."createdAt", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "createdAt",
+        to_char(u."lastLoginAt", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "lastLoginAt",
+        c."displayName" AS "creatorDisplayName",
+        c."slug" AS "creatorSlug"
+      FROM "User" u
+      LEFT JOIN "Creator" c ON c."userId" = u."id"
+      WHERE u."id" = ${session.user.id}
+      LIMIT 1
+    `,
+    sql<{ id: string; createdAt: string; userAgent: string | null }[]>`
+      SELECT
+        "id",
+        to_char("createdAt", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "createdAt",
+        "userAgent"
+      FROM "AuthSession"
+      WHERE "userId" = ${session.user.id}
+        AND "revokedAt" IS NULL
+        AND "expiresAt" > now()
+      ORDER BY "createdAt" DESC
+    `,
   ]);
+
+  const row = userRows[0];
+  const user = row
+    ? {
+        ...row,
+        creator: row.creatorSlug
+          ? { displayName: row.creatorDisplayName ?? '', slug: row.creatorSlug }
+          : null,
+      }
+    : null;
 
   if (!user) {
     return (
@@ -88,7 +117,7 @@ export default async function AccountPage() {
             ['Name', user.name],
             ['Address', user.email],
             ['Role', titleCase(user.role.replace('_', ' '))],
-            ['Member since', formatShortDate(user.createdAt.toISOString())],
+            ['Member since', formatShortDate(user.createdAt)],
           ] as const
         ).map(([term, value]) => (
           <div key={term} className="flex min-w-0 flex-col gap-1">
@@ -145,7 +174,7 @@ export default async function AccountPage() {
                   <span className="palma-label text-taupe">
                     {row.id === session.sessionId
                       ? 'This one'
-                      : formatShortDate(row.createdAt.toISOString())}
+                      : formatShortDate(row.createdAt)}
                   </span>
                 </li>
               ))}

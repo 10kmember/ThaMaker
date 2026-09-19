@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { FeatureSwitch } from '@/components/operations/FeatureSwitch';
 import { FEATURE_GROUPS, FEATURE_LIST } from '@/domain/features';
 import { featureStates, seasonOverrides } from '@/server/features';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 
 /**
  * The feature control panel.
@@ -22,11 +22,12 @@ import { prisma } from '@/server/db';
 export async function FeaturePanel() {
   const [states, seasons] = await Promise.all([
     featureStates(),
-    prisma.awardYear.findMany({
-      select: { id: true, year: true, title: true },
-      orderBy: { year: 'desc' },
-      take: 6,
-    }),
+    sql<{ id: string; year: number; title: string }[]>`
+      SELECT "id", "year", "title"
+      FROM "AwardYear"
+      ORDER BY "year" DESC
+      LIMIT 6
+    `,
   ]);
 
   const overrides = await Promise.all(

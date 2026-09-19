@@ -5,7 +5,7 @@ import { SubscribeForm } from '@/components/palma/SubscribeForm';
 import { Notice } from '@/components/ui/feedback';
 import { buildMetadata } from '@/lib/seo';
 import { emailList, isEmailListKey } from '@/domain/email-lists';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import { formatDate } from '@/lib/format';
 
 export const revalidate = 3600;
@@ -16,10 +16,13 @@ export async function generateMetadata({
   params: Promise<{ type: string; slug: string }>;
 }) {
   const { type, slug } = await params;
-  const issue = await prisma.dispatch.findUnique({
-    where: { slug },
-    select: { subject: true, standfirst: true },
-  });
+  const issueRows = await sql<{ subject: string; standfirst: string }[]>`
+    SELECT "subject", "standfirst"
+    FROM "Dispatch"
+    WHERE "slug" = ${slug}
+    LIMIT 1
+  `;
+  const issue = issueRows[0] ?? null;
 
   if (!issue) {
     return buildMetadata({
@@ -45,16 +48,46 @@ export default async function IssuePage({
   const { type, slug } = await params;
   if (!isEmailListKey(type)) notFound();
 
-  const issue = await prisma.dispatch.findUnique({ where: { slug } });
+  const issueRows = await sql<
+    {
+      type: string;
+      number: number;
+      subject: string;
+      standfirst: string;
+      body: string;
+      linkLabel: string | null;
+      linkUrl: string | null;
+      sponsorId: string | null;
+      sentAt: string;
+    }[]
+  >`
+    SELECT
+      "type",
+      "number",
+      "subject",
+      "standfirst",
+      "body",
+      "linkLabel",
+      "linkUrl",
+      "sponsorId",
+      to_char("sentAt", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "sentAt"
+    FROM "Dispatch"
+    WHERE "slug" = ${slug}
+    LIMIT 1
+  `;
+  const issue = issueRows[0] ?? null;
   if (!issue || issue.type !== type) notFound();
 
   const list = emailList(type);
-  const sponsor = issue.sponsorId
-    ? await prisma.sponsor.findUnique({
-        where: { id: issue.sponsorId },
-        select: { name: true, websiteUrl: true },
-      })
-    : null;
+  const sponsorRows = issue.sponsorId
+    ? await sql<{ name: string; websiteUrl: string | null }[]>`
+        SELECT "name", "websiteUrl"
+        FROM "Sponsor"
+        WHERE "id" = ${issue.sponsorId}
+        LIMIT 1
+      `
+    : [];
+  const sponsor = sponsorRows[0] ?? null;
 
   const paragraphs = issue.body
     .split(/\n{2,}/)

@@ -4,7 +4,7 @@ import { Container, Section } from '@/components/palma/layout';
 import { SubscribeForm } from '@/components/palma/SubscribeForm';
 import { buildMetadata } from '@/lib/seo';
 import { emailList, isEmailListKey, EMAIL_LIST_VALUES } from '@/domain/email-lists';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import { featureLive } from '@/server/features';
 import { formatDate } from '@/lib/format';
 
@@ -44,20 +44,30 @@ export default async function ListPage({ params }: { params: Promise<{ type: str
   // than inviting somebody to join something that does not run.
   const offered = list.requiresFeature ? await featureLive(list.requiresFeature) : true;
 
-  const issues = await prisma.dispatch.findMany({
-    where: { type },
-    orderBy: { number: 'desc' },
-    take: 20,
-    select: {
-      id: true,
-      number: true,
-      slug: true,
-      subject: true,
-      standfirst: true,
-      sentAt: true,
-      sponsorId: true,
-    },
-  });
+  const issues = await sql<
+    {
+      id: string;
+      number: number;
+      slug: string;
+      subject: string;
+      standfirst: string;
+      sentAt: string;
+      sponsorId: string | null;
+    }[]
+  >`
+    SELECT
+      "id",
+      "number",
+      "slug",
+      "subject",
+      "standfirst",
+      to_char("sentAt", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "sentAt",
+      "sponsorId"
+    FROM "Dispatch"
+    WHERE "type" = ${type}
+    ORDER BY "number" DESC
+    LIMIT 20
+  `;
 
   return (
     <Section className="py-20">

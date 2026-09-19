@@ -7,7 +7,7 @@ import { requirePermission } from '@/lib/auth/guards';
 import { PRODUCT_CATEGORIES, verdictReading } from '@/domain/product-library';
 import { listDeskProducts } from '@/server/data/product-library';
 import { featureLive } from '@/server/features';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,11 +32,12 @@ export default async function PortalKulturePage() {
   const [entries, live, sponsors] = await Promise.all([
     listDeskProducts(),
     featureLive('product_library'),
-    prisma.sponsor.findMany({
-      where: { status: 'active' },
-      select: { id: true, name: true },
-      orderBy: { name: 'asc' },
-    }),
+    sql<{ id: string; name: string }[]>`
+      SELECT "id", "name"
+      FROM "Sponsor"
+      WHERE "status" = 'active'
+      ORDER BY "name" ASC
+    `,
   ]);
 
   const published = entries.filter((entry) => entry.isPublished).length;

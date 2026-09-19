@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Notice } from '@/components/ui/feedback';
 import { buildMetadata } from '@/lib/seo';
 import { requirePermission } from '@/lib/auth/guards';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import { env, siteUrl } from '@/lib/env';
 import { CODE_LENGTH, CODE_TTL_SECONDS, MAX_ATTEMPTS } from '@/domain/verification-code';
 import { MAX_REASON_LENGTH, MIN_REASON_LENGTH } from '@/domain/nomination';
@@ -67,12 +67,32 @@ function Group({ title, note, rows }: { title: string; note: string; rows: Row[]
 export default async function SettingsPage() {
   await requirePermission('admin:manage_system', '/admin/settings');
 
-  const [season, categories, verification, lastSweep] = await Promise.all([
-    prisma.awardYear.findFirst({ where: { isCurrent: true } }),
-    prisma.category.count(),
+  const [seasonRows, categoryRows, verification, lastSweep] = await Promise.all([
+    sql<
+      {
+        title: string;
+        stage: string;
+        nominationsOpenAt: string | null;
+        nominationsCloseAt: string | null;
+        ceremonyAt: string | null;
+      }[]
+    >`
+      SELECT
+        "title",
+        "stage",
+        to_char("nominationsOpenAt", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "nominationsOpenAt",
+        to_char("nominationsCloseAt", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "nominationsCloseAt",
+        to_char("ceremonyAt", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "ceremonyAt"
+      FROM "AwardYear"
+      WHERE "isCurrent"
+      LIMIT 1
+    `,
+    sql<[{ n: number }]>`SELECT count(*)::int AS n FROM "Category"`,
     getVerificationConfig(),
     lastRetentionSweep(),
   ]);
+  const season = seasonRows[0] ?? null;
+  const categories = categoryRows[0].n;
 
   return (
     <>
@@ -237,17 +257,17 @@ export default async function SettingsPage() {
             { label: 'Stage', value: season?.stage.replace(/_/g, ' ') ?? '—', source: 'database' },
             {
               label: 'Nominations open',
-              value: season?.nominationsOpenAt?.toISOString().slice(0, 10) ?? '—',
+              value: season?.nominationsOpenAt?.slice(0, 10) ?? '—',
               source: 'database',
             },
             {
               label: 'Nominations close',
-              value: season?.nominationsCloseAt?.toISOString().slice(0, 10) ?? '—',
+              value: season?.nominationsCloseAt?.slice(0, 10) ?? '—',
               source: 'database',
             },
             {
               label: 'Ceremony',
-              value: season?.ceremonyAt?.toISOString().slice(0, 10) ?? '—',
+              value: season?.ceremonyAt?.slice(0, 10) ?? '—',
               source: 'database',
             },
             { label: 'Categories', value: String(categories), source: 'database' },

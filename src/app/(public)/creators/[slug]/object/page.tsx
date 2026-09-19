@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { Container, Section } from '@/components/palma/layout';
 import { ObjectionForm } from '@/components/palma/ObjectionForm';
 import { buildMetadata } from '@/lib/seo';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import { CONTACTS } from '@/lib/legal';
 
 export const dynamic = 'force-dynamic';
@@ -25,23 +25,48 @@ export const metadata = buildMetadata({
 export default async function ObjectPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
-  const creator = await prisma.creator.findUnique({
-    where: { slug },
-    select: {
-      slug: true,
-      displayName: true,
-      countryCode: true,
-      userId: true,
-      isPublished: true,
-      links: { select: { id: true, label: true, url: true }, orderBy: { position: 'asc' } },
-      honours: { select: { id: true }, where: { state: 'active' } },
-    },
-  });
+  const creatorRows = await sql<
+    {
+      id: string;
+      slug: string;
+      displayName: string;
+      countryCode: string;
+      userId: string | null;
+      isPublished: boolean;
+      honourCount: number;
+    }[]
+  >`
+    SELECT
+      c."id",
+      c."slug",
+      c."displayName",
+      c."countryCode",
+      c."userId",
+      c."isPublished",
+      (
+        SELECT count(*)::int
+        FROM "Honour" h
+        WHERE h."creatorId" = c."id" AND h."state" = 'active'
+      ) AS "honourCount"
+    FROM "Creator" c
+    WHERE c."slug" = ${slug}
+    LIMIT 1
+  `;
+  const creatorRow = creatorRows[0];
 
-  if (!creator || !creator.isPublished) notFound();
+  if (!creatorRow || !creatorRow.isPublished) notFound();
+
+  const links = await sql<{ id: string; label: string; url: string }[]>`
+    SELECT "id", "label", "url"
+    FROM "CreatorLink"
+    WHERE "creatorId" = ${creatorRow.id}
+    ORDER BY "position" ASC
+  `;
+
+  const creator = { ...creatorRow, links };
 
   const held = Boolean(creator.userId);
-  const hasHonours = creator.honours.length > 0;
+  const hasHonours = creator.honourCount > 0;
 
   return (
     <Section className="py-20">
@@ -109,7 +134,7 @@ export default async function ObjectPage({ params }: { params: Promise<{ slug: s
                   </div>
                   <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 py-3">
                     <dt className="text-taupe-deep text-sm">PALMA honours</dt>
-                    <dd className="text-sm">{hasHonours ? creator.honours.length : 'None'}</dd>
+                    <dd className="text-sm">{hasHonours ? creator.honourCount : 'None'}</dd>
                   </div>
                 </dl>
                 <p className="text-taupe mt-5 text-xs leading-relaxed">

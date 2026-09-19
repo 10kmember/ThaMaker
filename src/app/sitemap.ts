@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import { siteUrl } from '@/lib/env';
 import { listArticles, listCategoryIndex, listCreators, listSeasons } from '@/server/data/queries';
 import { LEGAL_DOCUMENTS } from '@/lib/legal';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import { EMAIL_LIST_VALUES } from '@/domain/email-lists';
 
 export const revalidate = 3600;
@@ -17,11 +17,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     listCategoryIndex(),
     listCreators({ limit: 500 }),
     listArticles({ limit: 200 }),
-    prisma.dispatch.findMany({
-      select: { slug: true, type: true, sentAt: true },
-      orderBy: { sentAt: 'desc' },
-      take: 200,
-    }),
+    sql<{ slug: string; type: string; sentAt: string }[]>`
+      SELECT
+        "slug",
+        "type",
+        to_char("sentAt", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "sentAt"
+      FROM "Dispatch"
+      ORDER BY "sentAt" DESC
+      LIMIT 200
+    `,
   ]);
 
   const now = new Date();

@@ -5,7 +5,7 @@ import { ResetPasswordForm } from '@/components/account/AuthForms';
 import { Notice } from '@/components/ui/feedback';
 import { buildMetadata } from '@/lib/seo';
 import { sha256 } from '@/lib/crypto';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,12 +25,17 @@ export default async function ResetPasswordPage({
 
   // Checked here only to say something useful before the form is filled in.
   // The action checks it again — this page proves nothing to the server.
-  const record = await prisma.passwordResetToken.findUnique({
-    where: { tokenHash: sha256(token) },
-    select: { usedAt: true, expiresAt: true },
-  });
+  const recordRows = await sql<{ usedAt: string | null; expiresAt: string }[]>`
+    SELECT
+      to_char("usedAt", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "usedAt",
+      to_char("expiresAt", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "expiresAt"
+    FROM "PasswordResetToken"
+    WHERE "tokenHash" = ${sha256(token)}
+    LIMIT 1
+  `;
+  const record = recordRows[0] ?? null;
 
-  const usable = Boolean(record && !record.usedAt && record.expiresAt > new Date());
+  const usable = Boolean(record && !record.usedAt && new Date(record.expiresAt) > new Date());
 
   return (
     <Section className="py-20">

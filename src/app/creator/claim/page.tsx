@@ -4,7 +4,7 @@ import { ClaimRequestForm } from '@/components/account/ClaimRequestForm';
 import { Notice } from '@/components/ui/feedback';
 import { buildMetadata } from '@/lib/seo';
 import { requireSession } from '@/lib/auth/guards';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,21 +23,39 @@ export default async function ClaimPage({
   const session = await requireSession('/creator/claim');
   const { creator, token } = await searchParams;
 
-  const record = creator
-    ? await prisma.creator.findUnique({
-        where: { slug: creator },
-        select: { slug: true, displayName: true, userId: true },
-      })
-    : null;
+  const recordRows = creator
+    ? await sql<{ slug: string; displayName: string; userId: string | null }[]>`
+        SELECT "slug", "displayName", "userId"
+        FROM "Creator"
+        WHERE "slug" = ${creator}
+        LIMIT 1
+      `
+    : [];
+  const record = recordRows[0] ?? null;
 
-  const openClaim = await prisma.creatorClaim.findFirst({
-    where: {
-      userId: session.user.id,
-      status: { in: ['submitted', 'awaiting_information', 'escalated'] },
-    },
-    include: { creator: { select: { displayName: true, slug: true } } },
-    orderBy: { createdAt: 'desc' },
-  });
+  const openClaimRows = await sql<
+    {
+      reference: string;
+      createdAt: string;
+      informationRequestedNote: string | null;
+      creatorDisplayName: string;
+      creatorSlug: string;
+    }[]
+  >`
+    SELECT
+      cc."reference",
+      to_char(cc."createdAt", 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "createdAt",
+      cc."informationRequestedNote",
+      c."displayName" AS "creatorDisplayName",
+      c."slug" AS "creatorSlug"
+    FROM "CreatorClaim" cc
+    JOIN "Creator" c ON c."id" = cc."creatorId"
+    WHERE cc."userId" = ${session.user.id}
+      AND cc."status" IN ('submitted', 'awaiting_information', 'escalated')
+    ORDER BY cc."createdAt" DESC
+    LIMIT 1
+  `;
+  const openClaim = openClaimRows[0] ?? null;
 
   return (
     <PortalShell title="PALMA Portal" subtitle="Claim a profile" userName={session.user.email}>
@@ -51,8 +69,8 @@ export default async function ClaimPage({
 
           {openClaim ? (
             <Notice tone="ceremonial" title={`Claim ${openClaim.reference} is open`}>
-              You have a claim open on {openClaim.creator.displayName}, submitted{' '}
-              {openClaim.createdAt.toISOString().slice(0, 10)}. PALMA reviews claims by hand and
+              You have a claim open on {openClaim.creatorDisplayName}, submitted{' '}
+              {openClaim.createdAt.slice(0, 10)}. PALMA reviews claims by hand and
               will write to you.
               {openClaim.informationRequestedNote ? (
                 <span className="mt-3 block text-sm">

@@ -1,6 +1,6 @@
 import { ThePalmaDecision, ThePalmaForm } from '@/components/admin/AdminForms';
 import { Notice } from '@/components/ui/feedback';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import { CONSIDERATIONS, NOT_MEASURED, THE_PALMA_CRITERION } from '@/domain/the-palma';
 import { can } from '@/lib/auth/rbac';
 import { currentRole } from '@/lib/auth/guards';
@@ -23,41 +23,57 @@ export async function ThePalmaDesk() {
   const mayConfer = can(role, 'honours:confer_the_palma');
 
   const [seasons, creators, proposals, conferred] = await Promise.all([
-    prisma.awardYear.findMany({
-      orderBy: { year: 'desc' },
-      select: { id: true, year: true, title: true },
-    }),
-    prisma.creator.findMany({
-      where: { isPublished: true, isSuspended: false },
-      orderBy: { displayName: 'asc' },
-      select: { id: true, displayName: true },
-      take: 500,
-    }),
-    prisma.consequentialAction.findMany({
-      where: { kind: 'the_palma_conferral', executedAt: null, cancelledAt: null },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        entityId: true,
-        subject: true,
-        reason: true,
-        requestedBy: { select: { name: true } },
-      },
-    }),
-    prisma.honour.findMany({
-      where: { kind: 'the_palma', state: 'active' },
-      orderBy: { awardYear: { year: 'desc' } },
-      select: {
-        id: true,
-        citation: true,
-        awardYear: { select: { year: true } },
-        creator: { select: { displayName: true } },
-        achievement: { select: { code: true } },
-      },
-    }),
+    sql<{ id: string; year: number; title: string }[]>`
+      SELECT "id", "year", "title"
+      FROM "AwardYear"
+      ORDER BY "year" DESC
+    `,
+    sql<{ id: string; displayName: string }[]>`
+      SELECT "id", "displayName"
+      FROM "Creator"
+      WHERE "isPublished" AND NOT "isSuspended"
+      ORDER BY "displayName" ASC
+      LIMIT 500
+    `,
+    sql<{ id: string; entityId: string; subject: string; reason: string; requestedByName: string }[]>`
+      SELECT
+        ca."id",
+        ca."entityId",
+        ca."subject",
+        ca."reason",
+        u."name" AS "requestedByName"
+      FROM "ConsequentialAction" ca
+      JOIN "User" u ON u."id" = ca."requestedById"
+      WHERE ca."kind" = 'the_palma_conferral'
+        AND ca."executedAt" IS NULL
+        AND ca."cancelledAt" IS NULL
+      ORDER BY ca."createdAt" DESC
+    `,
+    sql<
+      {
+        id: string;
+        citation: string | null;
+        year: number;
+        creatorDisplayName: string;
+        achievementCode: string | null;
+      }[]
+    >`
+      SELECT
+        h."id",
+        h."citation",
+        ay."year",
+        c."displayName" AS "creatorDisplayName",
+        a."code" AS "achievementCode"
+      FROM "Honour" h
+      JOIN "AwardYear" ay ON ay."id" = h."awardYearId"
+      JOIN "Creator" c ON c."id" = h."creatorId"
+      LEFT JOIN "Achievement" a ON a."honourId" = h."id"
+      WHERE h."kind" = 'the_palma' AND h."state" = 'active'
+      ORDER BY ay."year" DESC
+    `,
   ]);
 
-  const taken = new Set(conferred.map((honour) => honour.awardYear.year));
+  const taken = new Set(conferred.map((honour) => honour.year));
   const open = seasons.filter((season) => !taken.has(season.year));
 
   return (
@@ -78,13 +94,11 @@ export async function ThePalmaDesk() {
             {conferred.map((honour) => (
               <li key={honour.id} className="border-stone-deep flex flex-col gap-2 border-t pt-5">
                 <div className="flex flex-wrap items-baseline gap-x-4">
-                  <span className="font-display text-xl">{honour.creator.displayName}</span>
-                  <span className="palma-label text-taupe-deep tabular-nums">
-                    {honour.awardYear.year}
-                  </span>
-                  {honour.achievement ? (
+                  <span className="font-display text-xl">{honour.creatorDisplayName}</span>
+                  <span className="palma-label text-taupe-deep tabular-nums">{honour.year}</span>
+                  {honour.achievementCode ? (
                     <span className="text-taupe-deep font-mono text-xs">
-                      {honour.achievement.code}
+                      {honour.achievementCode}
                     </span>
                   ) : null}
                 </div>
@@ -116,11 +130,11 @@ export async function ThePalmaDesk() {
                   <ThePalmaDecision
                     actionId={proposal.id}
                     subject={proposal.subject}
-                    proposedBy={proposal.requestedBy.name}
+                    proposedBy={proposal.requestedByName}
                   />
                 ) : (
                   <p className="text-taupe-deep text-xs">
-                    Proposed by {proposal.requestedBy.name}. It is conferred when a second person
+                    Proposed by {proposal.requestedByName}. It is conferred when a second person
                     with the authority signs it off.
                   </p>
                 )}

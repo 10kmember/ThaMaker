@@ -11,7 +11,7 @@ import { requirePermission } from '@/lib/auth/guards';
 import { can } from '@/lib/auth/rbac';
 import { getBusinessOverview } from '@/server/data/business';
 import { EMAIL_LIST_VALUES } from '@/domain/email-lists';
-import { prisma } from '@/server/db';
+import { sql } from '@/server/db/sql';
 import { titleCase } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -34,19 +34,54 @@ export default async function BusinessPage() {
   const overview = await getBusinessOverview();
 
   const [sponsors, packages] = await Promise.all([
-    prisma.sponsor.findMany({
-      orderBy: [{ status: 'asc' }, { name: 'asc' }],
-      select: {
-        id: true,
-        name: true,
-        status: true,
-        agreementStatus: true,
-        contactEmail: true,
-        websiteUrl: true,
-        _count: { select: { sponsorships: true } },
-      },
-    }),
-    prisma.sponsorshipPackage.findMany({ orderBy: { priceMinor: 'asc' } }),
+    sql<
+      {
+        id: string;
+        name: string;
+        status: string;
+        agreementStatus: string;
+        contactEmail: string | null;
+        websiteUrl: string | null;
+        sponsorshipCount: number;
+      }[]
+    >`
+      SELECT
+        s."id",
+        s."name",
+        s."status",
+        s."agreementStatus",
+        s."contactEmail",
+        s."websiteUrl",
+        (
+          SELECT count(*)::int FROM "Sponsorship" sp WHERE sp."sponsorId" = s."id"
+        ) AS "sponsorshipCount"
+      FROM "Sponsor" s
+      ORDER BY s."status" ASC, s."name" ASC
+    `,
+    sql<
+      {
+        id: string;
+        name: string;
+        description: string | null;
+        priceMinor: number;
+        currency: string;
+        duration: string | null;
+        benefits: string[];
+        isAvailable: boolean;
+      }[]
+    >`
+      SELECT
+        "id",
+        "name",
+        "description",
+        "priceMinor",
+        "currency",
+        "duration",
+        "benefits",
+        "isAvailable"
+      FROM "SponsorshipPackage"
+      ORDER BY "priceMinor" ASC
+    `,
   ]);
 
   const maySponsors = can(session.user.role, 'commercial:manage_sponsors');
@@ -160,7 +195,7 @@ export default async function BusinessPage() {
                       {titleCase(sponsor.agreementStatus)}
                     </Badge>
                   </td>
-                  <td className="text-taupe-deep">{sponsor._count.sponsorships}</td>
+                  <td className="text-taupe-deep">{sponsor.sponsorshipCount}</td>
                   <td className="text-taupe-deep font-mono text-xs break-all">
                     {sponsor.contactEmail ?? '—'}
                   </td>
