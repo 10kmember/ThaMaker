@@ -24,6 +24,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:status": "prisma migrate status",
     "db:sql:migrate": "tsx scripts/db-migrate.ts",
+    "check:no-prisma": "tsx scripts/check-no-prisma.ts",
     "db:seed": "tsx prisma/seed.ts",
     "retention": "tsx scripts/retention.ts",
     "honours:check": "tsx scripts/reseal-honours.ts",
