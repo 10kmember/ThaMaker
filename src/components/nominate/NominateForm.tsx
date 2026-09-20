@@ -8,7 +8,11 @@ import { Field, Input, Textarea } from '@/components/ui/form';
 import { Notice } from '@/components/ui/feedback';
 import { PalmaSeal } from '@/components/brand/PalmaSeal';
 import { CreatorSearch, type CreatorOption } from './CreatorSearch';
-import { requestNominationCode, verifyNominationCode } from '@/server/actions/nomination';
+import {
+  requestNominationCode,
+  submitNomination,
+  verifyNominationCode,
+} from '@/server/actions/nomination';
 import { initialNominationState, type NominationState } from '@/lib/nomination-state';
 import {
   disallowedReasonCharacters,
@@ -75,6 +79,10 @@ export function NominateForm({
     verifyNominationCode,
     initialNominationState,
   );
+  const [submitState, submit, submitting] = useActionState(
+    submitNomination,
+    initialNominationState,
+  );
 
   // Whichever action last reported drives the visible step.
   React.useEffect(() => {
@@ -88,6 +96,12 @@ export function NominateForm({
       }));
     }
   }, [verifyState]);
+  React.useEffect(() => {
+    if (submitState !== initialNominationState) setState(submitState);
+  }, [submitState]);
+
+  const verified =
+    state.step === 'verify' && state.status === 'success' && !state.message?.includes('sent');
   const errors = state.errors ?? {};
 
   if (state.step === 'done' && state.status === 'success') {
@@ -255,7 +269,7 @@ export function NominateForm({
         </fieldset>
       </form>
 
-      {/* ── Verify, counted immediately ─────────────────────────────────── */}
+      {/* ── Verify, then submit ─────────────────────────────────────────── */}
       {state.step === 'verify' ? (
         <div className="border-stone-deep flex flex-col gap-8 border-t pt-10">
           <form action={verifyCode} className="flex flex-col gap-5">
@@ -264,8 +278,9 @@ export function NominateForm({
             <div className="flex flex-col gap-2">
               <h2 className="text-2xl">Confirm your email</h2>
               <p className="text-taupe-deep text-sm leading-relaxed">
-                Enter the code sent to {state.email ?? 'your inbox'}. Once it checks out, the
-                nomination is recorded.
+                {verified
+                  ? 'Email verified. Submit your nomination below.'
+                  : `Enter the code sent to ${state.email ?? 'your inbox'}.`}
               </p>
             </div>
 
@@ -280,26 +295,42 @@ export function NominateForm({
               </Notice>
             ) : null}
 
-            <div className="flex flex-wrap items-end gap-3">
-              <Field htmlFor="code" label="Verification code" className="w-full sm:w-56">
-                <Input
-                  id="code"
-                  name="code"
-                  inputMode="text"
-                  autoComplete="one-time-code"
-                  autoCapitalize="characters"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  maxLength={8}
-                  placeholder="PM5617"
-                  required
-                  className="font-mono text-lg tracking-[0.4em] uppercase"
-                />
-              </Field>
-              <Button type="submit" size="md" variant="outline" disabled={verifying}>
-                {verifying ? 'Checking…' : 'Verify and record'}
-              </Button>
-            </div>
+            {!verified ? (
+              <div className="flex flex-wrap items-end gap-3">
+                <Field htmlFor="code" label="Verification code" className="w-full sm:w-56">
+                  <Input
+                    id="code"
+                    name="code"
+                    inputMode="text"
+                    autoComplete="one-time-code"
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    maxLength={8}
+                    placeholder="PM5617"
+                    required
+                    className="font-mono text-lg tracking-[0.4em] uppercase"
+                  />
+                </Field>
+                <Button type="submit" size="md" variant="outline" disabled={verifying}>
+                  {verifying ? 'Checking…' : 'Verify'}
+                </Button>
+              </div>
+            ) : (
+              <Notice tone="ceremonial">Email verified.</Notice>
+            )}
+          </form>
+
+          <form action={submit}>
+            <input type="hidden" name="nominationId" value={state.nominationId ?? ''} />
+            <Button type="submit" size="lg" disabled={!verified || submitting}>
+              {submitting ? 'Submitting…' : 'Submit nomination'}
+            </Button>
+            {!verified ? (
+              <p className="text-taupe mt-3 text-xs">
+                Submission unlocks once your email is verified.
+              </p>
+            ) : null}
           </form>
         </div>
       ) : null}

@@ -31,13 +31,13 @@ import type { NominationState } from '@/lib/nomination-state';
 /**
  * The nomination flow, in three server actions:
  *
- *   requestNominationCode → verifyNominationCode → counted
+ *   requestNominationCode → verifyNominationCode → submitNomination
  *
  * A draft row exists from the first step so the code can be bound to it. The
- * emailed code is the human check; once it passes, the nomination is counted
- * immediately rather than queued for a moderator. The nomination is only ever
- * a signal: the count it increments is operational, and no part of the judging
- * path reads it.
+ * emailed code is the human check; once the nominator submits after it, the
+ * nomination is counted and the candidacy moves straight out of review. The
+ * nomination is only ever a signal: the count it increments is operational,
+ * and no part of the judging path reads it.
  */
 
 /**
@@ -381,15 +381,8 @@ export async function verifyNominationCode(
     };
   }
 
-  const [nomination] = await sql<
-    { id: string; status: string; nominatorId: string; seasonStage: string }[]
-  >`
-    select n.id, n.status, n."nominatorId", ay.stage as "seasonStage"
-    from "Nomination" n
-    join "Candidacy" c on c.id = n."candidacyId"
-    join "AwardYear" ay on ay.id = c."awardYearId"
-    where n.id = ${parsed.data.nominationId}
-    limit 1
+  const [nomination] = await sql<{ id: string; status: string; nominatorId: string }[]>`
+    select id, status, "nominatorId" from "Nomination" where id = ${parsed.data.nominationId} limit 1
   `;
 
   if (!nomination) {
@@ -464,16 +457,6 @@ export async function verifyNominationCode(
     };
   }
 
-  // The season can close between requesting a code and entering it.
-  if (!acceptsNominations(nomination.seasonStage as SeasonStage)) {
-    return {
-      ...previous,
-      step: 'verify',
-      status: 'error',
-      message: 'Nominations closed while you were verifying. Nothing has been recorded.',
-    };
-  }
-
   const now = new Date();
   await withTransaction(async (tx) => {
     await tx`
@@ -489,29 +472,12 @@ export async function verifyNominationCode(
     `;
   });
 
-  const session = await getSession();
-  const counted = await countVerifiedNomination(
-    nomination.id,
-    session
-      ? { id: session.user.id, role: session.user.role, label: session.user.email }
-      : { label: 'nominator' },
-  );
-
-  if (!counted.ok) {
-    return { ...previous, step: 'verify', status: 'error', message: counted.message };
-  }
-
-  revalidatePath('/portal/nominations');
-
   return {
     ...previous,
-    step: 'done',
+    step: 'verify',
     status: 'success',
     nominationId: nomination.id,
-    reference: counted.reference,
-    creatorName: counted.creatorName,
-    categoryName: counted.categoryName,
-    message: counted.already ? 'This nomination is already recorded.' : 'Nomination recorded.',
+    message: 'Email verified. You can submit the nomination now.',
   };
 }
 
