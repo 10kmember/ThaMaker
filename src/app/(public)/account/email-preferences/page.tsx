@@ -114,7 +114,12 @@ export default async function EmailPreferencesPage() {
   const essential = TEMPLATE_LIST.filter((template) => template.gate === 'always');
 
   return (
-    <PortalShell title="PALMA Account" subtitle="Email preferences" userName={session.user.email}>
+    <PortalShell
+      title="PALMA Account"
+      subtitle="Email preferences"
+      session={session}
+      desk="creator"
+    >
       <div className="flex flex-wrap items-start justify-between gap-6">
         <p className="text-taupe-deep max-w-160 leading-relaxed">
           What PALMA sends to <strong>{session.user.email}</strong>, and what it does not.

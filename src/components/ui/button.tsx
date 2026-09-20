@@ -48,10 +48,10 @@ const buttonVariants = cva(
         link: 'palma-btn-plain palma-link text-ink hover:-translate-y-0!',
       },
       size: {
-        sm: 'palma-label h-9 px-4',
+        sm: 'palma-label h-9 px-4 pointer-coarse:h-11',
         md: 'palma-label h-11 px-6',
         lg: 'palma-label h-13 px-8 text-xs',
-        icon: 'size-10 after:inset-1.5',
+        icon: 'size-10 after:inset-1.5 pointer-coarse:size-11',
         /** The seal: circular, for a ceremonial act rather than a routine one. */
         seal: 'palma-seal-btn palma-label size-28 rounded-full text-[0.625rem] leading-tight after:rounded-full',
       },

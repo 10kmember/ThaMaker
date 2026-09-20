@@ -38,7 +38,8 @@ export default async function JudgingRoomPage({ params }: Params) {
       subtitle={candidate.name}
       nav={JUDGING_NAV}
       activeHref="/judge/assignments"
-      userName={session.user.name}
+      session={session}
+      desk="judge"
     >
       <div className="flex flex-wrap items-baseline justify-between gap-4">
         <Link href="/judge/assignments" className="palma-label text-taupe-deep hover:text-ink">

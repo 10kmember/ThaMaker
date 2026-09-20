@@ -25,7 +25,8 @@ export default async function JudgingHistoryPage() {
       subtitle="My judging history"
       nav={JUDGING_NAV}
       activeHref="/judge/history"
-      userName={session.user.name}
+      session={session}
+      desk="judge"
     >
       <p className="text-taupe-deep max-w-160 leading-relaxed">
         Your service record on the PALMA panel. It is not a trophy cabinet: it shows what you were

@@ -1,0 +1,1144 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   PALMA — the desk layer
+
+   The four authenticated surfaces: moderation, administration, judging and
+   the creator portal. Scoped to a `.desk` ancestor, so the public editorial
+   site is untouched by any of it.
+
+   The organising idea is DEPTH, not translucency. Surfaces are near-opaque
+   and sit on a four-step elevation ladder; the hierarchy is read from
+   shadow, scale and a hairline, the way a stack of cards on a table is read.
+   Translucency is a material with exactly one job — letting content dissolve
+   *under* something floating over it — so it is spent only where that is
+   literally what is happening: the chrome, popovers, overlays.
+
+   Motion is physical. Things overshoot a little and settle, because that is
+   what mass does. Nothing blinks.
+
+   All of it degrades. No scroll timeline, no pointer, no motion: the design
+   still reads, because it is built from contrast and space first.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+@layer base {
+  /* `.desk` is the page surface; `.desk-tokens` is only the palette, for
+     content portalled to <body> that needs the variables but must not
+     inherit a full-height background. */
+  .desk,
+  .desk-tokens {
+    /* ── The elevation ladder ──────────────────────────────────────────────
+       Four steps and no more. A component names the step it is on, never a
+       colour, which is why the whole surface re-themes from this block. */
+    --surface-0: #ece8de; /* the table */
+    --surface-1: #f7f4ee; /* a card resting on it */
+    --surface-2: #fdfcf9; /* a card lifted, or a popover */
+    --surface-3: #ffffff; /* an overlay, above everything */
+
+    --line: rgba(28, 27, 24, 0.1);
+    --line-strong: rgba(28, 27, 24, 0.18);
+
+    --text: #1a1b1d;
+    --text-soft: #4e4d48;
+    --text-quiet: #7d7870;
+
+    --accent: #967f4f;
+    --accent-bright: #c9b58a;
+    --accent-wash: rgba(201, 181, 138, 0.16);
+
+    --positive: #2f7a4e;
+    --positive-wash: rgba(47, 122, 78, 0.12);
+    --alert: #a03740;
+    --alert-wash: rgba(160, 55, 64, 0.1);
+
+    /* Shadows are two-part: a tight contact shadow that anchors the card to
+       whatever is below it, and a wide soft one that gives it height. A
+       single shadow always reads as a sticker. */
+    --lift-1: 0 1px 2px rgba(28, 27, 24, 0.05), 0 2px 8px -4px rgba(28, 27, 24, 0.07);
+    --lift-2: 0 1px 2px rgba(28, 27, 24, 0.06), 0 8px 20px -8px rgba(28, 27, 24, 0.13);
+    --lift-3: 0 2px 4px rgba(28, 27, 24, 0.07), 0 20px 44px -16px rgba(28, 27, 24, 0.2);
+
+    /* The one place translucency lives. */
+    --veil: rgba(244, 241, 234, 0.74);
+    --veil-blur: 12px;
+
+    /* Physics. `--spring` overshoots and settles; `--settle` does not, and is
+       for anything that must not look springy — a meter, a reveal. */
+    --spring: linear(
+      0 0%,
+      0.22 6%,
+      0.58 13%,
+      0.87 20%,
+      1.03 27%,
+      1.06 34%,
+      1.03 44%,
+      0.995 62%,
+      1 100%
+    );
+    --settle: cubic-bezier(0.22, 1, 0.36, 1);
+    --swift: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  [data-theme='ink'] .desk,
+  [data-theme='ink'] .desk-tokens {
+    --surface-0: #0e0f12;
+    --surface-1: #17191d;
+    --surface-2: #1f2229;
+    --surface-3: #262a31;
+
+    --line: rgba(255, 255, 255, 0.09);
+    --line-strong: rgba(255, 255, 255, 0.18);
+
+    --text: #f2efe8;
+    --text-soft: #b9b4a9;
+    --text-quiet: #868176;
+
+    --accent: #c9b58a;
+    --accent-bright: #e0cfa8;
+    --accent-wash: rgba(201, 181, 138, 0.11);
+
+    --positive: #7fc39a;
+    --positive-wash: rgba(127, 195, 154, 0.1);
+    --alert: #e0808a;
+    --alert-wash: rgba(224, 128, 138, 0.1);
+
+    --lift-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px -4px rgba(0, 0, 0, 0.5);
+    --lift-2: 0 1px 2px rgba(0, 0, 0, 0.45), 0 8px 20px -8px rgba(0, 0, 0, 0.6);
+    --lift-3: 0 2px 4px rgba(0, 0, 0, 0.5), 0 20px 44px -16px rgba(0, 0, 0, 0.7);
+
+    --veil: rgba(14, 15, 18, 0.74);
+  }
+
+  [data-theme='archive'] .desk,
+  [data-theme='archive'] .desk-tokens {
+    --surface-0: #e4dac5;
+    --surface-1: #efe8d8;
+    --surface-2: #f6f1e5;
+    --surface-3: #fbf8f0;
+    --veil: rgba(239, 232, 216, 0.76);
+  }
+
+  .desk {
+    background-color: var(--surface-0);
+    color: var(--text);
+    min-height: 100dvh;
+    position: relative;
+    isolation: isolate;
+  }
+}
+
+@layer components {
+  /* ── Ambient ground ────────────────────────────────────────────────────────
+     Two wide, very low-contrast washes that follow the pointer at about a
+     tenth of its speed. Nearly subliminal by design: the job is to stop a
+     large flat area reading as dead, not to be looked at.
+
+     `--px`/`--py` are written by the shell. The defaults keep it composed
+     before a pointer has moved, and on touch, where one never will. */
+  .desk-ambient {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      radial-gradient(
+        58rem 42rem at calc(16% + var(--px, 0.5) * 7%) calc(2% + var(--py, 0.3) * 6%),
+        var(--accent-wash),
+        transparent 70%
+      ),
+      radial-gradient(
+        50rem 38rem at calc(90% - var(--px, 0.5) * 6%) calc(94% - var(--py, 0.3) * 7%),
+        var(--positive-wash),
+        transparent 72%
+      );
+  }
+
+  /* ── Surfaces ──────────────────────────────────────────────────────────────
+     One class, one step on the ladder. */
+  .card {
+    position: relative;
+    border-radius: 1.125rem;
+    background: var(--surface-1);
+    border: 1px solid var(--line);
+    box-shadow: var(--lift-1);
+    transition:
+      transform 0.5s var(--spring),
+      box-shadow 0.4s var(--settle),
+      background-color 0.4s var(--settle),
+      border-color 0.4s var(--settle);
+  }
+
+  .card-quiet {
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .card-raised {
+    background: var(--surface-2);
+    box-shadow: var(--lift-2);
+  }
+
+  /* Interactive cards lift. The spring is what makes it feel like an object
+     rather than a hover state. */
+  .card-interactive:hover,
+  .card-interactive:focus-visible {
+    transform: translateY(-2px);
+    background: var(--surface-2);
+    border-color: var(--line-strong);
+    box-shadow: var(--lift-2);
+  }
+
+  .card-interactive:active {
+    transform: translateY(0) scale(0.994);
+    box-shadow: var(--lift-1);
+    transition-duration: 0.11s;
+  }
+
+  /* The card the page is actually about. An accent hairline along the top
+     edge, which costs nothing and is read instantly. */
+  .card-primary {
+    background: var(--surface-2);
+    box-shadow: var(--lift-2);
+    overflow: hidden;
+  }
+
+  .card-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent-bright), transparent);
+    opacity: 0.85;
+  }
+
+  /* ── Chrome ────────────────────────────────────────────────────────────────
+     Adaptive translucency, and the one place it earns its cost: the bar is
+     almost solid at rest, and as the document scrolls under it the veil
+     thickens and the blur comes up, so what passes beneath dissolves instead
+     of colliding with the type on top of it. */
+  .desk-chrome {
+    background: color-mix(in srgb, var(--surface-0) 94%, transparent);
+    border-bottom: 1px solid transparent;
+    transition:
+      background-color 0.4s var(--settle),
+      border-color 0.4s var(--settle);
+  }
+
+  @supports (animation-timeline: scroll()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .desk-chrome {
+        animation: chrome-settle linear both;
+        animation-timeline: scroll(root block);
+        animation-range: 0 120px;
+      }
+    }
+  }
+
+  /* Without a scroll timeline the bar is simply the settled version: still
+     legible, just not adaptive. */
+  @supports not (animation-timeline: scroll()) {
+    .desk-chrome {
+      background: var(--veil);
+      backdrop-filter: blur(var(--veil-blur)) saturate(140%);
+      -webkit-backdrop-filter: blur(var(--veil-blur)) saturate(140%);
+      border-bottom-color: var(--line);
+    }
+  }
+
+  /* A hairline under the chrome that fills as the document is read. */
+  .desk-progress {
+    transform-origin: left center;
+    transform: scaleX(0);
+  }
+
+  @supports (animation-timeline: scroll()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .desk-progress {
+        animation: rail linear both;
+        animation-timeline: scroll(root block);
+      }
+    }
+  }
+
+  /* ── Navigation ────────────────────────────────────────────────────────────
+     Two shapes for two shapes of problem: a segmented control for a desk with
+     four destinations, a rail for one with twenty. Both share the same active
+     treatment, so they read as one system. */
+  /* The container is a rounded rectangle, not a capsule. A capsule looks
+     right on one line and broken on three, and on a narrow screen a group of
+     five filters is always going to wrap. The items stay capsules, so the
+     control still reads as segmented. */
+  .seg {
+    display: inline-flex;
+    gap: 0.125rem;
+    padding: 0.25rem;
+    border-radius: 1.125rem;
+    background: var(--surface-1);
+    border: 1px solid var(--line);
+  }
+
+  .seg-item {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.8125rem;
+    color: var(--text-quiet);
+    white-space: nowrap;
+    transition:
+      color 0.3s var(--swift),
+      background-color 0.3s var(--swift),
+      transform 0.4s var(--spring);
+  }
+
+  .seg-item:hover {
+    color: var(--text);
+  }
+
+  .seg-item[data-active='true'] {
+    color: var(--text);
+    background: var(--surface-3);
+    box-shadow: var(--lift-1);
+    font-weight: 500;
+  }
+
+  [data-theme='ink'] .seg-item[data-active='true'] {
+    background: var(--surface-3);
+  }
+
+  .rail-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.625rem;
+    font-size: 0.875rem;
+    color: var(--text-quiet);
+    transition:
+      color 0.3s var(--swift),
+      background-color 0.3s var(--swift);
+  }
+
+  .rail-item:hover {
+    color: var(--text);
+    background: color-mix(in srgb, var(--text) 5%, transparent);
+  }
+
+  .rail-item[data-active='true'] {
+    color: var(--text);
+    background: var(--surface-2);
+    box-shadow: var(--lift-1);
+    font-weight: 500;
+  }
+
+  /* The accent tick grows from nothing, so moving between items reads as the
+     marker travelling rather than blinking. */
+  .rail-item[data-active='true']::before {
+    content: '';
+    position: absolute;
+    left: -0.5rem;
+    top: 50%;
+    width: 3px;
+    height: 1rem;
+    border-radius: 999px;
+    background: var(--accent);
+    transform: translateY(-50%);
+    animation: tick 0.45s var(--spring) both;
+  }
+
+  /* A nav row is comfortable at thirty-seven pixels under a cursor and
+     cramped under a thumb. */
+  @media (pointer: coarse) {
+    .rail-item {
+      min-height: 2.75rem;
+    }
+
+    .seg-item {
+      min-height: 2.5rem;
+    }
+  }
+
+  /* ── Magnetic ──────────────────────────────────────────────────────────────
+     Pills lean fractionally toward the cursor. The displacement is capped at
+     a few pixels: past that it stops feeling alive and starts feeling broken.
+     `--dx`/`--dy` come from the pointer handler. */
+  .magnetic {
+    transform: translate3d(calc(var(--dx, 0) * 4px), calc(var(--dy, 0) * 3px), 0);
+    transition: transform 0.45s var(--spring);
+  }
+
+  /* ── Type ──────────────────────────────────────────────────────────────────
+     Variable-font dynamics. Weight and optical size respond to state rather
+     than being fixed choices: a figure that matters gets heavier and tighter,
+     a quiet one stays light. */
+  .label {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-quiet);
+  }
+
+  .figure {
+    font-family: var(--font-display);
+    font-variant-numeric: tabular-nums;
+    line-height: 0.92;
+    letter-spacing: -0.025em;
+    color: var(--text);
+    font-variation-settings:
+      'opsz' 40,
+      'SOFT' 0,
+      'WONK' 0;
+    transition: font-variation-settings 0.5s var(--settle);
+  }
+
+  /* A figure that needs a person raises its weight and softens its terminals.
+     It gets *warmer* rather than louder, which is a quieter kind of alarm. */
+  .figure-attention {
+    color: var(--alert);
+    font-variation-settings:
+      'opsz' 44,
+      'SOFT' 10,
+      'WONK' 1;
+  }
+
+  .figure-accent {
+    color: var(--accent);
+  }
+
+  .group:hover .figure {
+    font-variation-settings:
+      'opsz' 48,
+      'SOFT' 4,
+      'WONK' 0;
+  }
+
+  /* Kinetic heading. Each word is masked and rises on a stagger, so the title
+     assembles rather than appears. Purely decorative: the text is in the DOM
+     in full, in order, at all times. */
+  .kinetic {
+    display: inline-block;
+    overflow: hidden;
+    vertical-align: bottom;
+    padding-bottom: 0.08em;
+  }
+
+  .kinetic > span {
+    display: inline-block;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .kinetic > span {
+      animation: word-rise 0.75s var(--settle) both;
+      animation-delay: calc(var(--w, 0) * 55ms);
+    }
+  }
+
+  /* ── Data as texture ───────────────────────────────────────────────────────
+     The page's own headline number, set enormous and almost invisible behind
+     the panel. It is the same figure stated plainly a few centimetres away,
+     so it carries no information of its own — it gives the card a subject and
+     a sense of scale. */
+  .watermark {
+    position: absolute;
+    right: 1.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--font-display);
+    font-size: clamp(7rem, 15vw, 12rem);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: var(--text);
+    opacity: 0.032;
+    pointer-events: none;
+    user-select: none;
+    letter-spacing: -0.05em;
+  }
+
+  [data-theme='ink'] .watermark {
+    opacity: 0.04;
+  }
+
+  /* ── Meters and rings ──────────────────────────────────────────────────────
+     A linear meter for a row, a ring for a card. Both draw themselves on
+     first sight rather than on a loop. */
+  .meter {
+    height: 0.375rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text) 9%, transparent);
+    overflow: hidden;
+  }
+
+  .meter-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--accent);
+    transform-origin: left center;
+    animation: draw 1s var(--settle) both;
+  }
+
+  .meter-fill[data-complete='true'] {
+    background: var(--positive);
+  }
+
+  /* The orbital form: a conic sweep masked into a ring. An instrument dial
+     rather than a bar — for a single proportion that is the point of a card,
+     a ring is read at a glance where a bar has to be measured. */
+  .ring {
+    position: relative;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: conic-gradient(
+      var(--ring-colour, var(--accent)) calc(var(--pct, 0) * 1%),
+      color-mix(in srgb, var(--text) 8%, transparent) 0
+    );
+    animation: ring-sweep 1.1s var(--settle) both;
+  }
+
+  .ring::before {
+    content: '';
+    position: absolute;
+    inset: 0.3125rem;
+    border-radius: inherit;
+    background: var(--surface-1);
+  }
+
+  .card-primary .ring::before,
+  .card-raised .ring::before {
+    background: var(--surface-2);
+  }
+
+  .ring > * {
+    position: relative;
+  }
+
+  /* ── Ambient notification ──────────────────────────────────────────────────
+     A glow along the top edge of the surface instead of a banner: it says
+     something is live without taking a row of the page to do it. */
+  .edge-glow {
+    position: fixed;
+    inset: 0 0 auto 0;
+    height: 2px;
+    z-index: 60;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--accent-bright), transparent);
+    opacity: 0;
+    animation: edge 7s var(--settle) infinite;
+  }
+
+  /* A dot that breathes rather than blinks. */
+  .dot {
+    position: relative;
+    display: inline-block;
+    width: 0.4rem;
+    height: 0.4rem;
+    border-radius: 999px;
+    background: var(--positive);
+  }
+
+  .dot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: inherit;
+    animation: breathe 3s var(--settle) infinite;
+  }
+
+  .dot[data-tone='accent'] {
+    background: var(--accent);
+  }
+
+  .dot[data-tone='alert'] {
+    background: var(--alert);
+  }
+
+  /* ── Overlays ──────────────────────────────────────────────────────────────
+     The second and last place translucency is spent. Something is genuinely
+     floating over the page, so the page genuinely dissolves under it. */
+  .overlay-veil {
+    background: color-mix(in srgb, var(--surface-0) 55%, transparent);
+    backdrop-filter: blur(8px) saturate(120%);
+    -webkit-backdrop-filter: blur(8px) saturate(120%);
+  }
+
+  .popover {
+    background: color-mix(in srgb, var(--surface-3) 90%, transparent);
+    backdrop-filter: blur(16px) saturate(150%);
+    -webkit-backdrop-filter: blur(16px) saturate(150%);
+    border: 1px solid var(--line);
+    border-radius: 1rem;
+    box-shadow: var(--lift-3);
+  }
+
+  /* A popover arriving. Portalled content sits outside the desk root, so it
+     carries `.desk` itself and picks the tokens up from there. */
+  @media (prefers-reduced-motion: no-preference) {
+    .popover-enter[data-state='open'] {
+      animation: popover-in 0.22s var(--settle) both;
+    }
+  }
+
+  /* ── Lists ─────────────────────────────────────────────────────────────────
+     A set of rows is ONE card with rules between the rows, not a stack of
+     cards with gaps between them. Twelve floating cards is twelve shadows,
+     twelve borders and eleven gutters of wasted height for a list the eye
+     wants to run straight down.
+
+     The row keeps its own hover, so it is still obviously a thing you can
+     click; it just does it inside the card rather than as a card. */
+  .list {
+    overflow: hidden;
+  }
+
+  .list > * + * {
+    border-top: 1px solid var(--line);
+  }
+
+  .row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 0.625rem 0.875rem;
+    transition:
+      background-color 0.25s var(--swift),
+      padding-left 0.35s var(--spring);
+  }
+
+  a.row:hover,
+  a.row:focus-visible {
+    background: color-mix(in srgb, var(--text) 4%, transparent);
+    padding-left: 1.125rem;
+  }
+
+  /* The accent edge that arrives on hover, so a row reads as selectable
+     without needing a border of its own at rest. */
+  a.row::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 2px;
+    background: var(--accent);
+    transform: scaleY(0);
+    transform-origin: center;
+    transition: transform 0.35s var(--spring);
+  }
+
+  a.row:hover::before,
+  a.row:focus-visible::before {
+    transform: scaleY(1);
+  }
+
+  /* Smaller on a phone, where a row has a third of the width to say the same
+     thing in. It steps back up once there is room. */
+  .row-title {
+    font-family: var(--font-display);
+    font-size: 0.8125rem;
+    line-height: 1.3;
+    color: var(--text);
+  }
+
+  @media (min-width: 40rem) {
+    .row-title {
+      font-size: 0.875rem;
+    }
+  }
+
+  .row-note {
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--text-quiet);
+  }
+
+  /* The count that leads a queue row. Small, tabular, and tinted only when
+     it is not zero. */
+  .row-count {
+    display: grid;
+    place-items: center;
+    min-width: 1.875rem;
+    height: 1.625rem;
+    padding: 0 0.375rem;
+    border-radius: 0.4375rem;
+    font-family: var(--font-display);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    background: color-mix(in srgb, var(--text) 5%, transparent);
+    color: var(--text-quiet);
+    box-shadow: inset 0 0 0 1px var(--line);
+    transition:
+      background-color 0.3s var(--settle),
+      color 0.3s var(--settle);
+  }
+
+  .row-count[data-waiting='true'] {
+    background: var(--accent-wash);
+    color: var(--accent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
+  }
+
+  /* ── Touch targets ─────────────────────────────────────────────────────────
+     A small inline link inside a dense row is correct on a mouse and a
+     nuisance on a thumb: "View" is seventeen pixels tall, and the guidance
+     everyone agrees on is forty-four.
+
+     Rather than padding the link out and loosening the row it sits in, the
+     hit area is extended with a pseudo-element, which has no layout of its
+     own. The link looks the same; it is simply easier to hit. Only on a
+     coarse pointer, so a mouse gets no invisible overlapping boxes. */
+  @media (pointer: coarse) {
+    .tap {
+      position: relative;
+    }
+
+    .tap::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: -0.5rem;
+      right: -0.5rem;
+      height: 2.75rem;
+      transform: translateY(-50%);
+      /* Below the row's own hover treatment, above nothing else. */
+      z-index: 0;
+    }
+  }
+
+  /* ── Kokonut-style flourishes ──────────────────────────────────────────────
+     Three borrowed ideas, rebuilt on PALMA's tokens rather than dropped in:
+     a beam that travels the border of the panel that matters, a sheen that
+     crosses a surface once on hover, and a pointer-tracked glow. Each is one
+     pseudo-element and no JavaScript. */
+
+  /* The beam. A conic gradient rotating behind the card, masked to a hairline
+     by the card's own inset background. It marks exactly one panel per page,
+     so it reads as ceremony rather than as decoration. */
+  .beam {
+    position: relative;
+  }
+
+  .beam::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    z-index: -1;
+    background: conic-gradient(
+      from var(--beam-angle, 0deg),
+      transparent 0%,
+      transparent 68%,
+      color-mix(in srgb, var(--accent-bright) 85%, transparent) 84%,
+      color-mix(in srgb, var(--accent-bright) 25%, transparent) 92%,
+      transparent 100%
+    );
+    animation: beam-spin 7s linear infinite;
+  }
+
+  /* A single pass of light across a surface on hover. */
+  .sheen {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sheen::after {
+    content: '';
+    position: absolute;
+    inset: -50% -120%;
+    pointer-events: none;
+    background: linear-gradient(
+      74deg,
+      transparent 44%,
+      color-mix(in srgb, var(--text) 8%, transparent) 50%,
+      transparent 56%
+    );
+    transform: translateX(-55%);
+    opacity: 0;
+  }
+
+  .sheen:hover::after,
+  .sheen:focus-within::after {
+    animation: sheen-pass 0.9s var(--settle);
+  }
+
+  /* A glow that follows the pointer across a card. `--mx`/`--my` are written
+     by the pointer handler; before one has moved, nothing paints. */
+  .glow::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(
+      18rem 18rem at var(--mx, 50%) var(--my, 50%),
+      color-mix(in srgb, var(--accent) 12%, transparent),
+      transparent 68%
+    );
+    opacity: 0;
+    transition: opacity 0.45s var(--settle);
+  }
+
+  .glow:hover::after,
+  .glow:focus-within::after {
+    opacity: 1;
+  }
+
+  /* ── Drizzle ───────────────────────────────────────────────────────────────
+     A fine fall of specks across the desk, very slow and very faint. Two
+     layers at different speeds and opacities so it has depth rather than
+     reading as a texture sliding down the screen.
+
+     It is drawn from one repeating-gradient per layer, so the whole effect is
+     two elements and no per-particle DOM. */
+  .drizzle {
+    position: fixed;
+    inset: -20% 0 -20% 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.28;
+    background-image:
+      radial-gradient(1px 5px at 12% 0, var(--text) 0, transparent 100%),
+      radial-gradient(1px 4px at 34% 0, var(--text) 0, transparent 100%),
+      radial-gradient(1px 6px at 57% 0, var(--text) 0, transparent 100%),
+      radial-gradient(1px 4px at 78% 0, var(--text) 0, transparent 100%),
+      radial-gradient(1px 5px at 91% 0, var(--text) 0, transparent 100%);
+    background-size:
+      14rem 9rem,
+      18rem 11rem,
+      16rem 8rem,
+      21rem 12rem,
+      15rem 10rem;
+    animation: drizzle-fall 9s linear infinite;
+  }
+
+  .drizzle-near {
+    opacity: 0.22;
+    background-image:
+      radial-gradient(1.5px 8px at 22% 0, var(--accent) 0, transparent 100%),
+      radial-gradient(1.5px 7px at 66% 0, var(--accent) 0, transparent 100%),
+      radial-gradient(1.5px 9px at 88% 0, var(--accent) 0, transparent 100%);
+    background-size:
+      26rem 16rem,
+      30rem 19rem,
+      24rem 15rem;
+    animation-name: drizzle-fall-near;
+    animation-duration: 5.5s;
+  }
+
+  [data-theme='ink'] .drizzle {
+    opacity: 0.2;
+  }
+
+  [data-theme='ink'] .drizzle-near {
+    opacity: 0.28;
+  }
+
+  /* ── The mobile menu ───────────────────────────────────────────────────────
+     A panel that comes down from under the chrome, not a strip of tabs across
+     the top of the page. The trigger is a hamburger in the outer corner,
+     where a thumb on a phone actually reaches.
+
+     `grid-template-rows: 0fr → 1fr` is what lets it animate to its own
+     height without anybody measuring anything. */
+  .sheet {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition:
+      grid-template-rows 0.42s var(--settle),
+      opacity 0.3s var(--swift),
+      visibility 0.42s;
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .sheet[data-open='true'] {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .sheet > * {
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* Each row of the menu arrives on a stagger once the panel is open. */
+  .sheet[data-open='true'] .sheet-item {
+    animation: sheet-item 0.4s var(--settle) both;
+    animation-delay: calc(var(--i, 0) * 40ms + 90ms);
+  }
+
+  /* The hamburger. Three lines that fold into a cross, so the button says
+     what it will do next rather than swapping glyph.
+
+     The lines are positioned absolutely rather than laid out in a grid. A
+     grid stretches its rows to fill the button, so the gap between the
+     strokes depends on the button's height, and the two that rotate then
+     cross short of each other and read as a chevron instead of a cross.
+     Absolute placement puts the spacing in one place, in pixels, where it
+     can be reasoned about. */
+  .burger-line {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 1rem;
+    height: 1px;
+    transform: translate(-50%, calc(-50% + var(--y, 0px)));
+    transform-origin: center;
+    transition:
+      transform 0.4s var(--spring),
+      opacity 0.2s var(--swift);
+  }
+
+  .burger-line:nth-child(1) {
+    --y: -5px;
+  }
+
+  .burger-line:nth-child(3) {
+    --y: 5px;
+  }
+
+  [data-open='true'] > .burger-line:nth-child(1) {
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+
+  [data-open='true'] > .burger-line:nth-child(2) {
+    opacity: 0;
+    transform: translate(-50%, -50%) scaleX(0.3);
+  }
+
+  [data-open='true'] > .burger-line:nth-child(3) {
+    transform: translate(-50%, -50%) rotate(-45deg);
+  }
+
+  /* ── Scroll-driven reveal ──────────────────────────────────────────────────
+     Tied to the element's own position in the viewport, so it scrubs with the
+     scroll rather than firing on a timer. The `@supports` guard is
+     load-bearing: without a timeline the `both` fill would strand everything
+     at opacity 0 permanently. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .reveal {
+        animation: reveal linear both;
+        animation-timeline: view();
+        animation-range: entry 4% cover 22%;
+      }
+    }
+  }
+
+  /* Entrance for anything above the fold, which never enters the viewport and
+     so never gets a view() timeline. Staggered by `--i`. */
+  @media (prefers-reduced-motion: no-preference) {
+    .enter {
+      animation: reveal 0.7s var(--settle) both;
+      animation-delay: calc(var(--i, 0) * 55ms);
+    }
+  }
+
+  /* ── Scrollbar ─────────────────────────────────────────────────────────── */
+  .desk *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  .desk *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .desk *::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    border: 3px solid transparent;
+    background-clip: content-box;
+    background-color: var(--line-strong);
+  }
+
+  .desk {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+}
+
+/* ── Keyframes ───────────────────────────────────────────────────────────── */
+
+@keyframes beam-spin {
+  to {
+    --beam-angle: 360deg;
+  }
+}
+
+@keyframes sheen-pass {
+  0% {
+    opacity: 0;
+    transform: translateX(-55%);
+  }
+  24% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(55%);
+  }
+}
+
+@keyframes drizzle-fall {
+  to {
+    background-position-y: 9rem, 11rem, 8rem, 12rem, 10rem;
+  }
+}
+
+@keyframes drizzle-fall-near {
+  to {
+    background-position-y: 16rem, 19rem, 15rem;
+  }
+}
+
+@keyframes sheet-item {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes chrome-settle {
+  to {
+    background-color: var(--veil);
+    backdrop-filter: blur(var(--veil-blur)) saturate(140%);
+    -webkit-backdrop-filter: blur(var(--veil-blur)) saturate(140%);
+    border-bottom-color: var(--line);
+  }
+}
+
+@keyframes popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rail {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes word-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.9em);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes ring-sweep {
+  from {
+    --pct: 0;
+  }
+}
+
+@keyframes tick {
+  from {
+    height: 0;
+    opacity: 0;
+  }
+  to {
+    height: 1rem;
+    opacity: 1;
+  }
+}
+
+@keyframes breathe {
+  0% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  60%,
+  100% {
+    opacity: 0;
+    transform: scale(2.8);
+  }
+}
+
+@keyframes edge {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  8%,
+  15% {
+    opacity: 0.5;
+  }
+}
+
+/* `--pct` has to be registered for the ring's conic sweep to interpolate at
+   all: an unregistered custom property jumps from one value to the next. */
+@property --beam-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@property --pct {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+/* ── Reduced motion ────────────────────────────────────────────────────────
+   Everything arrives in its final state immediately. The design is built to
+   be right when static; the motion is the enhancement, not the substance. */
+@media (prefers-reduced-motion: reduce) {
+  .enter,
+  .kinetic > span,
+  .meter-fill,
+  .ring,
+  .dot::after,
+  .edge-glow,
+  .drizzle,
+  .beam::before,
+  .sheet-item {
+    animation: none !important;
+    opacity: 1;
+  }
+
+  .desk-progress {
+    transform: scaleX(1);
+  }
+
+  .card-interactive:hover,
+  .card-interactive:focus-visible,
+  .magnetic {
+    transform: none;
+  }
+}

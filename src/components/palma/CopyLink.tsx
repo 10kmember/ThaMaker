@@ -9,10 +9,23 @@ export function CopyLink({
   value,
   label = 'Copy verification link',
   variant = 'outline',
+  className,
+  compact = false,
 }: {
   value: string;
   label?: string;
   variant?: 'outline' | 'quiet' | 'ghost';
+  /** So a caller can size it for the row it sits in. */
+  className?: string;
+  /**
+   * Icon alone below the small breakpoint.
+   *
+   * In a dense row on a phone the words "Copy verification link" are wider
+   * than the record they belong to. The label is still in the DOM and still
+   * announced; it is only held back visually, so the control keeps its name
+   * for anyone not reading it with their eyes.
+   */
+  compact?: boolean;
 }) {
   const [copied, setCopied] = React.useState(false);
 
@@ -33,9 +46,16 @@ export function CopyLink({
   }
 
   return (
-    <Button type="button" variant={variant} size="sm" onClick={copy} aria-live="polite">
+    <Button
+      type="button"
+      variant={variant}
+      size="sm"
+      onClick={copy}
+      aria-live="polite"
+      className={className}
+    >
       {copied ? <Check aria-hidden="true" /> : <Link2 aria-hidden="true" />}
-      {copied ? 'Copied' : label}
+      <span className={cn(compact && 'sr-only sm:not-sr-only')}>{copied ? 'Copied' : label}</span>
     </Button>
   );
 }

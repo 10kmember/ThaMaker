@@ -27,7 +27,8 @@ export default async function CreatorVerificationPage() {
     <PortalShell
       title="PALMA Portal"
       subtitle="Verification"
-      userName={session.user.email}
+      session={session}
+      desk="creator"
       nav={CREATOR_NAV}
       activeHref="/creator/verification"
     >

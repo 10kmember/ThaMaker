@@ -31,7 +31,7 @@ export default async function StartRecordPage() {
   if (held) redirect('/creator');
 
   return (
-    <PortalShell title="PALMA Portal" subtitle="Start a record" userName={session.user.email}>
+    <PortalShell title="PALMA Portal" subtitle="Start a record" session={session} desk="creator">
       <div className="grid gap-14 lg:grid-cols-12 lg:gap-16">
         <div className="max-w-160 lg:col-span-7">
           <p className="text-taupe-deep mb-10 leading-relaxed">

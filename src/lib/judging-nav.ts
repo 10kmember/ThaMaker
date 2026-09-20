@@ -1,11 +1,12 @@
-import type { PortalNavItem } from '@/components/palma/PortalShell';
+import { LayoutDashboard, Gavel, History, UserCog } from 'lucide-react';
+import type { DeskNavItem } from '@/components/desk/DeskShell';
 
 /** Four places, because a judge has four things to do. */
-export const JUDGING_NAV: PortalNavItem[] = [
-  { href: '/judge', label: 'Overview' },
-  { href: '/judge/assignments', label: 'My judging' },
-  { href: '/judge/history', label: 'History' },
-  { href: '/judge/account', label: 'Account' },
+export const JUDGING_NAV: DeskNavItem[] = [
+  { href: '/judge', label: 'Overview', icon: LayoutDashboard },
+  { href: '/judge/assignments', label: 'My judging', icon: Gavel },
+  { href: '/judge/history', label: 'History', icon: History },
+  { href: '/judge/account', label: 'Account', icon: UserCog },
 ];
 
 /** "Good afternoon" is warmer than "Dashboard", and costs nothing. */

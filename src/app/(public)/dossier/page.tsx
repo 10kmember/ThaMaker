@@ -41,7 +41,7 @@ export default async function DossierPage({
   const home = homeForRole(session.user.role);
 
   return (
-    <PortalShell title="PALMA Dossier" subtitle="Your Dossier" userName={session.user.email}>
+    <PortalShell title="PALMA Dossier" subtitle="Your Dossier" session={session} desk="creator">
       <div className="flex flex-wrap items-start justify-between gap-6">
         <p className="text-taupe-deep max-w-160 leading-relaxed">
           Everything PALMA has told you, kept. Entries are written whether or not the email reached

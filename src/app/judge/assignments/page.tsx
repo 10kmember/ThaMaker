@@ -24,7 +24,7 @@ export default async function MyJudgingPage() {
 
   if (!overview) {
     return (
-      <PortalShell title="PALMA Judging" userName={session.user.name}>
+      <PortalShell title="PALMA Judging" session={session} desk="judge">
         <EmptyState
           title="No panel membership"
           description="This account is not currently seated on a PALMA panel."
@@ -39,7 +39,8 @@ export default async function MyJudgingPage() {
       subtitle="My judging"
       nav={JUDGING_NAV}
       activeHref="/judge/assignments"
-      userName={overview.judgeName}
+      session={session}
+      desk="judge"
     >
       <p className="text-taupe-deep max-w-160 leading-relaxed">
         Three states, and a case can only move forwards through them. Opening a case means declaring

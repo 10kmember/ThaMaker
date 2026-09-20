@@ -58,7 +58,7 @@ export default async function ClaimPage({
   const openClaim = openClaimRows[0] ?? null;
 
   return (
-    <PortalShell title="PALMA Portal" subtitle="Claim a profile" userName={session.user.email}>
+    <PortalShell title="PALMA Portal" subtitle="Claim a profile" session={session} desk="creator">
       <div className="grid gap-14 lg:grid-cols-12 lg:gap-16">
         <div className="max-w-160 lg:col-span-7">
           <p className="text-taupe-deep mb-8 leading-relaxed">
@@ -70,8 +70,8 @@ export default async function ClaimPage({
           {openClaim ? (
             <Notice tone="ceremonial" title={`Claim ${openClaim.reference} is open`}>
               You have a claim open on {openClaim.creatorDisplayName}, submitted{' '}
-              {openClaim.createdAt.slice(0, 10)}. PALMA reviews claims by hand and
-              will write to you.
+              {openClaim.createdAt.slice(0, 10)}. PALMA reviews claims by hand and will write to
+              you.
               {openClaim.informationRequestedNote ? (
                 <span className="mt-3 block text-sm">
                   <strong>PALMA has asked for more:</strong> {openClaim.informationRequestedNote}

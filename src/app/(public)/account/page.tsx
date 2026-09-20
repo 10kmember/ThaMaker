@@ -84,7 +84,7 @@ export default async function AccountPage() {
 
   if (!user) {
     return (
-      <PortalShell title="PALMA Account" userName={session.user.email}>
+      <PortalShell title="PALMA Account" session={session} desk="creator">
         <Notice tone="warning" title="Account not found">
           Sign out and in again.
         </Notice>
@@ -95,7 +95,7 @@ export default async function AccountPage() {
   const others = sessions.filter((row) => row.id !== session.sessionId).length;
 
   return (
-    <PortalShell title="PALMA Account" subtitle="Your account" userName={user.email}>
+    <PortalShell title="PALMA Account" subtitle="Your account" session={session} desk="creator">
       <div className="flex flex-wrap items-start justify-between gap-6">
         <p className="text-taupe-deep max-w-160 leading-relaxed">
           Your sign-in, your address and your sessions. Your <em>record</em>, how you are described
@@ -172,9 +172,7 @@ export default async function AccountPage() {
                     {row.userAgent ? row.userAgent.slice(0, 48) : 'Unknown device'}
                   </span>
                   <span className="palma-label text-taupe">
-                    {row.id === session.sessionId
-                      ? 'This one'
-                      : formatShortDate(row.createdAt)}
+                    {row.id === session.sessionId ? 'This one' : formatShortDate(row.createdAt)}
                   </span>
                 </li>
               ))}

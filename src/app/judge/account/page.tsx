@@ -26,7 +26,7 @@ export default async function JudgeAccountPage() {
 
   if (!account) {
     return (
-      <PortalShell title="PALMA Judging" userName={session.user.name}>
+      <PortalShell title="PALMA Judging" session={session} desk="judge">
         <EmptyState
           title="No panel membership"
           description="This account is not currently seated on a PALMA panel."
@@ -45,7 +45,8 @@ export default async function JudgeAccountPage() {
       subtitle="Account"
       nav={JUDGING_NAV}
       activeHref="/judge/account"
-      userName={account.displayName}
+      session={session}
+      desk="judge"
     >
       <div className="grid gap-14 lg:grid-cols-12 lg:gap-16">
         <div className="flex flex-col gap-14 lg:col-span-7">
