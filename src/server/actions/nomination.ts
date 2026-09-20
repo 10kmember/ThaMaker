@@ -21,22 +21,23 @@ import {
   verifyCodeSchema,
 } from '@/lib/validation/nomination';
 import { getSession } from '@/lib/auth/session';
-import { recordAudit } from '@/server/audit';
 import { createId } from '@/server/db/ids';
 import { sql, withTransaction } from '@/server/db/sql';
-import { sendNominationCode, sendNominationReceipt } from '@/server/email/messages';
+import { sendNominationCode } from '@/server/email/messages';
 import { RATE_LIMITS, enforceRateLimit } from '@/server/rate-limit';
+import { countVerifiedNomination } from '@/server/services/nomination-count';
 import type { NominationState } from '@/lib/nomination-state';
 
 /**
  * The nomination flow, in three server actions:
  *
- *   requestNominationCode → verifyNominationCode → submitNomination
+ *   requestNominationCode → verifyNominationCode → counted
  *
- * A draft row exists from the first step so the code can be bound to it, but
- * nothing counts until `submitNomination` commits it. The nomination is only
- * ever a signal: the count it increments is operational, and no part of the
- * judging path reads it.
+ * A draft row exists from the first step so the code can be bound to it. The
+ * emailed code is the human check; once it passes, the nomination is counted
+ * immediately rather than queued for a moderator. The nomination is only ever
+ * a signal: the count it increments is operational, and no part of the judging
+ * path reads it.
  */
 
 /**
@@ -45,8 +46,7 @@ import type { NominationState } from '@/lib/nomination-state';
  * comparisons in this module do not depend on the session time zone. Returns a
  * raw SQL fragment; only ever called with static, quoted column references.
  */
-const isoTs = (ref: string) =>
-  sql.unsafe(`to_char(${ref}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`);
+const isoTs = (ref: string) => sql.unsafe(`to_char(${ref}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`);
 
 async function requestMeta() {
   try {
@@ -143,7 +143,9 @@ export async function requestNominationCode(
     limit 1
   `;
 
-  const season = seasonRow ? { id: seasonRow.id, year: seasonRow.year, stage: seasonRow.stage } : null;
+  const season = seasonRow
+    ? { id: seasonRow.id, year: seasonRow.year, stage: seasonRow.stage }
+    : null;
   const category = seasonRow?.categoryId
     ? { id: seasonRow.categoryId, name: seasonRow.categoryName!, isOpen: seasonRow.categoryIsOpen! }
     : undefined;
@@ -215,10 +217,12 @@ export async function requestNominationCode(
         (select count(*)::int from "Nomination"
           where "nominatorId" = ${nominator.id} and "createdAt" >= timezone('UTC', ${hourAgo}))
           as "recentByNominator",
-        ${candidacy
-          ? sql`(select count(*)::int from "Nomination"
+        ${
+          candidacy
+            ? sql`(select count(*)::int from "Nomination"
               where "candidacyId" = ${candidacy.id} and "createdAt" >= timezone('UTC', ${tenMinutesAgo}))`
-          : sql`0`}
+            : sql`0`
+        }
           as "recentForCandidacy"
     `
   )[0]!;
@@ -377,8 +381,15 @@ export async function verifyNominationCode(
     };
   }
 
-  const [nomination] = await sql<{ id: string; status: string; nominatorId: string }[]>`
-    select id, status, "nominatorId" from "Nomination" where id = ${parsed.data.nominationId} limit 1
+  const [nomination] = await sql<
+    { id: string; status: string; nominatorId: string; seasonStage: string }[]
+  >`
+    select n.id, n.status, n."nominatorId", ay.stage as "seasonStage"
+    from "Nomination" n
+    join "Candidacy" c on c.id = n."candidacyId"
+    join "AwardYear" ay on ay.id = c."awardYearId"
+    where n.id = ${parsed.data.nominationId}
+    limit 1
   `;
 
   if (!nomination) {
@@ -453,6 +464,16 @@ export async function verifyNominationCode(
     };
   }
 
+  // The season can close between requesting a code and entering it.
+  if (!acceptsNominations(nomination.seasonStage as SeasonStage)) {
+    return {
+      ...previous,
+      step: 'verify',
+      status: 'error',
+      message: 'Nominations closed while you were verifying. Nothing has been recorded.',
+    };
+  }
+
   const now = new Date();
   await withTransaction(async (tx) => {
     await tx`
@@ -468,12 +489,29 @@ export async function verifyNominationCode(
     `;
   });
 
+  const session = await getSession();
+  const counted = await countVerifiedNomination(
+    nomination.id,
+    session
+      ? { id: session.user.id, role: session.user.role, label: session.user.email }
+      : { label: 'nominator' },
+  );
+
+  if (!counted.ok) {
+    return { ...previous, step: 'verify', status: 'error', message: counted.message };
+  }
+
+  revalidatePath('/portal/nominations');
+
   return {
     ...previous,
-    step: 'verify',
+    step: 'done',
     status: 'success',
     nominationId: nomination.id,
-    message: 'Email verified. You can submit the nomination now.',
+    reference: counted.reference,
+    creatorName: counted.creatorName,
+    categoryName: counted.categoryName,
+    message: counted.already ? 'This nomination is already recorded.' : 'Nomination recorded.',
   };
 }
 
@@ -495,32 +533,21 @@ export async function submitNomination(
       id: string;
       reference: string;
       status: string;
-      source: string;
-      integrityScore: number;
-      integritySignals: string[];
-      candidacyId: string;
-      nominatorId: string;
       verifiedAt: string | null;
-      nominatorEmail: string;
-      candidacyReference: string;
       creatorName: string;
       categoryName: string;
       seasonStage: string;
-      seasonYear: number;
     }[]
   >`
     select
-      n.id, n.reference, n.status, n.source, n."integrityScore", n."integritySignals",
-      n."candidacyId", n."nominatorId",
+      n.id,
+      n.reference,
+      n.status,
       ${isoTs('n."verifiedAt"')} as "verifiedAt",
-      nom.email as "nominatorEmail",
-      c.reference as "candidacyReference",
       cr."displayName" as "creatorName",
       cat.name as "categoryName",
-      ay.stage as "seasonStage",
-      ay.year as "seasonYear"
+      ay.stage as "seasonStage"
     from "Nomination" n
-    join "Nominator" nom on nom.id = n."nominatorId"
     join "Candidacy" c on c.id = n."candidacyId"
     join "Creator" cr on cr.id = c."creatorId"
     join "Category" cat on cat.id = c."categoryId"
@@ -569,66 +596,27 @@ export async function submitNomination(
     };
   }
 
-  const now = new Date();
-  // Automation signals raise a flag for a moderator; they never block the
-  // person in front of us, who is most likely a real supporter.
-  const flagged = nomination.integrityScore >= 30;
-
-  await withTransaction(async (tx) => {
-    await tx`
-      update "Nomination" set status = 'counted', "countedAt" = ${now} where id = ${nomination.id}
-    `;
-    await tx`
-      update "Candidacy" set
-        "nominationCount" = "nominationCount" + 1,
-        "lastNominatedAt" = ${now},
-        "firstNominatedAt" = coalesce("firstNominatedAt", ${now}),
-        ${flagged ? sql`"integrityFlag" = true,` : sql``}
-        "updatedAt" = ${now}
-      where id = ${nomination.candidacyId}
-    `;
-    await tx`
-      update "Nominator" set "lastNominatedAt" = ${now}, "updatedAt" = ${now}
-      where id = ${nomination.nominatorId}
-    `;
-  });
-
   const session = await getSession();
-
-  await recordAudit({
-    action: 'nomination.counted',
-    entityType: 'Nomination',
-    entityId: nomination.id,
-    actor: session
+  const counted = await countVerifiedNomination(
+    nomination.id,
+    session
       ? { id: session.user.id, role: session.user.role, label: session.user.email }
       : { label: 'nominator' },
-    summary: `${nomination.creatorName} nominated in ${nomination.categoryName}`,
-    after: {
-      reference: nomination.reference,
-      candidacy: nomination.candidacyReference,
-      source: nomination.source,
-      integrityScore: nomination.integrityScore,
-      integritySignals: nomination.integritySignals,
-    },
-  });
+  );
 
-  await sendNominationReceipt({
-    to: nomination.nominatorEmail,
-    creatorName: nomination.creatorName,
-    categoryName: nomination.categoryName,
-    reference: nomination.reference,
-    year: nomination.seasonYear,
-  }).catch(() => undefined);
+  if (!counted.ok) {
+    return { ...previous, status: 'error', message: counted.message };
+  }
 
   revalidatePath('/portal/nominations');
 
   return {
     step: 'done',
     status: 'success',
-    reference: nomination.reference,
-    creatorName: nomination.creatorName,
-    categoryName: nomination.categoryName,
-    message: 'Nomination recorded.',
+    reference: counted.reference,
+    creatorName: counted.creatorName,
+    categoryName: counted.categoryName,
+    message: counted.already ? 'This nomination is already recorded.' : 'Nomination recorded.',
   };
 }
 

@@ -25,6 +25,7 @@ let unverifiedCandidacyId = '';
 
 describe.skipIf(!hasDatabase)('conferring an honour (integration)', () => {
   beforeAll(async () => {
+    const created = new Date();
     // Clear anything an interrupted earlier run left behind, so a failed
     // cleanup never leaks a fake season into the public record.
     const stale = await sql<{ id: string }[]>`
@@ -50,14 +51,14 @@ describe.skipIf(!hasDatabase)('conferring an honour (integration)', () => {
     seasonId = createId();
     const year = 2900 + (Date.now() % 90);
     await sql`
-      insert into "AwardYear" (id, year, title, stage)
-      values (${seasonId}, ${year}, ${`PALMA Integration ${SUFFIX}`}, 'judging')
+      insert into "AwardYear" (id, year, title, stage, "createdAt", "updatedAt")
+      values (${seasonId}, ${year}, ${`PALMA Integration ${SUFFIX}`}, 'judging', ${created}, ${created})
     `;
 
     categoryId = createId();
     await sql`
       insert into "Category" (
-        id, "awardYearId", slug, name, description, eligibility, "judgingCriteria"
+        id, "awardYearId", slug, name, description, eligibility, "judgingCriteria", "createdAt", "updatedAt"
       ) values (
         ${categoryId},
         ${seasonId},
@@ -65,53 +66,59 @@ describe.skipIf(!hasDatabase)('conferring an honour (integration)', () => {
         'Integration Category',
         'x',
         'x',
-        'x'
+        'x',
+        ${created},
+        ${created}
       )
     `;
 
     verifiedCreatorId = createId();
     await sql`
-      insert into "Creator" (id, slug, "displayName", "countryCode")
-      values (${verifiedCreatorId}, ${`verified-${SUFFIX}`}, 'Verified Creator', 'GB')
+      insert into "Creator" (id, slug, "displayName", "countryCode", "createdAt", "updatedAt")
+      values (${verifiedCreatorId}, ${`verified-${SUFFIX}`}, 'Verified Creator', 'GB', ${created}, ${created})
     `;
     await sql`
-      insert into "CreatorVerification" (id, "creatorId", status, "verifiedAt")
-      values (${createId()}, ${verifiedCreatorId}, 'verified', ${new Date()})
+      insert into "CreatorVerification" (id, "creatorId", status, "verifiedAt", "createdAt", "updatedAt")
+      values (${createId()}, ${verifiedCreatorId}, 'verified', ${new Date()}, ${created}, ${created})
     `;
 
     unverifiedCreatorId = createId();
     await sql`
-      insert into "Creator" (id, slug, "displayName", "countryCode")
-      values (${unverifiedCreatorId}, ${`unverified-${SUFFIX}`}, 'Unverified Creator', 'GB')
+      insert into "Creator" (id, slug, "displayName", "countryCode", "createdAt", "updatedAt")
+      values (${unverifiedCreatorId}, ${`unverified-${SUFFIX}`}, 'Unverified Creator', 'GB', ${created}, ${created})
     `;
     await sql`
-      insert into "CreatorVerification" (id, "creatorId", status)
-      values (${createId()}, ${unverifiedCreatorId}, 'pending')
+      insert into "CreatorVerification" (id, "creatorId", status, "createdAt", "updatedAt")
+      values (${createId()}, ${unverifiedCreatorId}, 'pending', ${created}, ${created})
     `;
 
     candidacyId = createId();
     await sql`
-      insert into "Candidacy" (id, reference, "awardYearId", "categoryId", "creatorId", status)
+      insert into "Candidacy" (id, reference, "awardYearId", "categoryId", "creatorId", status, "createdAt", "updatedAt")
       values (
         ${candidacyId},
         ${`PC-INT-${SUFFIX}-1`},
         ${seasonId},
         ${categoryId},
         ${verifiedCreatorId},
-        'eligible'
+        'eligible',
+        ${created},
+        ${created}
       )
     `;
 
     unverifiedCandidacyId = createId();
     await sql`
-      insert into "Candidacy" (id, reference, "awardYearId", "categoryId", "creatorId", status)
+      insert into "Candidacy" (id, reference, "awardYearId", "categoryId", "creatorId", status, "createdAt", "updatedAt")
       values (
         ${unverifiedCandidacyId},
         ${`PC-INT-${SUFFIX}-2`},
         ${seasonId},
         ${categoryId},
         ${unverifiedCreatorId},
-        'eligible'
+        'eligible',
+        ${created},
+        ${created}
       )
     `;
   });
