@@ -18,6 +18,7 @@ import { getSystemHealth } from '@/server/data/system-health';
 import { greeting } from '@/lib/judging-nav';
 import { STAGE_LABEL, type SeasonStage } from '@/domain/season';
 import { formatDate } from '@/lib/format';
+import { Users, Trophy, Workflow, Monitor, AlertTriangle, ChevronRight } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,20 +40,21 @@ export default async function CommandCentrePage({
 
   const firstName = session.user.name.split(' ')[0] ?? session.user.name;
 
-  // The greeting and the period filter do not wait on a single count. The
-  // figures stream in behind them, shaped by skeletons so nothing reflows.
   return (
     <>
-      <div className="flex flex-col gap-3">
-        <span className="palma-label text-taupe-deep">Command centre</span>
-        <h1 className="text-4xl">
+      <header className="flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+          <Monitor className="text-taupe size-4" strokeWidth={1.5} />
+          <span className="palma-label text-taupe-deep">Command centre</span>
+        </div>
+        <h1 className="font-display text-4xl leading-tight sm:text-5xl">
           {greeting()}, {firstName}.
         </h1>
         <p className="text-taupe-deep max-w-160 leading-relaxed">
           Figures below cover{' '}
           <strong className="text-ink">{PERIOD_LABEL[period].toLowerCase()}</strong>.
         </p>
-      </div>
+      </header>
 
       <div className="border-stone-deep mt-10 border-b pb-5">
         <PeriodFilter period={period} basePath="/admin" />
@@ -92,34 +94,37 @@ async function Figures({ period, role }: { period: Period; role: Role }) {
 
   return (
     <>
-      <p className="text-taupe-deep mt-10 max-w-160 leading-relaxed">
-        {outstanding === 0
-          ? 'Nothing is waiting on a person across the institution.'
-          : `${outstanding} item${outstanding === 1 ? '' : 's'} across the queues need a decision.`}
-        {centre.since ? ` Counted since ${formatDate(centre.since)}.` : ''}
-      </p>
+      <div className="mt-10 flex items-start gap-12">
+        <p className="text-taupe-deep max-w-160 leading-relaxed">
+          {outstanding === 0
+            ? 'Nothing is waiting on a person across the institution.'
+            : `${outstanding} item${outstanding === 1 ? '' : 's'} across the queues need a decision.`}
+          {centre.since ? ` Counted since ${formatDate(centre.since)}.` : ''}
+        </p>
+      </div>
 
       {degraded.length > 0 ? (
-        <Notice tone="warning" title="A service is not healthy" className="mt-8">
-          {degraded.map((service) => service.name).join(', ')},{' '}
-          <Link href="/admin/health" className="palma-link text-ink">
-            system health
-          </Link>
-          .
-        </Notice>
+        <div className="border-olive/40 bg-olive/8 mt-8 flex items-start gap-3 border px-5 py-4">
+          <AlertTriangle className="text-olive mt-0.5 size-4 shrink-0" strokeWidth={2} />
+          <div className="text-olive text-sm leading-relaxed">
+            <p className="palma-label mb-1">A service is not healthy</p>
+            {degraded.map((service) => service.name).join(', ')}{' '}
+            <Link href="/admin/health" className="palma-link text-ink font-medium">
+              view system health
+              <ChevronRight className="mb-0.5 inline size-3.5" />
+            </Link>
+          </div>
+        </div>
       ) : null}
 
       <div className="mt-12 flex flex-col gap-14">
         <StatGrid
           title="Creators"
+          icon={Users}
           stats={[
             { label: 'Total records', value: creators.total, href: '/portal/creators' },
             { label: 'Added', value: creators.added, note: PERIOD_LABEL[period] },
-            {
-              label: 'Claimed',
-              value: creators.claimed,
-              href: '/portal/creators?filter=claimed',
-            },
+            { label: 'Claimed', value: creators.claimed, href: '/portal/creators?filter=claimed' },
             {
               label: 'Unclaimed',
               value: creators.unclaimed,
@@ -142,7 +147,8 @@ async function Figures({ period, role }: { period: Period; role: Role }) {
 
         {awards ? (
           <StatGrid
-            title={`Awards, ${awards.seasonTitle}, ${STAGE_LABEL[awards.stage as SeasonStage]}`}
+            title={`Awards \u2014 ${awards.seasonTitle}, ${STAGE_LABEL[awards.stage as SeasonStage]}`}
+            icon={Trophy}
             stats={[
               { label: 'Categories', value: awards.categories },
               { label: 'Nominations', value: awards.nominations, href: '/portal/nominations' },
@@ -166,6 +172,7 @@ async function Figures({ period, role }: { period: Period; role: Role }) {
 
         <StatGrid
           title="Operations"
+          icon={Workflow}
           stats={[
             {
               label: 'Open claims',
@@ -206,6 +213,7 @@ async function Figures({ period, role }: { period: Period; role: Role }) {
 
         <StatGrid
           title="Platform"
+          icon={Monitor}
           stats={[
             { label: 'Accounts', value: platform.accounts, href: '/admin/users' },
             { label: 'New accounts', value: platform.newAccounts, note: PERIOD_LABEL[period] },
@@ -228,7 +236,10 @@ async function Figures({ period, role }: { period: Period; role: Role }) {
 
       {awards && can(role, 'admin:manage_seasons') ? (
         <section className="border-stone-deep mt-16 border-t pt-10">
-          <h3 className="palma-label text-taupe-deep mb-6">Advance the season</h3>
+          <div className="mb-6 flex items-center gap-2.5">
+            <ChevronRight className="text-taupe size-4" strokeWidth={1.5} />
+            <h3 className="palma-label text-taupe-deep">Advance the season</h3>
+          </div>
           <div className="max-w-140">
             <AdvanceSeasonForm stage={awards.stage as SeasonStage} year={awards.seasonYear} />
           </div>

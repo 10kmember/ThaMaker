@@ -1,81 +1,134 @@
 import type { Permission, Role } from '@/lib/auth/rbac';
 import { can } from '@/lib/auth/rbac';
-
-/**
- * The administration sidebar.
- *
- * Grouped by what a thing *is*, not by which table it lives in, and filtered by
- * what the signed-in role may actually reach. A moderator sees their queues and
- * a very short sidebar; a super administrator sees the institution. Nobody is
- * shown a door that will refuse them — a greyed-out menu is just a slower 403.
- */
+import {
+  LayoutDashboard,
+  BarChart3,
+  Users,
+  Search,
+  Activity,
+  Scale,
+  Trophy,
+  Crown,
+  ScrollText,
+  UserCheck,
+  ShieldCheck,
+  Flag,
+  Image,
+  AlertOctagon,
+  Gavel,
+  Briefcase,
+  Handshake,
+  ClipboardList,
+  Heart,
+  Settings,
+  FileText,
+  Import,
+  ToggleRight,
+  Sparkles,
+  BookOpen,
+  Send,
+  Layers,
+  type LucideIcon,
+} from 'lucide-react';
 
 export type AdminLink = {
   href: string;
   label: string;
-  /** The permission that makes this destination reachable. */
   permission: Permission;
-  /** Not yet built. Listed so the shape of the institution is visible. */
   planned?: boolean;
+  icon?: LucideIcon;
 };
 
 export type AdminGroup = { title: string; items: AdminLink[] };
 
-/**
- * The moderator's dashboard.
- *
- * Queues, and the records those queues are about. Short on purpose: a
- * moderator's day is a list of things waiting for a person, and a sidebar that
- * offered them the institution's machinery would be offering them work that is
- * not theirs.
- */
 export const MODERATION_NAV: AdminGroup[] = [
   {
     title: 'Queues',
     items: [
-      { href: '/portal', label: 'Overview', permission: 'operations:view_dashboard' },
+      {
+        href: '/portal',
+        label: 'Overview',
+        permission: 'operations:view_dashboard',
+        icon: LayoutDashboard,
+      },
       {
         href: '/portal/nominations',
         label: 'Nominations',
         permission: 'admin:review_nominations',
+        icon: ScrollText,
       },
-      { href: '/portal/claims', label: 'Creator claims', permission: 'claims:review' },
+      {
+        href: '/portal/claims',
+        label: 'Creator claims',
+        permission: 'claims:review',
+        icon: UserCheck,
+      },
       {
         href: '/portal/verification',
         label: 'Age verification',
         permission: 'verification:review_manual',
+        icon: ShieldCheck,
       },
-      { href: '/portal/reports', label: 'Reports', permission: 'moderation:view_reports' },
-      { href: '/portal/portraits', label: 'Portraits', permission: 'editorial:edit_creator' },
-      { href: '/portal/objections', label: 'Objections', permission: 'creators:view_records' },
+      {
+        href: '/portal/reports',
+        label: 'Reports',
+        permission: 'moderation:view_reports',
+        icon: Flag,
+      },
+      {
+        href: '/portal/portraits',
+        label: 'Portraits',
+        permission: 'editorial:edit_creator',
+        icon: Image,
+      },
+      {
+        href: '/portal/objections',
+        label: 'Objections',
+        permission: 'creators:view_records',
+        icon: AlertOctagon,
+      },
     ],
   },
   {
     title: 'The record',
     items: [
-      { href: '/portal/creators', label: 'Creators', permission: 'creators:view_records' },
-      { href: '/portal/creators/import', label: 'Import', permission: 'editorial:import_creators' },
+      {
+        href: '/portal/creators',
+        label: 'Creators',
+        permission: 'creators:view_records',
+        icon: Users,
+      },
+      {
+        href: '/portal/creators/import',
+        label: 'Import',
+        permission: 'editorial:import_creators',
+        icon: Import,
+      },
       {
         href: '/portal/sponsorships',
         label: 'Sponsor placements',
         permission: 'commercial:assign_placement',
+        icon: Layers,
       },
       {
         href: '/portal/kulture',
         label: 'Kulture',
         permission: 'kulture:manage_products',
+        icon: Sparkles,
       },
       {
         href: '/portal/features',
         label: 'Features',
         permission: 'commercial:manage_features',
+        icon: ToggleRight,
       },
       {
         href: '/portal/the-palma',
         label: 'THE PALMA',
         permission: 'honours:propose_the_palma',
+        icon: Crown,
       },
-      { href: '/paroh', label: 'PaROH', permission: 'operations:view_dashboard' },
+      { href: '/paroh', label: 'PaROH', permission: 'operations:view_dashboard', icon: BookOpen },
     ],
   },
 ];
@@ -84,54 +137,114 @@ export const ADMIN_NAV: AdminGroup[] = [
   {
     title: 'Command centre',
     items: [
-      { href: '/admin', label: 'Overview', permission: 'admin:view_dashboard' },
-      { href: '/admin/analytics', label: 'Analytics', permission: 'admin:view_analytics' },
-      { href: '/admin/audience', label: 'Audience', permission: 'admin:view_analytics' },
-      { href: '/admin/search', label: 'Search', permission: 'creators:view_records' },
-      { href: '/admin/activity', label: 'Activity', permission: 'admin:view_audit_log' },
+      {
+        href: '/admin',
+        label: 'Overview',
+        permission: 'admin:view_dashboard',
+        icon: LayoutDashboard,
+      },
+      {
+        href: '/admin/analytics',
+        label: 'Analytics',
+        permission: 'admin:view_analytics',
+        icon: BarChart3,
+      },
+      {
+        href: '/admin/audience',
+        label: 'Audience',
+        permission: 'admin:view_analytics',
+        icon: Users,
+      },
+      { href: '/admin/search', label: 'Search', permission: 'creators:view_records', icon: Search },
+      {
+        href: '/admin/activity',
+        label: 'Activity',
+        permission: 'admin:view_audit_log',
+        icon: Activity,
+      },
     ],
   },
   {
     title: 'Awards',
     items: [
-      { href: '/admin/judging', label: 'Judging', permission: 'admin:assign_judging' },
+      { href: '/admin/judging', label: 'Judging', permission: 'admin:assign_judging', icon: Scale },
       {
         href: '/admin/selection',
         label: 'Finalists & winners',
         permission: 'admin:select_finalists',
+        icon: Trophy,
       },
-      // Its own destination, not a panel inside the standings screen. Only
-      // super administrators see it, because only they can confer it.
-      { href: '/admin/the-palma', label: 'THE PALMA', permission: 'honours:confer_the_palma' },
-      { href: '/paroh', label: 'PaROH', permission: 'admin:view_dashboard' },
+      {
+        href: '/admin/the-palma',
+        label: 'THE PALMA',
+        permission: 'honours:confer_the_palma',
+        icon: Crown,
+      },
+      { href: '/paroh', label: 'PaROH', permission: 'admin:view_dashboard', icon: BookOpen },
     ],
   },
   {
     title: 'People',
     items: [
-      { href: '/portal/creators', label: 'Creators', permission: 'creators:view_records' },
-      { href: '/admin/users', label: 'Users & roles', permission: 'admin:manage_users' },
+      {
+        href: '/portal/creators',
+        label: 'Creators',
+        permission: 'creators:view_records',
+        icon: Users,
+      },
+      {
+        href: '/admin/users',
+        label: 'Users & roles',
+        permission: 'admin:manage_users',
+        icon: UserCheck,
+      },
     ],
   },
   {
-    // The moderator's queues, reachable from here because an administrator
-    // holds every moderator permission — the same pages, not a second copy.
     title: 'Queues',
     items: [
-      { href: '/portal/claims', label: 'Creator claims', permission: 'claims:review' },
+      {
+        href: '/portal/claims',
+        label: 'Creator claims',
+        permission: 'claims:review',
+        icon: FileText,
+      },
       {
         href: '/portal/verification',
         label: 'Age verification',
         permission: 'verification:review_manual',
+        icon: ShieldCheck,
       },
-      { href: '/portal/reports', label: 'Reports', permission: 'moderation:view_reports' },
-      { href: '/portal/portraits', label: 'Portraits', permission: 'editorial:edit_creator' },
-      { href: '/portal/objections', label: 'Objections', permission: 'creators:view_records' },
+      {
+        href: '/portal/reports',
+        label: 'Reports',
+        permission: 'moderation:view_reports',
+        icon: Flag,
+      },
+      {
+        href: '/portal/portraits',
+        label: 'Portraits',
+        permission: 'editorial:edit_creator',
+        icon: Image,
+      },
+      {
+        href: '/portal/objections',
+        label: 'Objections',
+        permission: 'creators:view_records',
+        icon: AlertOctagon,
+      },
     ],
   },
   {
     title: 'Enforcement',
-    items: [{ href: '/admin/enforcement', label: 'Enforcement', permission: 'admin:enforce' }],
+    items: [
+      {
+        href: '/admin/enforcement',
+        label: 'Enforcement',
+        permission: 'admin:enforce',
+        icon: Gavel,
+      },
+    ],
   },
   {
     title: 'Communications',
@@ -140,41 +253,64 @@ export const ADMIN_NAV: AdminGroup[] = [
         href: '/admin/communications',
         label: 'Mail & the Gazette',
         permission: 'admin:view_communications',
+        icon: Send,
       },
     ],
   },
   {
     title: 'Business',
     items: [
-      { href: '/admin/business', label: 'Commercial', permission: 'commercial:view' },
+      {
+        href: '/admin/business',
+        label: 'Commercial',
+        permission: 'commercial:view',
+        icon: Briefcase,
+      },
       {
         href: '/portal/sponsorships',
         label: 'Sponsor placements',
         permission: 'commercial:assign_placement',
+        icon: Layers,
       },
       {
         href: '/admin/sponsors',
         label: 'Sponsors & partners',
         permission: 'admin:manage_sponsors',
+        icon: Handshake,
       },
     ],
   },
   {
     title: 'System',
     items: [
-      { href: '/admin/audit', label: 'Audit log', permission: 'admin:view_audit_log' },
-      { href: '/admin/health', label: 'System health', permission: 'admin:manage_system' },
-      { href: '/admin/settings', label: 'Settings', permission: 'admin:manage_system' },
+      {
+        href: '/admin/audit',
+        label: 'Audit log',
+        permission: 'admin:view_audit_log',
+        icon: ClipboardList,
+      },
+      {
+        href: '/admin/health',
+        label: 'System health',
+        permission: 'admin:manage_system',
+        icon: Heart,
+      },
+      {
+        href: '/admin/settings',
+        label: 'Settings',
+        permission: 'admin:manage_system',
+        icon: Settings,
+      },
       {
         href: '/admin/settings/features',
         label: 'Features & commercial',
         permission: 'commercial:manage_features',
+        icon: ToggleRight,
       },
     ],
   },
 ];
 
-/** The sidebar as this role actually sees it. Empty groups disappear. */
 export function navFor(role: Role, nav: AdminGroup[] = ADMIN_NAV): AdminGroup[] {
   return nav
     .map((group) => ({

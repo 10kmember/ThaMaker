@@ -8,17 +8,6 @@ import { navFor, type AdminGroup } from '@/lib/admin-nav';
 import type { Role } from '@/lib/auth/rbac';
 import { cn } from '@/lib/utils';
 
-/**
- * The administration shell.
- *
- * A sidebar rather than the tab rail the other portals use, because the
- * institution has more surfaces than fit across a page — and because grouping
- * them says something the tabs could not: what PALMA is made of.
- *
- * On a phone the sidebar becomes a scrolling rail above the content rather
- * than a drawer. An administrator on a train should not have to open a menu to
- * find out where they are.
- */
 export function AdminShell({
   role,
   userName,
@@ -30,9 +19,7 @@ export function AdminShell({
   role: Role;
   userName: string;
   activeHref: string;
-  /** What this dashboard is called in its own masthead. */
   title?: string;
-  /** Which sidebar this surface carries. Defaults to the administration one. */
   nav?: AdminGroup[];
   children: React.ReactNode;
 }) {
@@ -61,17 +48,18 @@ export function AdminShell({
       <Container size="wide" className="py-8 lg:py-12">
         <div className="grid gap-10 lg:grid-cols-12 lg:gap-14">
           <nav aria-label="Administration" className="min-w-0 lg:col-span-3 xl:col-span-2">
-            <div className="flex gap-8 overflow-x-auto pb-4 lg:flex-col lg:overflow-visible lg:pb-0">
+            <div className="flex gap-8 overflow-x-auto pb-4 lg:flex-col lg:gap-6 lg:overflow-visible lg:pb-0">
               {groups.map((group) => (
                 <div key={group.title} className="min-w-max lg:min-w-0">
-                  <h2 className="palma-label text-taupe border-stone-deep border-b pb-2">
+                  <h2 className="palma-label text-taupe border-stone-deep border-b pb-2 text-[10px]">
                     {group.title}
                   </h2>
-                  <ul className="mt-3 flex gap-4 lg:flex-col lg:gap-0">
+                  <ul className="mt-2.5 flex gap-4 lg:flex-col lg:gap-0.5">
                     {group.items.map((item) => {
                       const active =
                         activeHref === item.href ||
                         (item.href !== '/admin' && activeHref.startsWith(`${item.href}/`));
+                      const Icon = item.icon;
 
                       return (
                         <li key={item.href}>
@@ -79,12 +67,21 @@ export function AdminShell({
                             href={item.href}
                             aria-current={active ? 'page' : undefined}
                             className={cn(
-                              'block py-1.5 text-sm whitespace-nowrap transition-colors lg:py-2',
+                              'flex items-center gap-2.5 rounded-sm py-1.5 text-sm whitespace-nowrap transition-colors lg:-ml-2 lg:py-2 lg:pr-3 lg:pl-2',
                               active
-                                ? 'text-ink border-ink font-medium lg:-ml-4 lg:border-l-2 lg:pl-4'
-                                : 'text-taupe-deep hover:text-ink',
+                                ? 'text-ink bg-stone/40 font-medium'
+                                : 'text-taupe-deep hover:text-ink hover:bg-stone/20',
                             )}
                           >
+                            {Icon ? (
+                              <Icon
+                                className={cn(
+                                  'hidden size-4 shrink-0 lg:block',
+                                  active ? 'text-ink' : 'text-taupe',
+                                )}
+                                strokeWidth={active ? 2 : 1.5}
+                              />
+                            ) : null}
                             {item.label}
                           </Link>
                         </li>

@@ -11,17 +11,10 @@ import {
   type CommercialState,
 } from '@/server/actions/commercial';
 import { PLACEMENT_LIST, placement as placementRule, type Placement } from '@/domain/sponsorship';
+import { Send, Loader2 } from 'lucide-react';
 
 const initial: CommercialState = { status: 'idle' };
 
-/**
- * Proposing a placement.
- *
- * The form follows the architecture: choose what they funded, and the target
- * field changes to match. A category partner names a category; an editorial
- * partner names an article; a principal partner names nothing, because they
- * are attached to the institution.
- */
 export function PlacementForm({
   sponsors,
   seasons,
@@ -48,34 +41,36 @@ export function PlacementForm({
         <Notice tone={state.status === 'error' ? 'error' : 'ceremonial'}>{state.message}</Notice>
       ) : null}
 
-      <Field htmlFor="sponsorId" label="Sponsor" required>
-        <Select id="sponsorId" name="sponsorId" required defaultValue="">
-          <option value="" disabled>
-            Choose a sponsor
-          </option>
-          {sponsors.map((sponsor) => (
-            <option key={sponsor.id} value={sponsor.id}>
-              {sponsor.name}
+      <div className="grid gap-6 sm:grid-cols-2">
+        <Field htmlFor="sponsorId" label="Sponsor" required>
+          <Select id="sponsorId" name="sponsorId" required defaultValue="">
+            <option value="" disabled>
+              Choose a sponsor
             </option>
-          ))}
-        </Select>
-      </Field>
+            {sponsors.map((sponsor) => (
+              <option key={sponsor.id} value={sponsor.id}>
+                {sponsor.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
 
-      <Field htmlFor="awardYearId" label="Season" required>
-        <Select
-          id="awardYearId"
-          name="awardYearId"
-          required
-          value={season}
-          onChange={(event) => setSeason(event.target.value)}
-        >
-          {seasons.map((entry) => (
-            <option key={entry.id} value={entry.id}>
-              {entry.title}
-            </option>
-          ))}
-        </Select>
-      </Field>
+        <Field htmlFor="awardYearId" label="Season" required>
+          <Select
+            id="awardYearId"
+            name="awardYearId"
+            required
+            value={season}
+            onChange={(event) => setSeason(event.target.value)}
+          >
+            {seasons.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {entry.title}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      </div>
 
       <Field
         htmlFor="placement"
@@ -97,9 +92,11 @@ export function PlacementForm({
         </Select>
       </Field>
 
-      <p className="text-taupe -mt-2 text-xs leading-relaxed">
-        {rule.buys} Appears on: {rule.appearsOn.join('; ').toLowerCase()}.
-      </p>
+      <div className="border-stone-deep/60 bg-stone/15 -mt-2 flex items-start gap-2 rounded-sm px-4 py-3">
+        <span className="text-taupe-deep text-xs leading-relaxed">
+          {rule.buys} Appears on: {rule.appearsOn.join('; ').toLowerCase()}.
+        </span>
+      </div>
 
       {kind === 'category' ? (
         <Field htmlFor="categoryId" label="Category" required>
@@ -155,19 +152,28 @@ export function PlacementForm({
       <Field
         htmlFor="attribution"
         label="How it reads"
-        hint={`Leave blank for “${rule.attribution} [Sponsor]”. The desk chooses the register, not the sponsor.`}
+        hint={`Leave blank for \u201c${rule.attribution} [Sponsor]\u201d. The desk chooses the register, not the sponsor.`}
       >
         <Input id="attribution" name="attribution" maxLength={60} placeholder={rule.attribution} />
       </Field>
 
       <Button type="submit" size="md" disabled={pending} className="self-start">
-        {pending ? 'Proposing…' : 'Propose this placement'}
+        {pending ? (
+          <>
+            <Loader2 className="mr-2 size-4 animate-spin" />
+            Proposing\u2026
+          </>
+        ) : (
+          <>
+            <Send className="mr-2 size-4" />
+            Propose this placement
+          </>
+        )}
       </Button>
     </form>
   );
 }
 
-/** Approving or removing one. Administration only — the page hides it otherwise. */
 export function PlacementDecision({
   sponsorshipId,
   name,
@@ -193,7 +199,7 @@ export function PlacementDecision({
 
       {approved ? null : (
         <Button type="submit" name="decision" value="approve" size="sm" disabled={pending}>
-          {pending ? 'Saving…' : 'Approve'}
+          {pending ? 'Saving\u2026' : 'Approve'}
         </Button>
       )}
       <Button

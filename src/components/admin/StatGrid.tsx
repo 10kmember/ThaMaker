@@ -1,35 +1,37 @@
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { ArrowUpRight } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 export type StatEntry = {
   label: string;
   value: number | string;
-  /** A quiet second line: a comparison, a qualifier, a warning. */
   note?: string;
   href?: string;
   tone?: 'default' | 'attention';
 };
 
-/**
- * The figure block.
- *
- * A number and its name, nothing else. No sparkline behind every stat, no
- * percentage badge invented from a comparison nobody asked for — the charts
- * are a page away and they are honest about their axis.
- */
-export function StatGrid({ title, stats }: { title: string; stats: StatEntry[] }) {
+export function StatGrid({
+  title,
+  stats,
+  icon: Icon,
+}: {
+  title: string;
+  stats: StatEntry[];
+  icon?: LucideIcon;
+}) {
   return (
     <section>
-      <h3 className="palma-label text-taupe-deep border-stone-deep border-b pb-3">{title}</h3>
+      <div className="border-stone-deep flex items-center gap-2.5 border-b pb-3">
+        {Icon ? <Icon className="text-taupe size-4 shrink-0" strokeWidth={1.5} /> : null}
+        <h3 className="palma-label text-taupe-deep">{title}</h3>
+      </div>
 
-      {/* The trailing column's rule is clipped rather than conditionally
-          removed: which cell ends a row depends on the breakpoint, and CSS
-          cannot ask "is this last in its row". */}
       <dl className="-mr-px grid grid-cols-2 overflow-hidden sm:grid-cols-3 lg:grid-cols-4">
         {stats.map((stat) => {
           const body = (
             <>
-              <dt className="palma-label text-taupe-deep">{stat.label}</dt>
+              <dt className="palma-label text-taupe-deep text-[10px]">{stat.label}</dt>
               <dd
                 className={cn(
                   'font-display mt-2 text-4xl tabular-nums',
@@ -50,9 +52,12 @@ export function StatGrid({ title, stats }: { title: string; stats: StatEntry[] }
             <Link
               key={stat.label}
               href={stat.href}
-              className="palma-row border-stone-deep/60 -mb-px flex min-w-0 flex-col border-r border-b py-5 pr-5 pl-5 first:pl-0"
+              className="palma-row group border-stone-deep/60 hover:bg-stone/15 -mb-px flex min-w-0 flex-col border-r border-b py-5 pr-5 pl-5 transition-colors first:pl-0"
             >
               {body}
+              <dd className="mt-2">
+                <ArrowUpRight className="text-taupe size-3.5 opacity-0 transition-opacity group-hover:opacity-100" />
+              </dd>
             </Link>
           ) : (
             <div
