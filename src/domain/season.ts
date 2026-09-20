@@ -35,7 +35,8 @@ export const PUBLIC_PHASES = [
 export type PublicPhase = (typeof PUBLIC_PHASES)[number]['key'];
 
 const STAGE_TO_PHASE_INDEX: Record<SeasonStage, number> = {
-  announced: 0,
+  // Announced is before the first public beat: nothing is in progress yet.
+  announced: -1,
   nominations_open: 0,
   nominations_closed: 1,
   shortlisting: 1,

@@ -35,6 +35,8 @@ describe('season stages', () => {
   });
 
   it('marks the public phase rail correctly', () => {
+    expect(phaseIndex('announced')).toBe(-1);
+    expect(phaseState('announced', 0)).toBe('upcoming');
     expect(phaseIndex('nominations_open')).toBe(0);
     expect(phaseState('nominations_open', 0)).toBe('current');
     expect(phaseState('nominations_open', 1)).toBe('upcoming');

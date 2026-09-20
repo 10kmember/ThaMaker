@@ -3,7 +3,7 @@ import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
 import { sql } from '@/server/db/sql';
 import type { SeasonStage } from '@/domain/season';
-import { finalistsArePublic, winnersArePublic } from '@/domain/season';
+import { acceptsNominations, finalistsArePublic, winnersArePublic } from '@/domain/season';
 import {
   honourCategoryName,
   honourCategorySlug,
@@ -194,7 +194,9 @@ export const listCategories = publicData('categories', async (year: number): Pro
     description: row.description,
     eligibility: row.eligibility,
     judgingCriteria: row.judgingCriteria,
-    isOpen: row.isOpen,
+    // A category is only open while the season itself is accepting nominations;
+    // the category flag alone must never outrank the season stage.
+    isOpen: row.isOpen && acceptsNominations(row.stage as SeasonStage),
     position: row.position,
     year: row.year,
     stage: row.stage as SeasonStage,
