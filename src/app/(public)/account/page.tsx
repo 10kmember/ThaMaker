@@ -1,7 +1,16 @@
-import Link from 'next/link';
 import { PortalShell } from '@/components/palma/PortalShell';
-import { Button } from '@/components/ui/button';
-import { Notice } from '@/components/ui/feedback';
+import {
+  Card,
+  List,
+  Row,
+  RowText,
+  Facts,
+  Empty,
+  Tag,
+  Glyph,
+  Action,
+} from '@/components/desk/surface';
+import { PageHead, Section, Panel } from '@/components/desk/blocks';
 import {
   ChangeEmailForm,
   ChangePasswordForm,
@@ -15,6 +24,18 @@ import { sql } from '@/server/db/sql';
 import { formatShortDate } from '@/lib/format';
 import { titleCase } from '@/lib/utils';
 import { CONTACTS } from '@/lib/legal';
+import {
+  Settings,
+  KeyRound,
+  Mail,
+  Monitor,
+  UserX,
+  Inbox,
+  LayoutDashboard,
+  ShieldAlert,
+  Trash2,
+  MessageSquare,
+} from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,9 +106,11 @@ export default async function AccountPage() {
   if (!user) {
     return (
       <PortalShell title="PALMA Account" session={session} desk="creator">
-        <Notice tone="warning" title="Account not found">
-          Sign out and in again.
-        </Notice>
+        <Empty
+          icon={UserX}
+          title="Account not found"
+          description="This account could not be loaded. Sign out and in again, or contact PALMA."
+        />
       </PortalShell>
     );
   }
@@ -96,110 +119,123 @@ export default async function AccountPage() {
 
   return (
     <PortalShell title="PALMA Account" subtitle="Your account" session={session} desk="creator">
-      <div className="flex flex-wrap items-start justify-between gap-6">
-        <p className="text-taupe-deep max-w-160 leading-relaxed">
-          Your sign-in, your address and your sessions. Your <em>record</em>, how you are described
-          and what PALMA says happened, lives in your portal.
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <Button asChild variant="outline" size="sm">
-            <Link href="/dossier">Your Dossier</Link>
-          </Button>
-          <Button asChild variant="outline" size="sm">
-            <Link href={homeForRole(session.user.role)}>Your portal</Link>
-          </Button>
-        </div>
-      </div>
+      <div className="flex flex-col gap-6">
+        <PageHead
+          eyebrow="Account"
+          eyebrowIcon={Settings}
+          title="Your sign-in and your sessions"
+          statement={
+            <>
+              Your sign-in, your address and your sessions. Your <em>record</em>, how you are
+              described and what PALMA says happened, lives in your portal.
+            </>
+          }
+          aside={<Tag>{titleCase(user.role.replace('_', ' '))}</Tag>}
+        >
+          <Action href="/dossier" icon={Inbox}>
+            Your Dossier
+          </Action>
+          <Action href={homeForRole(session.user.role)} icon={LayoutDashboard}>
+            Your portal
+          </Action>
+        </PageHead>
 
-      <dl className="border-stone-deep mt-10 grid gap-x-10 gap-y-5 border-y py-8 sm:grid-cols-2 lg:grid-cols-4">
-        {(
-          [
-            ['Name', user.name],
-            ['Address', user.email],
-            ['Role', titleCase(user.role.replace('_', ' '))],
-            ['Member since', formatShortDate(user.createdAt)],
-          ] as const
-        ).map(([term, value]) => (
-          <div key={term} className="flex min-w-0 flex-col gap-1">
-            <dt className="palma-label text-taupe-deep">{term}</dt>
-            <dd className="text-sm break-all">{value}</dd>
+        <Card className="glow overflow-hidden" data-lift="list">
+          <Facts
+            items={[
+              { term: 'Name', value: user.name },
+              { term: 'Address', value: user.email },
+              { term: 'Role', value: titleCase(user.role.replace('_', ' ')) },
+              { term: 'Member since', value: formatShortDate(user.createdAt) },
+            ]}
+          />
+        </Card>
+
+        <div className="grid gap-5 xl:grid-cols-12">
+          <div className="flex min-w-0 flex-col gap-5 xl:col-span-7">
+            <Section
+              icon={KeyRound}
+              title="Password"
+              note="Changing it signs out every other session but this one. Your current password is required even though you are signed in: a borrowed unlocked laptop proves possession too, and this is the control that stops it becoming a stolen account."
+            >
+              <ChangePasswordForm />
+            </Section>
+
+            <Section
+              icon={Mail}
+              title="Email address"
+              note="The new address confirms before anything moves, and the old one is told it was asked for. Losing an inbox should not silently lose you the account."
+            >
+              <ChangeEmailForm current={user.email} />
+            </Section>
+
+            <Section icon={Trash2} title="Closing your account">
+              <CloseAccountForm heldRecord={user.creator?.displayName ?? null} />
+            </Section>
           </div>
-        ))}
-      </dl>
 
-      <div className="mt-14 grid gap-14 lg:grid-cols-12 lg:gap-16">
-        <div className="flex min-w-0 flex-col gap-14 lg:col-span-7">
-          <section>
-            <h2 className="palma-label text-taupe-deep mb-2">Password</h2>
-            <p className="text-taupe-deep mb-6 max-w-140 text-sm leading-relaxed">
-              Changing it signs out every other session but this one. Your current password is
-              required even though you are signed in, a borrowed unlocked laptop proves possession
-              too, and this is the control that stops it becoming a stolen account.
-            </p>
-            <ChangePasswordForm />
-          </section>
+          <aside className="flex min-w-0 flex-col gap-5 xl:col-span-5">
+            <section data-lift="section">
+              <div className="mb-4 flex flex-wrap items-center gap-3">
+                <Glyph icon={Monitor} size="sm" />
+                <h2 className="font-display text-[1.0625rem] tracking-tight text-[color:var(--text)]">
+                  Sessions
+                </h2>
+                <span
+                  className="hidden h-px min-w-6 flex-1 bg-[color:var(--line)] sm:block"
+                  aria-hidden
+                />
+                <Tag>{sessions.length}</Tag>
+              </div>
+              <p className="mb-3 text-[0.8125rem] leading-relaxed text-[color:var(--text-quiet)]">
+                {sessions.length === 1
+                  ? 'This is your only signed-in session.'
+                  : `${sessions.length} sessions are signed in, including this one.`}
+              </p>
+              <List className="glow" data-lift="list">
+                {sessions.slice(0, 6).map((row) => (
+                  <Row key={row.id}>
+                    <Glyph
+                      icon={Monitor}
+                      size="sm"
+                      tone={row.id === session.sessionId ? 'positive' : 'neutral'}
+                    />
+                    <RowText
+                      title={row.userAgent ? row.userAgent.slice(0, 48) : 'Unknown device'}
+                      note={`Since ${formatShortDate(row.createdAt)}`}
+                      noteFromSm
+                    />
+                    {row.id === session.sessionId ? (
+                      <Tag tone="positive" className="ml-auto">
+                        This one
+                      </Tag>
+                    ) : null}
+                  </Row>
+                ))}
+              </List>
+              <div className="mt-3">
+                <RevokeSessionsForm others={others} />
+              </div>
+            </section>
 
-          <section>
-            <h2 className="palma-label text-taupe-deep mb-2">Email address</h2>
-            <p className="text-taupe-deep mb-6 max-w-140 text-sm leading-relaxed">
-              The new address confirms before anything moves, and the old one is told it was asked
-              for. Losing an inbox should not silently lose you the account.
-            </p>
-            <ChangeEmailForm current={user.email} />
-          </section>
-
-          <section>
-            <h2 className="palma-label text-taupe-deep mb-2">Closing your account</h2>
-            <CloseAccountForm heldRecord={user.creator?.displayName ?? null} />
-          </section>
-        </div>
-
-        <aside className="flex min-w-0 flex-col gap-10 lg:col-span-5">
-          <section className="border-stone-deep border p-7">
-            <h2 className="palma-label text-taupe-deep mb-4">Sessions</h2>
-            <p className="text-taupe-deep mb-5 text-sm leading-relaxed">
-              {sessions.length === 1
-                ? 'This is your only signed-in session.'
-                : `${sessions.length} sessions are signed in, including this one.`}
-            </p>
-            <ul className="mb-6 flex flex-col">
-              {sessions.slice(0, 6).map((row) => (
-                <li
-                  key={row.id}
-                  className="border-stone-deep/60 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b py-3 text-sm last:border-none"
-                >
-                  <span className="text-taupe-deep min-w-0 truncate">
-                    {row.userAgent ? row.userAgent.slice(0, 48) : 'Unknown device'}
-                  </span>
-                  <span className="palma-label text-taupe">
-                    {row.id === session.sessionId ? 'This one' : formatShortDate(row.createdAt)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-            <RevokeSessionsForm others={others} />
-          </section>
-
-          <section className="border-stone-deep border p-7">
-            <h2 className="palma-label text-taupe-deep mb-4">Two-factor authentication</h2>
-            <p className="text-taupe-deep text-sm leading-relaxed">
+            <Panel icon={ShieldAlert} title="Two-factor authentication">
               Not offered yet. When it is, it will be required for accounts that can confer or
               revoke an honour rather than merely suggested, and PALMA would rather say that plainly
               than show a switch that does nothing.
-            </p>
-          </section>
+            </Panel>
 
-          <section className="border-stone-deep border p-7">
-            <h2 className="palma-label text-taupe-deep mb-4">Something else</h2>
-            <p className="text-taupe-deep text-sm leading-relaxed">
+            <Panel icon={MessageSquare} title="Something else">
               A correction to the record, an appeal, or anything a form cannot settle:{' '}
-              <a href={`mailto:${CONTACTS.general}`} className="palma-link text-ink">
+              <a
+                href={`mailto:${CONTACTS.general}`}
+                className="tap font-medium text-[color:var(--accent)] underline-offset-4 hover:underline"
+              >
                 {CONTACTS.general}
               </a>
               . A person reads it.
-            </p>
-          </section>
-        </aside>
+            </Panel>
+          </aside>
+        </div>
       </div>
     </PortalShell>
   );

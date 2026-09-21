@@ -214,8 +214,13 @@
      almost solid at rest, and as the document scrolls under it the veil
      thickens and the blur comes up, so what passes beneath dissolves instead
      of colliding with the type on top of it. */
+  /* The rest state is the page's own surface, flat and opaque. It is
+     deliberately not a `color-mix()`: Chromium interpolates a scroll-driven
+     `background-color` out of a mixed colour into nonsense oklab, and the bar
+     turned bright yellow halfway down the page. Two plain colours interpolate
+     correctly. */
   .desk-chrome {
-    background: color-mix(in srgb, var(--surface-0) 94%, transparent);
+    background-color: var(--surface-0);
     border-bottom: 1px solid transparent;
     transition:
       background-color 0.4s var(--settle),

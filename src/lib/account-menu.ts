@@ -25,7 +25,9 @@ export function accountLinks({
 }): AccountLink[] {
   const links: AccountLink[] = [];
 
-  if (creatorId || role === 'creator') {
+  // On the creator desk these are sections of the desk itself and appear
+  // above, so listing them here as well would say everything twice.
+  if ((creatorId || role === 'creator') && desk !== 'creator') {
     links.push({ key: 'profile', href: '/creator/profile', label: 'Your profile' });
     links.push({ key: 'verification', href: '/creator/verification', label: 'Verification' });
   }

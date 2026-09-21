@@ -484,3 +484,63 @@ export function RowText({
     </span>
   );
 }
+
+/**
+ * A value meant to be copied: a URL, a verification code.
+ *
+ * Monospace, on the page's own recessed step, and it wraps rather than
+ * truncating, because half a URL is worse than a long one. The copy control
+ * is passed in, since it owns clipboard state and has to be a client
+ * component.
+ */
+export function Snippet({
+  value,
+  action,
+  className,
+}: {
+  value: string;
+  action?: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <p
+      className={cn(
+        'flex items-center gap-2 rounded-[0.625rem] px-3 py-2.5',
+        'bg-[color:var(--surface-0)] ring-1 ring-[color:var(--line)] ring-inset',
+        'font-mono text-[0.75rem] break-all text-[color:var(--text-soft)]',
+        className,
+      )}
+    >
+      <span className="min-w-0 break-all">{value}</span>
+      {action ? <span className="ml-auto shrink-0">{action}</span> : null}
+    </p>
+  );
+}
+
+/**
+ * A list of term-and-value pairs, as rows in a card.
+ *
+ * The pattern that a settings page is almost entirely made of. It renders a
+ * real `<dl>`, so a screen reader reads it as the pairs it is, and the value
+ * is allowed to wrap where the term never is.
+ */
+export function Facts({
+  items,
+  className,
+}: {
+  items: { term: string; value: React.ReactNode }[];
+  className?: string;
+}) {
+  return (
+    <dl className={cn('list', className)}>
+      {items.map((entry) => (
+        <div key={entry.term} className="row gap-4 py-2.5">
+          <dt className="shrink-0 text-[0.8125rem] text-[color:var(--text-quiet)]">{entry.term}</dt>
+          <dd className="ml-auto min-w-0 text-right text-[0.8125rem] break-words text-[color:var(--text)]">
+            {entry.value}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}

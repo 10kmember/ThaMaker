@@ -39,38 +39,72 @@ export function DeskChoreography({ children }: { children: React.ReactNode }) {
       const above = gsap.utils.toArray<HTMLElement>('[data-lift="hero"]');
       const figures = gsap.utils.toArray<HTMLElement>('[data-lift="figure"]');
 
-      gsap
-        .timeline({ defaults: { ease: 'power3.out' } })
-        .from(above, { y: 18, opacity: 0, duration: 0.7, stagger: 0.06 })
-        .from(figures, { y: 14, opacity: 0, duration: 0.55, stagger: 0.045 }, '-=0.42');
+      // Guarded: GSAP warns on an empty target list, and a desk that happens
+      // to have no figures is a normal page, not a mistake.
+      const opening = gsap.timeline({ defaults: { ease: 'power3.out' } });
+      if (above.length) opening.from(above, { y: 18, opacity: 0, duration: 0.7, stagger: 0.06 });
+      if (figures.length) {
+        opening.from(figures, { y: 14, opacity: 0, duration: 0.55, stagger: 0.045 }, '-=0.42');
+      }
 
       // Sections below the fold arrive as they are reached. `once` matters: a
       // desk is scrolled up and down all day and re-animating on every pass
       // would be exhausting.
+      //
+      // `fromTo` with `immediateRender: false` rather than `from`, and the
+      // distinction is not stylistic. `from` hides the element the instant the
+      // tween is created and waits for the trigger to bring it back, so a
+      // trigger that never fires — a mismeasured page, a resize during load, a
+      // long form that lays out after ScrollTrigger has taken its readings —
+      // leaves the section permanently invisible. Two whole sections of the
+      // preference centre were being lost that way. Nothing is touched here
+      // until the trigger actually runs, so the worst case is a page that
+      // simply does not animate.
       gsap.utils.toArray<HTMLElement>('[data-lift="section"]').forEach((section) => {
-        gsap.from(section, {
-          y: 20,
-          opacity: 0,
-          duration: 0.6,
-          ease: 'power3.out',
-          scrollTrigger: { trigger: section, start: 'top 88%', once: true },
-        });
+        gsap.fromTo(
+          section,
+          { y: 20, opacity: 0 },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 0.6,
+            ease: 'power3.out',
+            immediateRender: false,
+            scrollTrigger: { trigger: section, start: 'top 92%', once: true },
+          },
+        );
       });
 
       // Rows inside a list cascade, so a long list reads as filling rather than
       // as appearing.
       gsap.utils.toArray<HTMLElement>('[data-lift="list"]').forEach((list) => {
-        gsap.from(list.querySelectorAll(':scope > *'), {
-          opacity: 0,
-          x: -10,
-          duration: 0.45,
-          ease: 'power2.out',
-          stagger: 0.035,
-          scrollTrigger: { trigger: list, start: 'top 90%', once: true },
-        });
+        const rows = list.querySelectorAll(':scope > *');
+        if (!rows.length) return;
+        gsap.fromTo(
+          rows,
+          { opacity: 0, x: -10 },
+          {
+            opacity: 1,
+            x: 0,
+            duration: 0.45,
+            ease: 'power2.out',
+            stagger: 0.035,
+            immediateRender: false,
+            scrollTrigger: { trigger: list, start: 'top 94%', once: true },
+          },
+        );
       });
 
+      // Forms and web fonts settle after the first measurement, which moves
+      // every trigger below them. Without a second reading a section can sit
+      // just under its own start point and never play.
+      const remeasure = () => ScrollTrigger.refresh();
+      window.addEventListener('load', remeasure);
+      if (document.fonts?.ready) void document.fonts.ready.then(remeasure);
+
       ScrollTrigger.refresh();
+
+      return () => window.removeEventListener('load', remeasure);
     },
     [],
   );
