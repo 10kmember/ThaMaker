@@ -194,7 +194,7 @@ export async function uploadPortrait(
   return {
     status: 'success',
     message:
-      'It is on your record now. PALMA re-encoded it and discarded every scrap of metadata that came with it, including the location a phone writes into a photograph.',
+      'It is on your record. PALMA re-encoded it and stripped every trace of metadata, including the location a phone writes into a photograph.',
   };
 }
 

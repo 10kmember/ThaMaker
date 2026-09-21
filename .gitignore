@@ -29,3 +29,6 @@ npm-debug.log*
 next-env.d.ts
 prisma/dev.db*
 *.tsbuildinfo
+
+# Local screenshot output from the design preview route.
+.design-shots/

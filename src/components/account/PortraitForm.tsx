@@ -52,11 +52,10 @@ export function PortraitForm({ standing, name }: { standing: PortraitStanding; n
   return (
     <div className="flex flex-col gap-6">
       <Notice tone="warning" title="No nudes">
-        Your portrait goes straight onto your record — nobody approves it first, so read this before
-        you choose a file. It has to be safe for every audience: no nudity, nothing sexual, nothing
-        explicit. PALMA honours adult creators and is not an adult site, and the difference is held
-        here. Anything that crosses it is taken down and deleted, and doing it on purpose is grounds
-        for losing the account.
+        Your portrait publishes straight to your record with nobody approving it first, so choose
+        carefully. It must be safe for every audience: no nudity, nothing sexual, nothing explicit.
+        PALMA honours adult creators but is not an adult site. Anything that crosses the line is
+        deleted, and doing it deliberately costs you the account.
       </Notice>
 
       {state.status !== 'idle' && state.message ? (

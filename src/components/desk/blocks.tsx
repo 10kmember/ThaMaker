@@ -1,6 +1,18 @@
 import type { LucideIcon } from 'lucide-react';
 import { ArrowUpRight, ChevronRight } from 'lucide-react';
-import { Card, CardLink, Glyph, Label, Tag, Meter, Ring, Kinetic, Row, RowText } from './surface';
+import {
+  Card,
+  CardLink,
+  Glyph,
+  Label,
+  Tag,
+  Meter,
+  Ring,
+  Kinetic,
+  Row,
+  RowText,
+  SectionHead,
+} from './surface';
 import { Counter } from './motion';
 import { Reactive } from './choreography';
 import { cn } from '@/lib/utils';
@@ -336,3 +348,89 @@ export function Stream({
 }
 
 export { Tag };
+
+/**
+ * The header for a page inside a desk.
+ *
+ * Lighter than the masthead on purpose. The masthead carries the travelling
+ * beam and the big figure because it answers the question the reader arrived
+ * with; a sub-page is somewhere they have already chosen to be, so it states
+ * what it is, says what the page will do to their record, and gets out of the
+ * way. The status a page turns on, where it has one, sits on the right.
+ */
+export function PageHead({
+  eyebrow,
+  eyebrowIcon,
+  title,
+  statement,
+  aside,
+  children,
+}: {
+  eyebrow: string;
+  eyebrowIcon: LucideIcon;
+  title: string;
+  statement?: React.ReactNode;
+  /** A status tag, or anything else that belongs opposite the title. */
+  aside?: React.ReactNode;
+  children?: React.ReactNode;
+}) {
+  return (
+    <Card elevation="raised" className="glow p-5 sm:p-6" data-lift="hero">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex min-w-0 flex-col gap-2">
+          <Label icon={eyebrowIcon} className="text-[color:var(--accent)]">
+            {eyebrow}
+          </Label>
+          <h1 className="font-display text-[1.5rem] leading-tight tracking-tight text-balance text-[color:var(--text)] sm:text-[1.875rem]">
+            {title}
+          </h1>
+          {statement ? (
+            <p className="max-w-[60ch] text-[0.875rem] leading-relaxed text-[color:var(--text-soft)]">
+              {statement}
+            </p>
+          ) : null}
+        </div>
+        {aside ? <div className="shrink-0">{aside}</div> : null}
+      </div>
+      {children ? <div className="mt-4 flex flex-wrap items-center gap-2">{children}</div> : null}
+    </Card>
+  );
+}
+
+/**
+ * A page section: a heading, and a card holding whatever the section is.
+ *
+ * Most sub-pages are a stack of these, which is what keeps them looking like
+ * the desk they belong to rather than like a form somebody dropped in.
+ */
+export function Section({
+  icon,
+  title,
+  note,
+  action,
+  children,
+  bare,
+  className,
+}: {
+  icon: LucideIcon;
+  title: string;
+  /** A line under the heading, before the card. */
+  note?: React.ReactNode;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+  /** Skip the card, for content that brings its own surfaces. */
+  bare?: boolean;
+  className?: string;
+}) {
+  return (
+    <section data-lift="section" className={className}>
+      <SectionHead icon={icon} title={title} action={action} />
+      {note ? (
+        <p className="mb-3 max-w-[68ch] text-[0.8125rem] leading-relaxed text-[color:var(--text-quiet)]">
+          {note}
+        </p>
+      ) : null}
+      {bare ? children : <Card className="glow p-4 sm:p-5">{children}</Card>}
+    </section>
+  );
+}

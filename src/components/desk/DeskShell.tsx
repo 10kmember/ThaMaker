@@ -37,6 +37,16 @@ export const ROLE_LABEL: Record<Role, string> = {
   super_admin: 'Super administrator',
 };
 
+/** Maps a desk section's path to the icon key the account menu looks up. */
+function sectionKey(href: string) {
+  const tail = href.split('?')[0]?.split('/').filter(Boolean) ?? [];
+  if (tail.length <= 1) return 'overview';
+  const last = tail[tail.length - 1] ?? '';
+  if (last === 'account') return 'judge-account';
+  if (last === 'share') return 'links';
+  return last;
+}
+
 function isActive(activeHref: string, href: string, roots: string[]) {
   if (activeHref === href) return true;
   // A root ("/admin", "/portal") must not light up for every page beneath it,
@@ -139,7 +149,7 @@ export function DeskShell({
             </nav>
           ) : null}
 
-          <div className={cn('flex items-center gap-2', layout === 'rail' && 'ml-auto')}>
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             {search}
             <ProfileMenu
               name={account.name}
@@ -147,6 +157,16 @@ export function DeskShell({
               roleLabel={ROLE_LABEL[account.role]}
               verified={account.verified}
               links={account.links}
+              sections={
+                layout === 'seg'
+                  ? flat.map((entry) => ({
+                      key: sectionKey(entry.href),
+                      href: entry.href,
+                      label: entry.label,
+                      active: isActive(active, entry.href, roots),
+                    }))
+                  : undefined
+              }
               signOut={
                 <form action={signOut}>
                   <button type="submit">
@@ -156,9 +176,10 @@ export function DeskShell({
               }
             />
 
-            {/* The hamburger sits outermost, in the corner, and is the last
-                thing in the row on every screen it appears on. */}
-            {flat.length > 0 ? (
+            {/* Only where there is a rail to replace. A desk with four
+                destinations keeps them in the account menu, so the corner
+                holds one control rather than two. */}
+            {layout === 'rail' && flat.length > 0 ? (
               <MobileNav label={desk}>
                 {(nav ?? []).map((group, groupIndex) => (
                   <MobileNavGroup
